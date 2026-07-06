@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ResourceTable, StatusBadgeText, type Column } from "@/components/resource-table";
+import { RowActionsMenu } from "@/components/row-actions-menu";
 import { useResourceList } from "@/hooks/use-resource-list";
 import { useSession } from "@/hooks/use-session";
 import { api, ApiError, type ListResponse } from "@/lib/api";
@@ -221,24 +222,22 @@ export default function RolesPage() {
         renderActions={
           canUpdate || canDelete
             ? (row) => (
-                <>
-                  {canUpdate && (
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(row)} aria-label="Edit">
-                      <Pencil className="size-4" />
-                    </Button>
-                  )}
-                  {canDelete && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      disabled={row.isSystem || (row._count?.systemUsers ?? 0) > 0}
-                      onClick={() => setDeleteTarget(row)}
-                      aria-label="Delete"
-                    >
-                      <Trash2 className="size-4 text-destructive" />
-                    </Button>
-                  )}
-                </>
+                <RowActionsMenu
+                  actions={[
+                    ...(canUpdate ? [{ label: "Edit", icon: Pencil, onClick: () => openEdit(row) }] : []),
+                    ...(canDelete
+                      ? [
+                          {
+                            label: "Delete",
+                            icon: Trash2,
+                            onClick: () => setDeleteTarget(row),
+                            disabled: row.isSystem || (row._count?.systemUsers ?? 0) > 0,
+                            destructive: true,
+                          },
+                        ]
+                      : []),
+                  ]}
+                />
               )
             : undefined
         }

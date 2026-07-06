@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ResourceTable, StatusBadgeText, type Column } from "@/components/resource-table";
+import { RowActionsMenu } from "@/components/row-actions-menu";
 import { useResourceList } from "@/hooks/use-resource-list";
 import { useSession } from "@/hooks/use-session";
 import { api, ApiError, type ListResponse } from "@/lib/api";
@@ -275,42 +276,39 @@ export default function TenantTaxTypesPage() {
         }
         renderActions={
           canUpdate || canDelete || canRestore
-            ? (row) =>
-                row.status === "DELETED" ? (
-                  canRestore && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      disabled={restoringId === row.id}
-                      onClick={() => onRestore(row)}
-                      aria-label="Restore"
-                    >
-                      {restoringId === row.id ? (
-                        <LoaderCircle className="size-4 animate-spin" />
-                      ) : (
-                        <RotateCcw className="size-4" />
-                      )}
-                    </Button>
-                  )
-                ) : (
-                  <>
-                    {canUpdate && (
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(row)} aria-label="Edit">
-                        <Pencil className="size-4" />
-                      </Button>
-                    )}
-                    {canDelete && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setDeleteTarget(row)}
-                        aria-label="Delete"
-                      >
-                        <Trash2 className="size-4 text-destructive" />
-                      </Button>
-                    )}
-                  </>
-                )
+            ? (row) => (
+                <RowActionsMenu
+                  actions={
+                    row.status === "DELETED"
+                      ? canRestore
+                        ? [
+                            {
+                              label: "Restore",
+                              icon: RotateCcw,
+                              onClick: () => onRestore(row),
+                              loading: restoringId === row.id,
+                              disabled: restoringId === row.id,
+                            },
+                          ]
+                        : []
+                      : [
+                          ...(canUpdate
+                            ? [{ label: "Edit", icon: Pencil, onClick: () => openEdit(row) }]
+                            : []),
+                          ...(canDelete
+                            ? [
+                                {
+                                  label: "Delete",
+                                  icon: Trash2,
+                                  onClick: () => setDeleteTarget(row),
+                                  destructive: true,
+                                },
+                              ]
+                            : []),
+                        ]
+                  }
+                />
+              )
             : undefined
         }
       />

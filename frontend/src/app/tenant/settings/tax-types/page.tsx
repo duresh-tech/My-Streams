@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ResourceTable, StatusBadgeText, type Column } from "@/components/resource-table";
+import { RowActionsMenu } from "@/components/row-actions-menu";
 import { useResourceList } from "@/hooks/use-resource-list";
 import { useTenantSession } from "@/hooks/use-tenant-session";
 import { TenantApiError, tenantApi } from "@/lib/tenant-api";
@@ -210,23 +211,21 @@ export default function TenantTaxTypesPage() {
         renderActions={
           canUpdate || canDelete
             ? (row) => (
-                <>
-                  {canUpdate && (
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(row)} aria-label="Edit">
-                      <Pencil className="size-4" />
-                    </Button>
-                  )}
-                  {canDelete && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setDeleteTarget(row)}
-                      aria-label="Delete"
-                    >
-                      <Trash2 className="size-4 text-destructive" />
-                    </Button>
-                  )}
-                </>
+                <RowActionsMenu
+                  actions={[
+                    ...(canUpdate ? [{ label: "Edit", icon: Pencil, onClick: () => openEdit(row) }] : []),
+                    ...(canDelete
+                      ? [
+                          {
+                            label: "Delete",
+                            icon: Trash2,
+                            onClick: () => setDeleteTarget(row),
+                            destructive: true,
+                          },
+                        ]
+                      : []),
+                  ]}
+                />
               )
             : undefined
         }

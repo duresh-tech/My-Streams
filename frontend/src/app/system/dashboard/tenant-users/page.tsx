@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ResourceTable, StatusBadgeText, type Column } from "@/components/resource-table";
+import { RowActionsMenu } from "@/components/row-actions-menu";
 import { useResourceList } from "@/hooks/use-resource-list";
 import { useSession } from "@/hooks/use-session";
 import { api, ApiError, type ListResponse } from "@/lib/api";
@@ -222,38 +223,32 @@ export default function TenantUsersPage() {
         renderActions={
           canUpdate || canDelete || canLoginAs
             ? (row) => (
-                <>
-                  {canLoginAs && row.status === "ACTIVE" && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      disabled={loggingInAsId === row.id}
-                      onClick={() => onLoginAs(row)}
-                      aria-label="Login as"
-                    >
-                      {loggingInAsId === row.id ? (
-                        <LoaderCircle className="size-4 animate-spin" />
-                      ) : (
-                        <LogIn className="size-4" />
-                      )}
-                    </Button>
-                  )}
-                  {canUpdate && (
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(row)} aria-label="Edit">
-                      <Pencil className="size-4" />
-                    </Button>
-                  )}
-                  {canDelete && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setDeleteTarget(row)}
-                      aria-label="Delete"
-                    >
-                      <Trash2 className="size-4 text-destructive" />
-                    </Button>
-                  )}
-                </>
+                <RowActionsMenu
+                  actions={[
+                    ...(canLoginAs && row.status === "ACTIVE"
+                      ? [
+                          {
+                            label: "Login as",
+                            icon: LogIn,
+                            onClick: () => onLoginAs(row),
+                            loading: loggingInAsId === row.id,
+                            disabled: loggingInAsId === row.id,
+                          },
+                        ]
+                      : []),
+                    ...(canUpdate ? [{ label: "Edit", icon: Pencil, onClick: () => openEdit(row) }] : []),
+                    ...(canDelete
+                      ? [
+                          {
+                            label: "Delete",
+                            icon: Trash2,
+                            onClick: () => setDeleteTarget(row),
+                            destructive: true,
+                          },
+                        ]
+                      : []),
+                  ]}
+                />
               )
             : undefined
         }
