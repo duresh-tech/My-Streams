@@ -28,6 +28,7 @@ const MODULES: Array<{ module: string; label: string; actions: string[] }> = [
   { module: 'permissions', label: 'Permissions', actions: ['create', 'read', 'update', 'delete'] },
   { module: 'roles', label: 'Roles', actions: ['create', 'read', 'update', 'delete'] },
   { module: 'system-users', label: 'System Users', actions: ['create', 'read', 'update', 'delete'] },
+  { module: 'tenant-users', label: 'Tenant Users', actions: ['create', 'read', 'update', 'delete'] },
   { module: 'uploads', label: 'Uploads', actions: ['create'] },
 ];
 

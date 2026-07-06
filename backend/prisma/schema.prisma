@@ -70,6 +70,7 @@ model Role {
 
   rolePermissions RolePermission[]
   systemUsers     SystemUser[]
+  tenantUsers     TenantUser[]
 
   @@index([status])
   @@map("roles")
@@ -106,6 +107,26 @@ model SystemUser {
   @@index([status])
   @@index([roleId])
   @@map("system_users")
+}
+
+model TenantUser {
+  id           String     @id @db.Char(36) // UUIDv7
+  systemCode   String     @unique @db.VarChar(30)
+  fName        String     @db.VarChar(100)
+  username     String     @unique @db.VarChar(50)
+  email        String     @unique @db.VarChar(191)
+  passwordHash String     @db.VarChar(255) // Argon2id
+  roleId       String     @db.Char(36) // Must reference a role with visibleToTenants=true
+  status       UserStatus @default(ACTIVE)
+  createdAt    BigInt
+  updatedAt    BigInt
+  deletedAt    BigInt?
+
+  role Role @relation(fields: [roleId], references: [id])
+
+  @@index([status])
+  @@index([roleId])
+  @@map("tenant_users")
 }
 
 model RefreshToken {

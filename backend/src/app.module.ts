@@ -9,6 +9,7 @@ import { AuthModule } from './auth/auth.module';
 import { PermissionsModule } from './permissions/permissions.module';
 import { RolesModule } from './roles/roles.module';
 import { SystemUsersModule } from './system-users/system-users.module';
+import { TenantUsersModule } from './tenant-users/tenant-users.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
@@ -35,6 +36,7 @@ import { DeviceHeaderGuard } from './common/guards/device-header.guard';
     PermissionsModule,
     RolesModule,
     SystemUsersModule,
+    TenantUsersModule,
     DashboardModule,
     UploadsModule,
   ],
