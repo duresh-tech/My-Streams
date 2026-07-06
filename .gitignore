@@ -5,3 +5,9 @@ Thumbs.db
 
 # Claude Code local machine settings (not shared)
 .claude/settings.local.json
+
+# graphify: generated/derived knowledge graph, local cache, and machine-
+# specific interpreter/root paths. Regenerate with `/graphify .` — don't
+# commit (large, goes stale on every code change, and cost.json/manifest.json
+# track purely local usage).
+graphify-out/
