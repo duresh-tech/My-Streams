@@ -11,6 +11,7 @@ import { RolesModule } from './roles/roles.module';
 import { SystemUsersModule } from './system-users/system-users.module';
 import { TenantUsersModule } from './tenant-users/tenant-users.module';
 import { TenantBusinessModule } from './tenant-business/tenant-business.module';
+import { TenantMappedBusinessModule } from './tenant-mapped-business/tenant-mapped-business.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
@@ -39,6 +40,7 @@ import { DeviceHeaderGuard } from './common/guards/device-header.guard';
     SystemUsersModule,
     TenantUsersModule,
     TenantBusinessModule,
+    TenantMappedBusinessModule,
     DashboardModule,
     UploadsModule,
   ],

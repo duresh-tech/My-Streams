@@ -122,7 +122,8 @@ model TenantUser {
   updatedAt    BigInt
   deletedAt    BigInt?
 
-  role Role @relation(fields: [roleId], references: [id])
+  role             Role                   @relation(fields: [roleId], references: [id])
+  mappedBusinesses TenantMappedBusiness[]
 
   @@index([status])
   @@index([roleId])
@@ -158,10 +159,39 @@ model TenantBusiness {
   updatedAt        BigInt
   deletedAt        BigInt?
 
+  mappedTenantUsers TenantMappedBusiness[]
+
   @@index([status])
   @@index([country])
   @@index([isParentBusiness])
   @@map("tenant_business")
+}
+
+enum TenantMappedBusinessStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+  DELETED
+}
+
+model TenantMappedBusiness {
+  id               String                     @id @db.Char(36) // UUIDv7
+  systemCode       String                     @unique @db.VarChar(30)
+  tenantUserId     String                     @db.Char(36)
+  tenantBusinessId String                     @db.Char(36)
+  status           TenantMappedBusinessStatus @default(ACTIVE)
+  createdAt        BigInt
+  updatedAt        BigInt
+  deletedAt        BigInt?
+
+  tenantUser     TenantUser     @relation(fields: [tenantUserId], references: [id])
+  tenantBusiness TenantBusiness @relation(fields: [tenantBusinessId], references: [id])
+
+  @@unique([tenantUserId, tenantBusinessId], name: "uk_tenant_user_business")
+  @@index([status])
+  @@index([tenantUserId])
+  @@index([tenantBusinessId])
+  @@map("tenant_mapped_business")
 }
 
 model RefreshToken {
