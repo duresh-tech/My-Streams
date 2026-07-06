@@ -1,0 +1,125 @@
+// Database-portable schema (MySQL now -> PostgreSQL later).
+// Migration path: change `provider` below to "postgresql", update DATABASE_URL
+// in .env, then run `prisma migrate dev`. No column types here are
+// MySQL-specific: UUIDs are CHAR(36) generated in app code (UUIDv7),
+// timestamps are UNIX epoch seconds stored as BIGINT, enums are supported
+// natively by both engines.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  // Prisma requires a literal provider; keep DATABASE_PROVIDER in .env in
+  // sync with this value ("mysql" | "postgresql").
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum PermissionStatus {
+  ACTIVE
+  INACTIVE
+  DELETED
+}
+
+enum RoleStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+  DELETED
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+  DELETED
+}
+
+model Permission {
+  id            String           @id @db.Char(36) // UUIDv7, generated in app code
+  systemCode    String           @unique @db.VarChar(30)
+  displayName   String           @db.VarChar(100) // Ex. Delete Roles
+  moduleName    String           @db.VarChar(50) // Ex. roles
+  permissionKey String           @unique @db.VarChar(100) // Ex. roles:delete
+  description   String?          @db.VarChar(50)
+  isSystem      Boolean          @default(false) // System permission, cannot be deleted
+  status        PermissionStatus @default(ACTIVE)
+  createdAt     BigInt // UNIX timestamp (seconds)
+  updatedAt     BigInt // UNIX timestamp (seconds)
+  deletedAt     BigInt? // UNIX timestamp (seconds)
+
+  rolePermissions RolePermission[]
+
+  @@index([moduleName])
+  @@index([status])
+  @@map("permissions")
+}
+
+model Role {
+  id               String     @id @db.Char(36) // UUIDv7
+  systemCode       String     @unique @db.VarChar(30)
+  roleKey          String     @unique @db.VarChar(100) // Ex. TENANT_SUPER_ADMIN
+  displayName      String     @db.VarChar(100)
+  isSystem         Boolean    @default(false) // System role, cannot be deleted
+  visibleToTenants Boolean    @default(false)
+  status           RoleStatus @default(ACTIVE)
+  createdAt        BigInt
+  updatedAt        BigInt
+  deletedAt        BigInt?
+
+  rolePermissions RolePermission[]
+  systemUsers     SystemUser[]
+
+  @@index([status])
+  @@map("roles")
+}
+
+model RolePermission {
+  roleId       String @db.Char(36)
+  permissionId String @db.Char(36)
+  createdAt    BigInt
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model SystemUser {
+  id           String     @id @db.Char(36) // UUIDv7
+  systemCode   String     @unique @db.VarChar(30)
+  fName        String     @db.VarChar(100)
+  username     String     @unique @db.VarChar(50)
+  email        String     @unique @db.VarChar(191)
+  passwordHash String     @db.VarChar(255) // Argon2id
+  roleId       String     @db.Char(36)
+  status       UserStatus @default(ACTIVE)
+  createdAt    BigInt
+  updatedAt    BigInt
+  deletedAt    BigInt?
+
+  role          Role           @relation(fields: [roleId], references: [id])
+  refreshTokens RefreshToken[]
+
+  @@index([status])
+  @@index([roleId])
+  @@map("system_users")
+}
+
+model RefreshToken {
+  id         String  @id @db.Char(36) // UUIDv7
+  userId     String  @db.Char(36)
+  tokenHash  String  @db.VarChar(128) // SHA-256 hex of the refresh JWT
+  deviceType String? @db.VarChar(30) // website | androidApp | iosApp | desktopApp
+  expiresAt  BigInt
+  revokedAt  BigInt?
+  createdAt  BigInt
+
+  user SystemUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@map("refresh_tokens")
+}

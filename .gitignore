@@ -1,0 +1,7 @@
+# OS / editor junk
+.DS_Store
+Thumbs.db
+*.swp
+
+# Claude Code local machine settings (not shared)
+.claude/settings.local.json
