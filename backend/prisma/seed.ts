@@ -25,10 +25,11 @@ interface PermissionSeed {
 
 const MODULES: Array<{ module: string; label: string; actions: string[] }> = [
   { module: 'dashboard', label: 'Dashboard', actions: ['view'] },
+  { module: 'tenant-dashboard', label: 'Tenant Dashboard', actions: ['view'] },
   { module: 'permissions', label: 'Permissions', actions: ['create', 'read', 'update', 'delete'] },
   { module: 'roles', label: 'Roles', actions: ['create', 'read', 'update', 'delete'] },
   { module: 'system-users', label: 'System Users', actions: ['create', 'read', 'update', 'delete'] },
-  { module: 'tenant-users', label: 'Tenant Users', actions: ['create', 'read', 'update', 'delete'] },
+  { module: 'tenant-users', label: 'Tenant Users', actions: ['create', 'read', 'update', 'delete', 'login-as'] },
   { module: 'tenant-business', label: 'Tenant Business', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
   { module: 'tenant-mapped-business', label: 'Tenant Mapped Business', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
   { module: 'uploads', label: 'Uploads', actions: ['create'] },
@@ -140,6 +141,12 @@ async function main() {
     'SYSTEM_USER',
     'System User',
     ['dashboard:view'].map((k) => keyToId.get(k)!).filter(Boolean),
+  );
+  await seedRole(
+    'TENANT_ADMIN',
+    'Tenant Administrator',
+    ['tenant-dashboard:view'].map((k) => keyToId.get(k)!).filter(Boolean),
+    true,
   );
 
   console.log('Seeding super admin user...');

@@ -15,7 +15,14 @@ import {
 
 import { cn } from "@/lib/utils";
 
-export const NAV_ITEMS = [
+export interface NavItem {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  permission: string;
+}
+
+export const NAV_ITEMS: NavItem[] = [
   { href: "/system/dashboard", label: "Dashboard", icon: LayoutDashboard, permission: "dashboard:view" },
   { href: "/system/dashboard/users", label: "System Users", icon: Users, permission: "system-users:read" },
   { href: "/system/dashboard/tenant-users", label: "Tenant Users", icon: UserCog, permission: "tenant-users:read" },
@@ -29,19 +36,27 @@ interface SidebarNavProps {
   onNavigate?: () => void;
   hasPermission?: (permissionKey: string) => boolean;
   instanceId?: string;
+  navItems?: NavItem[];
+  rootHref?: string;
 }
 
-export function SidebarNav({ onNavigate, hasPermission, instanceId = "default" }: SidebarNavProps) {
+export function SidebarNav({
+  onNavigate,
+  hasPermission,
+  instanceId = "default",
+  navItems = NAV_ITEMS,
+  rootHref = "/system/dashboard",
+}: SidebarNavProps) {
   const pathname = usePathname();
   const items = hasPermission
-    ? NAV_ITEMS.filter((item) => hasPermission(item.permission))
-    : NAV_ITEMS;
+    ? navItems.filter((item) => hasPermission(item.permission))
+    : navItems;
 
   return (
     <nav className="grid gap-1 px-2">
       {items.map((item) => {
         const active =
-          item.href === "/system/dashboard"
+          item.href === rootHref
             ? pathname === item.href
             : pathname.startsWith(item.href);
         return (

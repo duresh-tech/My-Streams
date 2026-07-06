@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { LoaderCircle, Pencil, Plus, Trash2 } from "lucide-react";
+import { LoaderCircle, LogIn, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,7 @@ import { ResourceTable, StatusBadgeText, type Column } from "@/components/resour
 import { useResourceList } from "@/hooks/use-resource-list";
 import { useSession } from "@/hooks/use-session";
 import { api, ApiError, type ListResponse } from "@/lib/api";
+import { setTenantAccessToken, type TenantLoginResponse } from "@/lib/tenant-api";
 
 interface TenantUserRow {
   id: string;
@@ -71,6 +72,7 @@ export default function TenantUsersPage() {
   const canCreate = hasPermission("tenant-users:create");
   const canUpdate = hasPermission("tenant-users:update");
   const canDelete = hasPermission("tenant-users:delete");
+  const canLoginAs = hasPermission("tenant-users:login-as");
 
   const [roleOptions, setRoleOptions] = React.useState<RoleOption[] | null>(null);
 
@@ -81,6 +83,7 @@ export default function TenantUsersPage() {
 
   const [deleteTarget, setDeleteTarget] = React.useState<TenantUserRow | null>(null);
   const [deleting, setDeleting] = React.useState(false);
+  const [loggingInAsId, setLoggingInAsId] = React.useState<string | null>(null);
 
   function ensureRoleOptions() {
     if (roleOptions) return;
@@ -164,6 +167,21 @@ export default function TenantUsersPage() {
     }
   }
 
+  async function onLoginAs(row: TenantUserRow) {
+    setLoggingInAsId(row.id);
+    try {
+      const result = await api<TenantLoginResponse>(`/system/tenant-users/${row.id}/login-as`, {
+        method: "POST",
+      });
+      setTenantAccessToken(result.accessToken);
+      window.open("/tenant/dashboard", "_blank");
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Login as failed");
+    } finally {
+      setLoggingInAsId(null);
+    }
+  }
+
   const columns: Column<TenantUserRow>[] = [
     { header: "Name", cell: (row) => <span className="font-medium">{row.fName}</span> },
     { header: "Username", cell: (row) => row.username },
@@ -195,9 +213,24 @@ export default function TenantUsersPage() {
           ) : undefined
         }
         renderActions={
-          canUpdate || canDelete
+          canUpdate || canDelete || canLoginAs
             ? (row) => (
                 <>
+                  {canLoginAs && row.status === "ACTIVE" && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      disabled={loggingInAsId === row.id}
+                      onClick={() => onLoginAs(row)}
+                      aria-label="Login as"
+                    >
+                      {loggingInAsId === row.id ? (
+                        <LoaderCircle className="size-4 animate-spin" />
+                      ) : (
+                        <LogIn className="size-4" />
+                      )}
+                    </Button>
+                  )}
                   {canUpdate && (
                     <Button variant="ghost" size="icon" onClick={() => openEdit(row)} aria-label="Edit">
                       <Pencil className="size-4" />

@@ -124,6 +124,7 @@ model TenantUser {
 
   role             Role                   @relation(fields: [roleId], references: [id])
   mappedBusinesses TenantMappedBusiness[]
+  refreshTokens    TenantRefreshToken[]
 
   @@index([status])
   @@index([roleId])
@@ -208,4 +209,20 @@ model RefreshToken {
   @@index([userId])
   @@index([tokenHash])
   @@map("refresh_tokens")
+}
+
+model TenantRefreshToken {
+  id           String  @id @db.Char(36) // UUIDv7
+  tenantUserId String  @db.Char(36)
+  tokenHash    String  @db.VarChar(128) // SHA-256 hex of the refresh JWT
+  deviceType   String? @db.VarChar(30) // website | androidApp | iosApp | desktopApp
+  expiresAt    BigInt
+  revokedAt    BigInt?
+  createdAt    BigInt
+
+  tenantUser TenantUser @relation(fields: [tenantUserId], references: [id], onDelete: Cascade)
+
+  @@index([tenantUserId])
+  @@index([tokenHash])
+  @@map("tenant_refresh_tokens")
 }

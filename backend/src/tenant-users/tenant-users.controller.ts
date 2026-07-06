@@ -7,7 +7,10 @@ import {
   Patch,
   Post,
   Query,
+  Req,
+  Res,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -15,6 +18,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { Request, Response } from 'express';
 import { TenantUsersService } from './tenant-users.service';
 import {
   CreateTenantUserDto,
@@ -22,6 +26,10 @@ import {
 } from './dto/tenant-user.dto';
 import { RequirePermissions } from '../common/decorators/permissions.decorator';
 import { ListQueryDto } from '../common/dto/query.dto';
+import { TenantAuthService } from '../tenant-auth/tenant-auth.service';
+import { TENANT_CSRF_COOKIE } from '../common/guards/tenant-csrf.guard';
+
+const TENANT_REFRESH_COOKIE = 'tenant_refresh_token';
 
 const TENANT_USER_EXAMPLE = {
   id: '019f357c-d489-74a9-8490-1f82e745b199',
@@ -44,7 +52,11 @@ const TENANT_USER_EXAMPLE = {
 @ApiBearerAuth()
 @Controller('system/tenant-users')
 export class TenantUsersController {
-  constructor(private readonly tenantUsersService: TenantUsersService) {}
+  constructor(
+    private readonly tenantUsersService: TenantUsersService,
+    private readonly tenantAuthService: TenantAuthService,
+    private readonly config: ConfigService,
+  ) {}
 
   @Get()
   @RequirePermissions('tenant-users:read')
@@ -123,5 +135,56 @@ export class TenantUsersController {
   })
   remove(@Param('id') id: string) {
     return this.tenantUsersService.remove(id);
+  }
+
+  @Post(':id/login-as')
+  @RequirePermissions('tenant-users:login-as')
+  @ApiOperation({
+    summary: 'Log in as a tenant user',
+    description:
+      'Issues a tenant session for the given tenant user without their ' +
+      'password, for system-admin impersonation. Sets tenant_refresh_token ' +
+      'and tenant_csrf_token cookies (distinct from the system session\'s ' +
+      'own cookies, so both sessions can coexist in the same browser).',
+  })
+  @ApiParam({ name: 'id', description: 'Tenant user UUIDv7' })
+  @ApiResponse({
+    status: 200,
+    description: 'Tenant session issued.',
+    schema: {
+      example: {
+        user: TENANT_USER_EXAMPLE,
+        permissions: ['tenant-dashboard:view'],
+        redirectTo: '/tenant/dashboard',
+        accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMTlm...',
+        csrfToken: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0',
+      },
+    },
+  })
+  @ApiResponse({ status: 404, description: 'Tenant user not found.' })
+  @ApiResponse({ status: 401, description: 'Account inactive or role not tenant-visible.' })
+  async loginAs(
+    @Param('id') id: string,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.tenantAuthService.loginAs(id, (req as any).deviceType);
+    const secure = this.config.get('COOKIE_SECURE') === 'true';
+    res.cookie(TENANT_REFRESH_COOKIE, result.refreshToken, {
+      httpOnly: true,
+      secure,
+      sameSite: 'strict',
+      path: '/api/v1/tenant',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+    res.cookie(TENANT_CSRF_COOKIE, result.csrfToken, {
+      httpOnly: false,
+      secure,
+      sameSite: 'strict',
+      path: '/',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+    const { refreshToken, ...body } = result;
+    return body;
   }
 }
