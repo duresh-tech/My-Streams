@@ -4,7 +4,10 @@ import * as React from "react";
 import { api, type ListResponse } from "@/lib/api";
 
 /** Paginated + searchable resource list with a manual refresh trigger. */
-export function useResourceList<T>(endpoint: string) {
+export function useResourceList<T>(
+  endpoint: string,
+  filters: Record<string, string | undefined> = {},
+) {
   const [rows, setRows] = React.useState<T[] | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [page, setPage] = React.useState(1);
@@ -13,6 +16,7 @@ export function useResourceList<T>(endpoint: string) {
   const [search, setSearch] = React.useState("");
   const [query, setQuery] = React.useState("");
   const [reloadIndex, setReloadIndex] = React.useState(0);
+  const filtersKey = JSON.stringify(filters);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -20,6 +24,9 @@ export function useResourceList<T>(endpoint: string) {
     setError(null);
     const params = new URLSearchParams({ page: String(page), limit: "20" });
     if (query) params.set("search", query);
+    for (const [key, value] of Object.entries(filters)) {
+      if (value) params.set(key, value);
+    }
     api<ListResponse<T>>(`${endpoint}?${params.toString()}`)
       .then((data) => {
         if (cancelled) return;
@@ -33,7 +40,8 @@ export function useResourceList<T>(endpoint: string) {
     return () => {
       cancelled = true;
     };
-  }, [endpoint, page, query, reloadIndex]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [endpoint, page, query, reloadIndex, filtersKey]);
 
   const applySearch = React.useCallback((term: string) => {
     setPage(1);

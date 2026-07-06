@@ -9,6 +9,9 @@
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
 
+/** Origin the backend serves static /uploads files from (API_URL minus the /api/vN suffix). */
+export const UPLOADS_ORIGIN = API_URL.replace(/\/api\/v\d+\/?$/, "");
+
 const ACCESS_TOKEN_KEY = "system.accessToken";
 
 export function getAccessToken(): string | null {
@@ -106,6 +109,32 @@ export async function api<T = unknown>(
     throw new ApiError(response.status, message, data);
   }
   return data as T;
+}
+
+/** Uploads a file via multipart/form-data and returns its stored path. */
+export async function uploadFile(file: File): Promise<{ path: string; driver: string }> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const headers: Record<string, string> = { "x-device-type": "website" };
+  const token = getAccessToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const response = await fetch(`${API_URL}/system/uploads`, {
+    method: "POST",
+    headers,
+    credentials: "include",
+    body: formData,
+  });
+
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    const message =
+      (data && (Array.isArray(data.message) ? data.message[0] : data.message)) ||
+      `Upload failed (${response.status})`;
+    throw new ApiError(response.status, message, data);
+  }
+  return data as { path: string; driver: string };
 }
 
 async function tryRefresh(): Promise<boolean> {

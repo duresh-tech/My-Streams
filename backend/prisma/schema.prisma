@@ -129,6 +129,41 @@ model TenantUser {
   @@map("tenant_users")
 }
 
+enum TenantBusinessStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+  DELETED
+}
+
+model TenantBusiness {
+  id               String               @id @db.Char(36) // UUIDv7
+  systemCode       String               @unique @db.VarChar(30)
+  name             String               @db.VarChar(150)
+  tagLine          String?              @db.VarChar(200)
+  email            String               @db.VarChar(150)
+  phone            String               @db.VarChar(20)
+  country          String               @db.VarChar(100)
+  countryCode      String               @db.VarChar(10)
+  state            String               @db.VarChar(100)
+  city             String               @db.VarChar(100)
+  pincode          String               @db.VarChar(20)
+  addressLine1     String               @db.VarChar(255)
+  addressLine2     String?              @db.VarChar(255)
+  logoPath         String?              @db.VarChar(255)
+  taxNumber        String?              @db.VarChar(50)
+  isParentBusiness Boolean              @default(false)
+  status           TenantBusinessStatus @default(ACTIVE)
+  createdAt        BigInt
+  updatedAt        BigInt
+  deletedAt        BigInt?
+
+  @@index([status])
+  @@index([country])
+  @@index([isParentBusiness])
+  @@map("tenant_business")
+}
+
 model RefreshToken {
   id         String  @id @db.Char(36) // UUIDv7
   userId     String  @db.Char(36)
