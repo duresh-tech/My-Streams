@@ -5,7 +5,7 @@ import { RequirePermissions } from '../common/decorators/permissions.decorator';
 
 @ApiTags('System / Dashboard')
 @ApiBearerAuth()
-@Controller({ path: 'system/dashboard', version: '1' })
+@Controller('system/dashboard')
 export class DashboardController {
   constructor(private readonly prisma: PrismaService) {}
 
@@ -15,7 +15,19 @@ export class DashboardController {
     summary: 'Dashboard stats',
     description: 'Aggregate counts for the system dashboard cards.',
   })
-  @ApiResponse({ status: 200, description: 'Counts of users, roles and permissions.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Counts of users, roles and permissions.',
+    schema: {
+      example: {
+        users: 5,
+        activeUsers: 4,
+        roles: 2,
+        permissions: 14,
+        activeSessions: 3,
+      },
+    },
+  })
   async stats() {
     const [users, activeUsers, roles, permissions, activeSessions] =
       await this.prisma.$transaction([

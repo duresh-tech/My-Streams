@@ -27,9 +27,26 @@ import {
 } from '../common/decorators/current-user.decorator';
 import { ListQueryDto } from '../common/dto/query.dto';
 
+const SYSTEM_USER_EXAMPLE = {
+  id: '019f357c-d489-74a9-8490-1f82e745b199',
+  systemCode: 'USR-MR8NZ6VD-74F8',
+  fName: 'Test User',
+  username: 'testuser1',
+  email: 'testuser1@example.com',
+  roleId: '019f357c-ec94-7148-8367-a55253ab1152',
+  status: 'ACTIVE',
+  createdAt: 1783308735,
+  updatedAt: 1783308735,
+  role: {
+    id: '019f357c-ec94-7148-8367-a55253ab1152',
+    roleKey: 'TENANT_SUPER_ADMIN',
+    displayName: 'Tenant Super Admin',
+  },
+};
+
 @ApiTags('System / Users')
 @ApiBearerAuth()
-@Controller({ path: 'system/users', version: '1' })
+@Controller('system/users')
 export class SystemUsersController {
   constructor(private readonly systemUsersService: SystemUsersService) {}
 
@@ -39,7 +56,16 @@ export class SystemUsersController {
     summary: 'List system users',
     description: 'Paginated, searchable list of non-deleted system users.',
   })
-  @ApiResponse({ status: 200, description: 'Paginated user list.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Paginated user list.',
+    schema: {
+      example: {
+        items: [SYSTEM_USER_EXAMPLE],
+        meta: { total: 1, page: 1, limit: 20, totalPages: 1 },
+      },
+    },
+  })
   findAll(@Query() query: ListQueryDto) {
     return this.systemUsersService.findAll(query.page, query.limit, query.search);
   }
@@ -48,6 +74,11 @@ export class SystemUsersController {
   @RequirePermissions('system-users:read')
   @ApiOperation({ summary: 'Get a system user by id' })
   @ApiParam({ name: 'id', description: 'User UUIDv7' })
+  @ApiResponse({
+    status: 200,
+    description: 'System user found.',
+    schema: { example: SYSTEM_USER_EXAMPLE },
+  })
   @ApiResponse({ status: 404, description: 'User not found.' })
   findOne(@Param('id') id: string) {
     return this.systemUsersService.findOne(id);
@@ -56,7 +87,11 @@ export class SystemUsersController {
   @Post()
   @RequirePermissions('system-users:create')
   @ApiOperation({ summary: 'Create a system user' })
-  @ApiResponse({ status: 201, description: 'User created.' })
+  @ApiResponse({
+    status: 201,
+    description: 'User created.',
+    schema: { example: SYSTEM_USER_EXAMPLE },
+  })
   @ApiResponse({ status: 409, description: 'Username or email already in use.' })
   create(@Body() dto: CreateSystemUserDto) {
     return this.systemUsersService.create(dto);
@@ -69,6 +104,11 @@ export class SystemUsersController {
     description: 'Passing password re-hashes it with Argon2id.',
   })
   @ApiParam({ name: 'id', description: 'User UUIDv7' })
+  @ApiResponse({
+    status: 200,
+    description: 'User updated.',
+    schema: { example: SYSTEM_USER_EXAMPLE },
+  })
   update(@Param('id') id: string, @Body() dto: UpdateSystemUserDto) {
     return this.systemUsersService.update(id, dto);
   }
@@ -80,6 +120,11 @@ export class SystemUsersController {
     description: 'Also revokes all of the user\'s refresh tokens.',
   })
   @ApiParam({ name: 'id', description: 'User UUIDv7' })
+  @ApiResponse({
+    status: 200,
+    description: 'User deleted.',
+    schema: { example: { success: true } },
+  })
   @ApiResponse({ status: 400, description: 'Cannot delete own account.' })
   remove(@Param('id') id: string, @CurrentUser() user: AuthUser) {
     return this.systemUsersService.remove(id, user.id);

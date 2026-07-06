@@ -21,7 +21,7 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 
 @ApiTags('System / Uploads')
 @ApiBearerAuth()
-@Controller({ path: 'system/uploads', version: '1' })
+@Controller('system/uploads')
 export class UploadsController {
   constructor(private readonly storage: StorageService) {}
 
@@ -42,7 +42,13 @@ export class UploadsController {
       'Stores the file via the configured driver (STORAGE_DRIVER=local|s3) ' +
       'and returns only its storage PATH (never a URL). Max size 5 MB.',
   })
-  @ApiResponse({ status: 201, description: 'File stored; path returned.' })
+  @ApiResponse({
+    status: 201,
+    description: 'File stored; path returned.',
+    schema: {
+      example: { path: 'general/019f357c-d489-74a9-8490-1f82e745b199.jpg', driver: 'local' },
+    },
+  })
   @ApiResponse({ status: 400, description: 'Missing or oversized file.' })
   async upload(@UploadedFile() file?: Express.Multer.File) {
     if (!file) throw new BadRequestException('No file provided');

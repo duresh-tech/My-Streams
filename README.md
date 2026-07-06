@@ -1,6 +1,6 @@
 # Project 5 — System Console
 
-[![Backend](https://img.shields.io/badge/backend-v1.1.0-blue)](./backend/CHANGELOG.md)
+[![Backend](https://img.shields.io/badge/backend-v1.2.0-blue)](./backend/CHANGELOG.md)
 [![Frontend](https://img.shields.io/badge/frontend-v1.1.0-blue)](./frontend/CHANGELOG.md)
 
 Full-stack system administration console with RBAC-driven CRUD for
@@ -51,8 +51,8 @@ Login page: `http://localhost:3000/system/login` → redirects to `/system/dashb
 
 ## Backend
 
-- **API versioning**: URI-based, all routes under `/api/v1`. System-user routes live under `/api/v1/system/...`.
-- **Swagger / OpenAPI**: `http://localhost:4000/docs` — every endpoint documented (operations, params, responses, bearer auth, global `x-device-type` header). Keep decorators updated on every endpoint change.
+- **API versioning**: URI-based, driven by the `API_VERSION` env var (defaults to `1` → `/api/v1`). System-user routes live under `/api/v1/system/...`.
+- **Swagger / OpenAPI**: `http://localhost:4000/docs` — every endpoint documented (operations, params, responses with JSON examples, bearer auth, global `x-device-type` header). Keep decorators updated on every endpoint change.
 - **Auth (Passport.js)**: JWT access token (Bearer, 15 min) + rotating refresh token (httpOnly cookie, 7 days, SHA-256 hash stored in `refresh_tokens`). `POST /system/login`, `/system/register`, `/system/refresh`, `/system/logout`, `GET /system/me`.
 - **RBAC**: `permissions` ⇄ `role_permissions` ⇄ `roles` ⇄ `system_users`. Routes declare `@RequirePermissions('roles:delete')`; a global guard resolves the user's role permissions per request. Full CRUD is exposed for all three resources.
 - **Validation**: Zod schemas via `nestjs-zod` (global pipe), surfaced in Swagger.

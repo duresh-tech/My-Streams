@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-07-06
+
+### Added
+
+- `API_VERSION` environment variable drives URI-based API versioning end
+  to end. `main.ts` reads it into `app.enableVersioning({ defaultVersion })`
+  instead of a hardcoded `'1'`, and every controller's `@Controller()`
+  decorator now omits its own `version` so they all inherit the env-driven
+  default — one place to bump when a `v2` is needed.
+- Every Swagger `@ApiResponse` across all six controllers now includes a
+  `schema: { example: {...} }` showing the actual JSON response shape
+  (built from the real service/`select` fields, not guessed), so
+  `/docs` renders a concrete example for logins, CRUD reads/writes,
+  dashboard stats, and uploads instead of just a status code + description.
+
 ## [1.1.0] - 2026-07-06
 
 ### Fixed
@@ -47,6 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Seed script for system permissions, `SUPER_ADMIN`/`SYSTEM_USER` roles,
   and a default super admin account.
 
-[Unreleased]: ../../compare/backend-v1.1.0...HEAD
+[Unreleased]: ../../compare/backend-v1.2.0...HEAD
+[1.2.0]: ../../compare/backend-v1.1.0...backend-v1.2.0
 [1.1.0]: ../../compare/backend-v1.0.0...backend-v1.1.0
 [1.0.0]: ../../releases/tag/backend-v1.0.0

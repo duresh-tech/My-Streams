@@ -46,9 +46,10 @@ async function bootstrap() {
     ],
   });
 
-  // ---- API versioning: /api/v1/... ----
+  // ---- API versioning: /api/v{API_VERSION}/... ----
+  const apiVersion = config.get('API_VERSION', '1');
   app.setGlobalPrefix('api');
-  app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
+  app.enableVersioning({ type: VersioningType.URI, defaultVersion: apiVersion });
 
   // ---- Local storage static serving (driver=local) ----
   app.useStaticAssets(
@@ -62,7 +63,7 @@ async function bootstrap() {
     const swaggerConfig = new DocumentBuilder()
       .setTitle(config.get('APP_NAME', 'System API'))
       .setDescription(
-        'System REST API. All endpoints are versioned under /api/v1 and ' +
+        `System REST API. All endpoints are versioned under /api/v${apiVersion} and ` +
           'require the x-device-type header. Protected endpoints use a JWT ' +
           'Bearer access token; refresh tokens are httpOnly cookies with ' +
           'CSRF double-submit protection.',
@@ -89,7 +90,7 @@ async function bootstrap() {
 
   const port = parseInt(config.get('PORT', '4000'), 10);
   await app.listen(port);
-  Logger.log(`API running on http://localhost:${port}/api/v1`, 'Bootstrap');
+  Logger.log(`API running on http://localhost:${port}/api/v${apiVersion}`, 'Bootstrap');
   Logger.log(`Swagger docs on http://localhost:${port}/${config.get('SWAGGER_PATH', 'docs')}`, 'Bootstrap');
 }
 

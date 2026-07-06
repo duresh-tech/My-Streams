@@ -1,6 +1,6 @@
 # Backend — System API
 
-[![Version](https://img.shields.io/badge/version-1.1.0-blue)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.2.0-blue)](./CHANGELOG.md)
 
 NestJS + Prisma REST API for the system console. See [`CHANGELOG.md`](./CHANGELOG.md)
 for release history and [`../README.md`](../README.md) for the project overview.
@@ -41,9 +41,10 @@ Default seeded super admin: **admin / Admin@12345** (change or remove in product
 
 ## API surface
 
-All routes are versioned under `/api/v1`. System-user-facing routes live under
-`/api/v1/system/...`. Every request must send an `x-device-type` header
-(`website | androidApp | iosApp | desktopApp`).
+All routes are versioned under `/api/v{API_VERSION}` (defaults to `/api/v1`
+via the `API_VERSION` env var — see below). System-user-facing routes live
+under `/api/v1/system/...`. Every request must send an `x-device-type`
+header (`website | androidApp | iosApp | desktopApp`).
 
 | Area | Routes |
 | --- | --- |
@@ -54,7 +55,8 @@ All routes are versioned under `/api/v1`. System-user-facing routes live under
 | Dashboard | `GET /system/dashboard` |
 | Uploads | `POST /system/uploads` |
 
-Full request/response schemas: `http://localhost:4000/docs`.
+Full request/response schemas — including a concrete JSON example for
+every success response — are at `http://localhost:4000/docs`.
 
 ## RBAC
 
@@ -100,6 +102,7 @@ No application code changes are required.
 
 ## Environment variables
 
-See [`.env.example`](./.env.example) for the full list: database connection,
-JWT secrets/expiry, cookie settings, CORS origins, throttling, storage
+See [`.env.example`](./.env.example) for the full list: `API_VERSION`
+(URI versioning, defaults to `1`), database connection, JWT
+secrets/expiry, cookie settings, CORS origins, throttling, storage
 driver/S3 credentials, and Swagger toggles.
