@@ -92,6 +92,15 @@ export async function api<T = unknown>(
   const data = await response.json().catch(() => null);
   if (!response.ok) {
     const message =
+      (data && Array.isArray(data.errors) && data.errors.length > 0
+        ? data.errors
+            .map((issue: { path?: (string | number)[]; message: string }) =>
+              issue.path && issue.path.length > 0
+                ? `${issue.path.join(".")}: ${issue.message}`
+                : issue.message,
+            )
+            .join("; ")
+        : undefined) ||
       (data && (Array.isArray(data.message) ? data.message[0] : data.message)) ||
       `Request failed (${response.status})`;
     throw new ApiError(response.status, message, data);
