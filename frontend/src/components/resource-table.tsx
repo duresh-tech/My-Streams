@@ -1,11 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { ChevronLeft, ChevronRight, LoaderCircle, Search } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -14,6 +16,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+
+const MotionTableRow = motion.create(TableRow);
+const SKELETON_ROWS = 5;
 
 export interface Column<T> {
   header: string;
@@ -83,48 +88,192 @@ export function ResourceTable<T extends { id: string }>({
 
       <Card className="py-0">
         <CardContent className="px-0">
-          {error ? (
-            <p className="p-6 text-sm text-destructive">{error}</p>
-          ) : rows === null ? (
-            <div className="flex justify-center p-10">
-              <LoaderCircle className="size-5 animate-spin text-muted-foreground" />
-            </div>
-          ) : rows.length === 0 ? (
-            <p className="p-6 text-sm text-muted-foreground">No records found.</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  {columns.map((col) => (
-                    <TableHead key={col.header} className={col.className}>
-                      {col.header}
-                    </TableHead>
+          <AnimatePresence mode="wait">
+            {error ? (
+              <motion.p
+                key="error"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="p-6 text-sm text-destructive"
+              >
+                {error}
+              </motion.p>
+            ) : rows === null ? (
+              <motion.div
+                key="loading"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+              >
+                {/* Mobile: stacked card skeletons */}
+                <div className="divide-y sm:hidden">
+                  {Array.from({ length: SKELETON_ROWS }).map((_, i) => (
+                    <div key={i} className="p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <Skeleton className="h-4 w-32" />
+                        {renderActions && (
+                          <div className="flex shrink-0 gap-1">
+                            <Skeleton className="size-9 rounded-md" />
+                            <Skeleton className="size-9 rounded-md" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="mt-3 grid gap-2">
+                        {columns.slice(1).map((col) => (
+                          <div key={col.header} className="flex items-center justify-between gap-4">
+                            <Skeleton className="h-3.5 w-16" />
+                            <Skeleton className="h-3.5 w-20" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   ))}
-                  {renderActions && (
-                    <TableHead className="text-right">{actionsHeader}</TableHead>
-                  )}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.map((row) => (
-                  <TableRow key={row.id}>
-                    {columns.map((col) => (
-                      <TableCell key={col.header} className={col.className}>
-                        {col.cell(row)}
-                      </TableCell>
-                    ))}
-                    {renderActions && (
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          {renderActions(row)}
-                        </div>
-                      </TableCell>
-                    )}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+                </div>
+
+                {/* Tablet/desktop: table skeleton */}
+                <div className="hidden sm:block">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        {columns.map((col) => (
+                          <TableHead key={col.header} className={col.className}>
+                            {col.header}
+                          </TableHead>
+                        ))}
+                        {renderActions && (
+                          <TableHead className="text-right">{actionsHeader}</TableHead>
+                        )}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {Array.from({ length: SKELETON_ROWS }).map((_, i) => (
+                        <TableRow key={i}>
+                          {columns.map((col) => (
+                            <TableCell key={col.header} className={col.className}>
+                              <Skeleton className="h-4 w-20" />
+                            </TableCell>
+                          ))}
+                          {renderActions && (
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-1">
+                                <Skeleton className="size-9 rounded-md" />
+                                <Skeleton className="size-9 rounded-md" />
+                              </div>
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </motion.div>
+            ) : rows.length === 0 ? (
+              <motion.p
+                key="empty"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="p-6 text-sm text-muted-foreground"
+              >
+                No records found.
+              </motion.p>
+            ) : (
+              <motion.div
+                key="table"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+              >
+                {/* Mobile: stacked cards */}
+                <div className="divide-y sm:hidden">
+                  <AnimatePresence initial={false}>
+                    {rows.map((row) => {
+                      const [primary, ...rest] = columns;
+                      return (
+                        <motion.div
+                          key={row.id}
+                          layout
+                          initial={{ opacity: 0, y: -8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.2, ease: "easeOut" }}
+                          className="p-4"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="text-sm font-medium">{primary.cell(row)}</div>
+                            {renderActions && (
+                              <div className="flex shrink-0 gap-1">{renderActions(row)}</div>
+                            )}
+                          </div>
+                          <dl className="mt-2 grid gap-1.5">
+                            {rest.map((col) => (
+                              <div
+                                key={col.header}
+                                className="flex items-center justify-between gap-4 text-sm"
+                              >
+                                <dt className="text-muted-foreground">{col.header}</dt>
+                                <dd className="text-right">{col.cell(row)}</dd>
+                              </div>
+                            ))}
+                          </dl>
+                        </motion.div>
+                      );
+                    })}
+                  </AnimatePresence>
+                </div>
+
+                {/* Tablet/desktop: table */}
+                <div className="hidden sm:block">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        {columns.map((col) => (
+                          <TableHead key={col.header} className={col.className}>
+                            {col.header}
+                          </TableHead>
+                        ))}
+                        {renderActions && (
+                          <TableHead className="text-right">{actionsHeader}</TableHead>
+                        )}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <AnimatePresence initial={false}>
+                        {rows.map((row) => (
+                          <MotionTableRow
+                            key={row.id}
+                            layout
+                            initial={{ opacity: 0, y: -8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.2, ease: "easeOut" }}
+                          >
+                            {columns.map((col) => (
+                              <TableCell key={col.header} className={col.className}>
+                                {col.cell(row)}
+                              </TableCell>
+                            ))}
+                            {renderActions && (
+                              <TableCell className="text-right">
+                                <div className="flex justify-end gap-1">
+                                  {renderActions(row)}
+                                </div>
+                              </TableCell>
+                            )}
+                          </MotionTableRow>
+                        ))}
+                      </AnimatePresence>
+                    </TableBody>
+                  </Table>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </CardContent>
       </Card>
 

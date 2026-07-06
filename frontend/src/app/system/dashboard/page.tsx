@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { motion } from "motion/react";
 import {
   Activity,
   KeyRound,
@@ -15,6 +16,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { fadeUp, staggerContainer, staggerItem } from "@/components/motion/variants";
 import { api, type DashboardStats } from "@/lib/api";
 
 const CARDS = [
@@ -45,28 +48,43 @@ export default function DashboardPage() {
       </div>
 
       {error && (
-        <Card className="border-destructive/50">
-          <CardContent className="text-sm text-destructive">{error}</CardContent>
-        </Card>
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={fadeUp}
+        >
+          <Card className="border-destructive/50">
+            <CardContent className="text-sm text-destructive">{error}</CardContent>
+          </Card>
+        </motion.div>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      <motion.div
+        className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"
+        initial="hidden"
+        animate="visible"
+        variants={staggerContainer}
+      >
         {CARDS.map(({ key, label, icon: Icon }) => (
-          <Card key={key}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {label}
-              </CardTitle>
-              <Icon className="size-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold tabular-nums">
-                {stats ? stats[key] : "–"}
-              </div>
-            </CardContent>
-          </Card>
+          <motion.div key={key} variants={staggerItem}>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {label}
+                </CardTitle>
+                <Icon className="size-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                {stats ? (
+                  <div className="text-3xl font-bold tabular-nums">{stats[key]}</div>
+                ) : (
+                  <Skeleton className="h-9 w-16" />
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
     </div>
   );
 }

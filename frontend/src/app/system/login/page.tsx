@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { motion, useAnimation } from "motion/react";
 import { LoaderCircle, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
@@ -17,12 +18,18 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { fadeUp, shake } from "@/components/motion/variants";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { api, setAccessToken, type LoginResponse } from "@/lib/api";
 
 export default function SystemLoginPage() {
   const router = useRouter();
   const [loading, setLoading] = React.useState(false);
+  const cardControls = useAnimation();
+
+  React.useEffect(() => {
+    cardControls.start("visible");
+  }, [cardControls]);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -43,6 +50,7 @@ export default function SystemLoginPage() {
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Login failed");
       setLoading(false);
+      cardControls.start(shake);
     }
   }
 
@@ -52,57 +60,64 @@ export default function SystemLoginPage() {
         <ThemeToggle />
       </div>
       <div className="flex flex-1 items-center justify-center p-4">
-        <Card className="w-full max-w-sm">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-2 flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-              <ShieldCheck className="size-6" />
-            </div>
-            <CardTitle className="text-xl">System Console</CardTitle>
-            <CardDescription>
-              Sign in with your system account
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={onSubmit} className="grid gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="username">Username or email</Label>
-                <Input
-                  id="username"
-                  name="username"
-                  placeholder="admin"
-                  autoComplete="username"
-                  required
-                  minLength={3}
-                />
+        <motion.div
+          className="w-full max-w-sm"
+          initial="hidden"
+          animate={cardControls}
+          variants={fadeUp}
+        >
+          <Card className="w-full">
+            <CardHeader className="text-center">
+              <div className="mx-auto mb-2 flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+                <ShieldCheck className="size-6" />
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  placeholder="••••••••"
-                  autoComplete="current-password"
-                  required
-                  minLength={8}
-                />
-              </div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading && <LoaderCircle className="size-4 animate-spin" />}
-                Sign in
-              </Button>
-            </form>
-          </CardContent>
-          <CardFooter className="justify-center text-sm text-muted-foreground">
-            No account?
-            <Link
-              href="/system/register"
-              className="ml-1 font-medium text-foreground underline-offset-4 hover:underline"
-            >
-              Register
-            </Link>
-          </CardFooter>
-        </Card>
+              <CardTitle className="text-xl">System Console</CardTitle>
+              <CardDescription>
+                Sign in with your system account
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={onSubmit} className="grid gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="username">Username or email</Label>
+                  <Input
+                    id="username"
+                    name="username"
+                    placeholder="admin"
+                    autoComplete="username"
+                    required
+                    minLength={3}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    placeholder="••••••••"
+                    autoComplete="current-password"
+                    required
+                    minLength={8}
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading && <LoaderCircle className="size-4 animate-spin" />}
+                  Sign in
+                </Button>
+              </form>
+            </CardContent>
+            <CardFooter className="justify-center text-sm text-muted-foreground">
+              No account?
+              <Link
+                href="/system/register"
+                className="ml-1 font-medium text-foreground underline-offset-4 hover:underline"
+              >
+                Register
+              </Link>
+            </CardFooter>
+          </Card>
+        </motion.div>
       </div>
     </main>
   );

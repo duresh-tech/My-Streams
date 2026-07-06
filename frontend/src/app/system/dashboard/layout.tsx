@@ -4,7 +4,6 @@ import * as React from "react";
 import Link from "next/link";
 import {
   ChevronDown,
-  LoaderCircle,
   LogOut,
   Menu,
   ShieldCheck,
@@ -13,6 +12,7 @@ import {
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,6 +30,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { SidebarNav } from "@/components/sidebar-nav";
+import { PageTransition } from "@/components/motion/page-transition";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useSession } from "@/hooks/use-session";
 
@@ -57,8 +58,33 @@ export default function DashboardLayout({
 
   if (loading || !user) {
     return (
-      <div className="flex min-h-dvh items-center justify-center">
-        <LoaderCircle className="size-6 animate-spin text-muted-foreground" />
+      <div className="flex min-h-dvh">
+        <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r bg-sidebar md:flex">
+          <div className="flex h-14 items-center gap-2 border-b px-4">
+            <Skeleton className="size-8 rounded-lg" />
+            <Skeleton className="h-4 w-28" />
+          </div>
+          <div className="flex-1 space-y-2 p-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-9 w-full rounded-md" />
+            ))}
+          </div>
+        </aside>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <header className="sticky top-0 flex h-14 items-center gap-2 border-b px-4">
+            <Skeleton className="size-9 rounded-md md:hidden" />
+            <Skeleton className="h-4 w-40 flex-1" />
+            <Skeleton className="size-9 shrink-0 rounded-full" />
+          </header>
+          <main className="flex-1 space-y-4 p-4 md:p-6">
+            <Skeleton className="h-8 w-48" />
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-24 rounded-xl" />
+              ))}
+            </div>
+          </main>
+        </div>
       </div>
     );
   }
@@ -78,7 +104,7 @@ export default function DashboardLayout({
           <Brand />
         </div>
         <div className="flex-1 overflow-y-auto py-4">
-          <SidebarNav hasPermission={hasPermission} />
+          <SidebarNav hasPermission={hasPermission} instanceId="desktop" />
         </div>
         <div className="border-t p-4 text-xs text-muted-foreground">
           Signed in as <span className="font-medium">{user.username}</span>
@@ -109,7 +135,11 @@ export default function DashboardLayout({
                 </SheetTitle>
               </SheetHeader>
               <div className="py-2">
-                <SidebarNav onNavigate={() => setMobileOpen(false)} hasPermission={hasPermission} />
+                <SidebarNav
+                  onNavigate={() => setMobileOpen(false)}
+                  hasPermission={hasPermission}
+                  instanceId="mobile"
+                />
               </div>
             </SheetContent>
           </Sheet>
@@ -152,7 +182,9 @@ export default function DashboardLayout({
         </header>
 
         {/* Main content */}
-        <main className="flex-1 p-4 md:p-6">{children}</main>
+        <main className="flex-1 p-4 md:p-6">
+          <PageTransition>{children}</PageTransition>
+        </main>
       </div>
     </div>
   );

@@ -245,7 +245,7 @@ export default function RolesPage() {
       />
 
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="sm:max-w-xl">
+        <DialogContent className="sm:max-w-3xl">
           <form onSubmit={onSubmit}>
             <DialogHeader>
               <DialogTitle>{editing ? "Edit Role" : "Add Role"}</DialogTitle>
@@ -262,7 +262,7 @@ export default function RolesPage() {
               </div>
             ) : (
               <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="grid gap-2">
                     <Label htmlFor="roleKey">Role key</Label>
                     <Input

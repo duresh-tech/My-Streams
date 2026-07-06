@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Toaster } from "sonner";
+import { MotionConfig } from "motion/react";
 import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 
@@ -25,8 +26,10 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
-          <Toaster richColors position="top-right" />
+          <MotionConfig reducedMotion="user">
+            {children}
+            <Toaster richColors position="top-right" />
+          </MotionConfig>
         </ThemeProvider>
       </body>
     </html>
