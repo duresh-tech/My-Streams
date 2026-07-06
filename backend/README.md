@@ -1,6 +1,6 @@
 # Backend — System API
 
-[![Version](https://img.shields.io/badge/version-1.2.0-blue)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.3.0-blue)](./CHANGELOG.md)
 
 NestJS + Prisma REST API for the system console. See [`CHANGELOG.md`](./CHANGELOG.md)
 for release history and [`../README.md`](../README.md) for the project overview.
@@ -52,6 +52,8 @@ header (`website | androidApp | iosApp | desktopApp`).
 | Permissions | `GET/POST /system/permissions`, `GET/PATCH/DELETE /system/permissions/:id` |
 | Roles | `GET/POST /system/roles`, `GET/PATCH/DELETE /system/roles/:id` |
 | System users | `GET/POST /system/users`, `GET/PATCH/DELETE /system/users/:id` |
+| Tenant users | `GET/POST /system/tenant-users`, `GET/PATCH/DELETE /system/tenant-users/:id` |
+| Tenant business | `GET/POST /system/tenant-business`, `GET/PATCH/DELETE /system/tenant-business/:id`, `PATCH /system/tenant-business/:id/restore` |
 | Dashboard | `GET /system/dashboard` |
 | Uploads | `POST /system/uploads` |
 
@@ -68,7 +70,8 @@ permission's `permissionKey`/`moduleName`) is immutable once created.
 
 Seeded permission keys: `dashboard:view`, `permissions:{create,read,update,delete}`,
 `roles:{create,read,update,delete}`, `system-users:{create,read,update,delete}`,
-`uploads:create`.
+`tenant-users:{create,read,update,delete}`,
+`tenant-business:{create,view,update,delete,list,restore}`, `uploads:create`.
 
 ## Security
 

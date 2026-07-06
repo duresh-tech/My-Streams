@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-07-06
+
+### Added
+
+- Tenant Business CRUD module (`tenant_business` table): full REST CRUD
+  (`GET/POST /system/tenant-business`, `GET/PATCH/DELETE
+  /system/tenant-business/:id`) plus `PATCH
+  /system/tenant-business/:id/restore` — the first soft-delete
+  restore/undelete capability in the codebase.
+- Six granular RBAC permissions seeded for the new module:
+  `tenant-business:{create,view,update,delete,list,restore}` — the first
+  resource to split `list`/`view` into separate permissions instead of a
+  single `read`, and the first with a `restore` action.
+- The list endpoint supports `status`, `country`, and `isParentBusiness`
+  filters plus `sortBy`/`sortOrder` sorting (module-local
+  `TenantBusinessListQueryDto`) — the first list endpoint in the codebase
+  to go beyond the shared `page`/`limit`/`search` contract.
+
 ## [1.2.0] - 2026-07-06
 
 ### Added
@@ -62,7 +80,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Seed script for system permissions, `SUPER_ADMIN`/`SYSTEM_USER` roles,
   and a default super admin account.
 
-[Unreleased]: ../../compare/backend-v1.2.0...HEAD
+[Unreleased]: ../../compare/backend-v1.3.0...HEAD
+[1.3.0]: ../../compare/backend-v1.2.0...backend-v1.3.0
 [1.2.0]: ../../compare/backend-v1.1.0...backend-v1.2.0
 [1.1.0]: ../../compare/backend-v1.0.0...backend-v1.1.0
 [1.0.0]: ../../releases/tag/backend-v1.0.0

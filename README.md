@@ -1,10 +1,10 @@
 # Project 5 — System Console
 
-[![Backend](https://img.shields.io/badge/backend-v1.2.0-blue)](./backend/CHANGELOG.md)
-[![Frontend](https://img.shields.io/badge/frontend-v1.1.0-blue)](./frontend/CHANGELOG.md)
+[![Backend](https://img.shields.io/badge/backend-v1.3.0-blue)](./backend/CHANGELOG.md)
+[![Frontend](https://img.shields.io/badge/frontend-v1.2.0-blue)](./frontend/CHANGELOG.md)
 
 Full-stack system administration console with RBAC-driven CRUD for
-system users, roles, and permissions.
+system users, tenant users, tenant businesses, roles, and permissions.
 
 | Layer    | Stack                                                             |
 | -------- | ----------------------------------------------------------------- |
@@ -54,7 +54,8 @@ Login page: `http://localhost:3000/system/login` → redirects to `/system/dashb
 - **API versioning**: URI-based, driven by the `API_VERSION` env var (defaults to `1` → `/api/v1`). System-user routes live under `/api/v1/system/...`.
 - **Swagger / OpenAPI**: `http://localhost:4000/docs` — every endpoint documented (operations, params, responses with JSON examples, bearer auth, global `x-device-type` header). Keep decorators updated on every endpoint change.
 - **Auth (Passport.js)**: JWT access token (Bearer, 15 min) + rotating refresh token (httpOnly cookie, 7 days, SHA-256 hash stored in `refresh_tokens`). `POST /system/login`, `/system/register`, `/system/refresh`, `/system/logout`, `GET /system/me`.
-- **RBAC**: `permissions` ⇄ `role_permissions` ⇄ `roles` ⇄ `system_users`. Routes declare `@RequirePermissions('roles:delete')`; a global guard resolves the user's role permissions per request. Full CRUD is exposed for all three resources.
+- **RBAC**: `permissions` ⇄ `role_permissions` ⇄ `roles` ⇄ `system_users`/`tenant_users`. Routes declare `@RequirePermissions('roles:delete')`; a global guard resolves the user's role permissions per request. Full CRUD is exposed for permissions, roles, system users, tenant users, and tenant businesses.
+- **Tenant Business**: `tenant_business` table (contact/address fields, optional logo path, `isParentBusiness` flag). First resource with a dedicated `restore` endpoint (undelete) and list-endpoint filtering/sorting (`status`, `country`, `isParentBusiness`, `sortBy`, `sortOrder`) beyond plain pagination/search.
 - **Validation**: Zod schemas via `nestjs-zod` (global pipe), surfaced in Swagger.
 - **Security**: Argon2id password hashing · helmet security headers · CORS restricted to `CORS_ORIGINS` · rate limiting (global 100/min, login 5/min) · CSRF double-submit (cookie `csrf_token` + header `x-csrf-token` on cookie-based endpoints) · SQL injection prevented by Prisma parameterized queries · mandatory `x-device-type` header (`website | androidApp | iosApp | desktopApp`).
 - **Storage**: `STORAGE_DRIVER=local|s3`. Local files go to `public/uploads` (served at `/uploads`); S3 uses `@aws-sdk/client-s3`. Only the **path** is stored, never a URL. Upload endpoint: `POST /system/uploads`.
@@ -74,8 +75,9 @@ No application code changes required.
 
 - Responsive dashboard shell: top navbar + sidebar (Sheet drawer on mobile) + main content.
 - Theme: light / dark / system via `next-themes` toggle.
-- Pages: `/system/login`, `/system/register`, `/system/dashboard`, plus full create/edit/delete management screens for System Users, Roles, and Permissions.
+- Pages: `/system/login`, `/system/register`, `/system/dashboard`, plus full create/edit/delete management screens for System Users, Tenant Users, Tenant Business, Roles, and Permissions.
 - **Permission-gated UI**: create/edit/delete actions and sidebar sections only render if the signed-in user's resolved permissions allow them (mirrors, but does not replace, backend RBAC enforcement).
+- **Animated + mobile-responsive**: page transitions, a sliding nav indicator, staggered stat cards, skeleton loading states, and animated table rows via `motion` (Framer Motion, respects `prefers-reduced-motion`); every admin table renders as stacked cards on mobile instead of a horizontally-scrolling table.
 - API client (`src/lib/api.ts`) sends `x-device-type: website`, attaches the Bearer token, and auto-refreshes it once on 401 using the CSRF-protected refresh endpoint.
 - Env: `NEXT_PUBLIC_API_URL` in `frontend/.env.local`.
 
