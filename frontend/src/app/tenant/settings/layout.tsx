@@ -1,6 +1,6 @@
 import { TenantShell } from "@/components/tenant-shell";
 
-export default function TenantDashboardLayout({
+export default function TenantSettingsLayout({
   children,
 }: {
   children: React.ReactNode;

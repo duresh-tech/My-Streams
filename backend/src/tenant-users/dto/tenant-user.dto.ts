@@ -11,6 +11,8 @@ const CreateTenantUserSchema = z.object({
     .max(50)
     .regex(/^[a-zA-Z0-9._-]+$/),
   email: z.string().email().max(191),
+  phone: z.string().min(5).max(20).optional(),
+  avatarPath: z.string().max(255).optional(),
   password: z
     .string()
     .min(8)

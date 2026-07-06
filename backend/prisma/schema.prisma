@@ -115,6 +115,8 @@ model TenantUser {
   fName        String     @db.VarChar(100)
   username     String     @unique @db.VarChar(50)
   email        String     @unique @db.VarChar(191)
+  phone        String?    @db.VarChar(20)
+  avatarPath   String?    @db.VarChar(255)
   passwordHash String     @db.VarChar(255) // Argon2id
   roleId       String     @db.Char(36) // Must reference a role with visibleToTenants=true
   status       UserStatus @default(ACTIVE)

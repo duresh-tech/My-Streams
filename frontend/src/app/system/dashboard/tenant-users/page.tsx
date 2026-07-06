@@ -35,6 +35,7 @@ interface TenantUserRow {
   fName: string;
   username: string;
   email: string;
+  phone: string | null;
   status: "ACTIVE" | "INACTIVE" | "BLOCKED";
   roleId: string;
   role?: { id: string; roleKey: string; displayName: string };
@@ -51,6 +52,7 @@ interface TenantUserFormValues {
   fName: string;
   username: string;
   email: string;
+  phone: string;
   password: string;
   roleId: string;
   status: "ACTIVE" | "INACTIVE" | "BLOCKED";
@@ -60,6 +62,7 @@ const EMPTY_FORM: TenantUserFormValues = {
   fName: "",
   username: "",
   email: "",
+  phone: "",
   password: "",
   roleId: "",
   status: "ACTIVE",
@@ -106,6 +109,7 @@ export default function TenantUsersPage() {
       fName: row.fName,
       username: row.username,
       email: row.email,
+      phone: row.phone ?? "",
       password: "",
       roleId: row.roleId,
       status: row.status,
@@ -124,6 +128,7 @@ export default function TenantUsersPage() {
             fName: form.fName,
             username: form.username,
             email: form.email,
+            phone: form.phone || undefined,
             roleId: form.roleId,
             status: form.status,
             ...(form.password ? { password: form.password } : {}),
@@ -137,6 +142,7 @@ export default function TenantUsersPage() {
             fName: form.fName,
             username: form.username,
             email: form.email,
+            phone: form.phone || undefined,
             password: form.password,
             roleId: form.roleId,
           },
@@ -186,6 +192,7 @@ export default function TenantUsersPage() {
     { header: "Name", cell: (row) => <span className="font-medium">{row.fName}</span> },
     { header: "Username", cell: (row) => row.username },
     { header: "Email", cell: (row) => row.email },
+    { header: "Phone", cell: (row) => row.phone ?? "—" },
     { header: "Role", cell: (row) => row.role?.displayName ?? "—" },
     { header: "Code", cell: (row) => <code className="text-xs">{row.systemCode}</code> },
     { header: "Status", cell: (row) => <StatusBadgeText status={row.status} /> },
@@ -295,6 +302,15 @@ export default function TenantUsersPage() {
                     onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
                   />
                 </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="phone">Phone</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={form.phone}
+                  onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="password">Password {editing && "(optional)"}</Label>

@@ -37,6 +37,8 @@ const TENANT_USER_EXAMPLE = {
   fName: 'Test Tenant',
   username: 'tenantuser1',
   email: 'tenantuser1@example.com',
+  phone: '+1 555 0100',
+  avatarPath: null,
   roleId: '019f357c-ec94-7148-8367-a55253ab1152',
   status: 'ACTIVE',
   createdAt: 1783308735,

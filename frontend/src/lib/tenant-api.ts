@@ -107,6 +107,32 @@ export async function tenantApi<T = unknown>(
   return data as T;
 }
 
+/** Uploads the tenant user's own profile picture and returns its stored path. */
+export async function uploadTenantAvatar(file: File): Promise<{ path: string }> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const headers: Record<string, string> = { "x-device-type": "website" };
+  const token = getTenantAccessToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const response = await fetch(`${API_URL}/tenant/account/avatar`, {
+    method: "POST",
+    headers,
+    credentials: "include",
+    body: formData,
+  });
+
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    const message =
+      (data && (Array.isArray(data.message) ? data.message[0] : data.message)) ||
+      `Upload failed (${response.status})`;
+    throw new TenantApiError(response.status, message, data);
+  }
+  return data as { path: string };
+}
+
 async function tryTenantRefresh(): Promise<boolean> {
   try {
     const csrfToken = getTenantCsrfToken();
@@ -156,4 +182,19 @@ export interface TenantLoginResponse {
 
 export interface TenantDashboardStats {
   businesses: number;
+}
+
+export interface TenantAccountProfile {
+  id: string;
+  systemCode: string;
+  fName: string;
+  username: string;
+  email: string;
+  phone: string | null;
+  avatarPath: string | null;
+  roleId: string;
+  status: "ACTIVE" | "INACTIVE" | "BLOCKED";
+  createdAt: number;
+  updatedAt: number;
+  role?: { id: string; roleKey: string; displayName: string };
 }

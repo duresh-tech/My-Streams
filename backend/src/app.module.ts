@@ -11,6 +11,7 @@ import { PermissionsModule } from './permissions/permissions.module';
 import { RolesModule } from './roles/roles.module';
 import { SystemUsersModule } from './system-users/system-users.module';
 import { TenantUsersModule } from './tenant-users/tenant-users.module';
+import { TenantAccountModule } from './tenant-account/tenant-account.module';
 import { TenantBusinessModule } from './tenant-business/tenant-business.module';
 import { TenantMappedBusinessModule } from './tenant-mapped-business/tenant-mapped-business.module';
 import { DashboardModule } from './dashboard/dashboard.module';
@@ -42,6 +43,7 @@ import { DeviceHeaderGuard } from './common/guards/device-header.guard';
     RolesModule,
     SystemUsersModule,
     TenantUsersModule,
+    TenantAccountModule,
     TenantBusinessModule,
     TenantMappedBusinessModule,
     DashboardModule,

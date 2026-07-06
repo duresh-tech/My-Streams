@@ -26,6 +26,7 @@ interface PermissionSeed {
 const MODULES: Array<{ module: string; label: string; actions: string[] }> = [
   { module: 'dashboard', label: 'Dashboard', actions: ['view'] },
   { module: 'tenant-dashboard', label: 'Tenant Dashboard', actions: ['view'] },
+  { module: 'tenant-account', label: 'Tenant Account', actions: ['view', 'update'] },
   { module: 'permissions', label: 'Permissions', actions: ['create', 'read', 'update', 'delete'] },
   { module: 'roles', label: 'Roles', actions: ['create', 'read', 'update', 'delete'] },
   { module: 'system-users', label: 'System Users', actions: ['create', 'read', 'update', 'delete'] },
@@ -145,7 +146,9 @@ async function main() {
   await seedRole(
     'TENANT_ADMIN',
     'Tenant Administrator',
-    ['tenant-dashboard:view'].map((k) => keyToId.get(k)!).filter(Boolean),
+    ['tenant-dashboard:view', 'tenant-account:view', 'tenant-account:update']
+      .map((k) => keyToId.get(k)!)
+      .filter(Boolean),
     true,
   );
 
