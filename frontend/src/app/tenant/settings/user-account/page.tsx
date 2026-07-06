@@ -1,10 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { Camera, LoaderCircle } from "lucide-react";
+import { LoaderCircle, Plus, Save, UserRound } from "lucide-react";
 import { toast } from "sonner";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -34,6 +33,10 @@ const EMPTY_FORM: FormValues = {
   password: "",
   confirmPassword: "",
 };
+
+function RequiredMark() {
+  return <span className="text-destructive"> *</span>;
+}
 
 export default function TenantUserAccountPage() {
   const [profile, setProfile] = React.useState<TenantAccountProfile | null>(null);
@@ -117,62 +120,61 @@ export default function TenantUserAccountPage() {
     );
   }
 
-  const initials = (profile.fName || profile.username)
-    .split(" ")
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-
   return (
-    <div className="mx-auto max-w-2xl">
-      <Card>
-        <CardHeader>
-          <CardTitle>Account Settings</CardTitle>
-          <CardDescription>
-            Update your name, username, email, phone and password.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={onSubmit} className="grid gap-6">
-            <div className="grid gap-2">
-              <Label>Profile Picture</Label>
-              <div className="relative inline-block w-fit">
-                <Avatar className="size-24 border">
-                  {profile.avatarPath && (
-                    <AvatarImage
-                      src={`${UPLOADS_ORIGIN}/uploads/${profile.avatarPath}`}
-                      alt="Profile picture"
-                    />
-                  )}
-                  <AvatarFallback className="text-lg">{initials}</AvatarFallback>
-                </Avatar>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={onAvatarSelected}
-                />
-                <Button
-                  type="button"
-                  size="icon"
-                  disabled={uploadingAvatar}
-                  onClick={() => fileInputRef.current?.click()}
-                  className="absolute -bottom-1 -right-1 size-7 rounded-full"
-                  aria-label="Change profile picture"
-                >
-                  {uploadingAvatar ? (
-                    <LoaderCircle className="size-3.5 animate-spin" />
-                  ) : (
-                    <Camera className="size-3.5" />
-                  )}
-                </Button>
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-xl">Account Settings</CardTitle>
+        <CardDescription>
+          You can update your name, username, email, phone & password using the form below.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={onSubmit} className="grid gap-6">
+          <div className="grid gap-2">
+            <Label>Profile Picture</Label>
+            <div className="relative inline-block w-fit">
+              <div className="flex size-28 items-center justify-center overflow-hidden rounded-lg border-2 border-dashed bg-muted">
+                {profile.avatarPath ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={`${UPLOADS_ORIGIN}/uploads/${profile.avatarPath}`}
+                    alt="Profile picture"
+                    className="size-full object-cover"
+                  />
+                ) : (
+                  <UserRound className="size-14 text-muted-foreground/60" />
+                )}
               </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={onAvatarSelected}
+              />
+              <Button
+                type="button"
+                size="icon"
+                disabled={uploadingAvatar}
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute -bottom-2 -right-2 size-7 rounded-full p-0"
+                aria-label="Change profile picture"
+              >
+                {uploadingAvatar ? (
+                  <LoaderCircle className="size-3.5 animate-spin" />
+                ) : (
+                  <Plus className="size-4" />
+                )}
+              </Button>
             </div>
+          </div>
 
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="grid gap-2">
-              <Label htmlFor="fName">Full name</Label>
+              <Label htmlFor="fName">
+                Name
+                <RequiredMark />
+              </Label>
               <Input
                 id="fName"
                 required
@@ -180,31 +182,36 @@ export default function TenantUserAccountPage() {
                 onChange={(e) => setForm((f) => ({ ...f, fName: e.target.value }))}
               />
             </div>
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="grid gap-2">
-                <Label htmlFor="username">Username</Label>
-                <Input
-                  id="username"
-                  required
-                  minLength={3}
-                  pattern="[a-zA-Z0-9._-]+"
-                  value={form.username}
-                  onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  required
-                  value={form.email}
-                  onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                />
-              </div>
+            <div className="grid gap-2">
+              <Label htmlFor="email">
+                Email
+                <RequiredMark />
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                required
+                value={form.email}
+                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+              />
             </div>
+          </div>
 
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="grid gap-2">
+              <Label htmlFor="username">
+                Username
+                <RequiredMark />
+              </Label>
+              <Input
+                id="username"
+                required
+                minLength={3}
+                pattern="[a-zA-Z0-9._-]+"
+                value={form.username}
+                onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))}
+              />
+            </div>
             <div className="grid gap-2">
               <Label htmlFor="phone">Phone</Label>
               <Input
@@ -214,41 +221,41 @@ export default function TenantUserAccountPage() {
                 onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
               />
             </div>
+          </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="grid gap-2">
-                <Label htmlFor="password">New password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  minLength={8}
-                  value={form.password}
-                  onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-                  placeholder="Leave blank to keep current"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="confirmPassword">Confirm password</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  minLength={8}
-                  value={form.confirmPassword}
-                  onChange={(e) => setForm((f) => ({ ...f, confirmPassword: e.target.value }))}
-                  disabled={!form.password}
-                />
-              </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="grid gap-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                minLength={8}
+                value={form.password}
+                onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+                placeholder="Leave blank to keep current"
+              />
             </div>
+            <div className="grid gap-2">
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                minLength={8}
+                value={form.confirmPassword}
+                onChange={(e) => setForm((f) => ({ ...f, confirmPassword: e.target.value }))}
+                disabled={!form.password}
+              />
+            </div>
+          </div>
 
-            <div>
-              <Button type="submit" disabled={saving}>
-                {saving && <LoaderCircle className="size-4 animate-spin" />}
-                Save
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+          <div>
+            <Button type="submit" disabled={saving}>
+              {saving ? <LoaderCircle className="size-4 animate-spin" /> : <Save className="size-4" />}
+              Save
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   );
 }
