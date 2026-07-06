@@ -3,10 +3,16 @@
 import * as React from "react";
 import { api, type ListResponse } from "@/lib/api";
 
+type Fetcher = <T>(
+  path: string,
+  options?: { method?: "GET" | "POST" | "PATCH" | "PUT" | "DELETE"; body?: unknown },
+) => Promise<T>;
+
 /** Paginated + searchable resource list with a manual refresh trigger. */
 export function useResourceList<T>(
   endpoint: string,
   filters: Record<string, string | undefined> = {},
+  fetcher: Fetcher = api,
 ) {
   const [rows, setRows] = React.useState<T[] | null>(null);
   const [error, setError] = React.useState<string | null>(null);
@@ -27,7 +33,7 @@ export function useResourceList<T>(
     for (const [key, value] of Object.entries(filters)) {
       if (value) params.set(key, value);
     }
-    api<ListResponse<T>>(`${endpoint}?${params.toString()}`)
+    fetcher<ListResponse<T>>(`${endpoint}?${params.toString()}`)
       .then((data) => {
         if (cancelled) return;
         setRows(data.items);

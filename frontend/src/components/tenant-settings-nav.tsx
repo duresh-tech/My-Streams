@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { User } from "lucide-react";
+import { Percent, User } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import {
@@ -12,15 +12,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useTenantSession } from "@/hooks/use-tenant-session";
 
 const SETTINGS_NAV_ITEMS = [
-  { href: "/tenant/settings/user-account", label: "Account Settings", icon: User },
+  { href: "/tenant/settings/user-account", label: "Account Settings", icon: User, permission: "tenant-account:view" },
+  { href: "/tenant/settings/tax-types", label: "Tax Types", icon: Percent, permission: "tenant-tax-types:list" },
 ];
 
 export function TenantSettingsNav() {
   const pathname = usePathname();
   const router = useRouter();
-  const active = SETTINGS_NAV_ITEMS.find((item) => pathname.startsWith(item.href));
+  const { hasPermission } = useTenantSession();
+  const items = SETTINGS_NAV_ITEMS.filter((item) => hasPermission(item.permission));
+  const active = items.find((item) => pathname.startsWith(item.href));
 
   return (
     <div className="w-full shrink-0 md:w-64">
@@ -31,7 +35,7 @@ export function TenantSettingsNav() {
             <SelectValue placeholder="Settings" />
           </SelectTrigger>
           <SelectContent>
-            {SETTINGS_NAV_ITEMS.map((item) => (
+            {items.map((item) => (
               <SelectItem key={item.href} value={item.href}>
                 {item.label}
               </SelectItem>
@@ -42,7 +46,7 @@ export function TenantSettingsNav() {
 
       {/* Desktop: vertical list */}
       <nav className="hidden rounded-xl border bg-card p-2 md:grid md:gap-1">
-        {SETTINGS_NAV_ITEMS.map((item) => {
+        {items.map((item) => {
           const isActive = pathname.startsWith(item.href);
           return (
             <Link

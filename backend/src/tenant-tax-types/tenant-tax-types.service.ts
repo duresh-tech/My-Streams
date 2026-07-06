@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { newId, newSystemCode, now } from '../common/utils/id.util';
 import { listResponse, paginate } from '../common/dto/query.dto';
@@ -116,6 +121,88 @@ export class TenantTaxTypesService {
     });
     if (!business) {
       throw new BadRequestException('Tenant business does not exist or is deleted');
+    }
+  }
+
+  // ---------- Tenant self-service (scoped to the caller's mapped businesses) ----------
+
+  async listMappedBusinesses(tenantUserId: string) {
+    const businessIds = await this.getMappedBusinessIds(tenantUserId);
+    return this.prisma.tenantBusiness.findMany({
+      where: { id: { in: businessIds }, status: { not: 'DELETED' } },
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  async findAllForTenantUser(tenantUserId: string, query: TenantTaxTypeListQueryDto) {
+    const businessIds = await this.getMappedBusinessIds(tenantUserId);
+    const { page, limit, search, status, tenantBusinessId, sortBy, sortOrder } = query;
+    const scopedBusinessIds = tenantBusinessId
+      ? businessIds.filter((id) => id === tenantBusinessId)
+      : businessIds;
+    const where = {
+      tenantBusinessId: { in: scopedBusinessIds },
+      status: status ? status : ({ not: 'DELETED' } as const),
+      ...(search
+        ? {
+            OR: [
+              { taxName: { contains: search } },
+              { systemCode: { contains: search } },
+            ],
+          }
+        : {}),
+    };
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.tenantTaxType.findMany({
+        where,
+        include: TAX_TYPE_INCLUDE,
+        orderBy: { [sortBy]: sortOrder },
+        ...paginate(page, limit),
+      }),
+      this.prisma.tenantTaxType.count({ where }),
+    ]);
+    return listResponse(items, total, page, limit);
+  }
+
+  async findOneForTenantUser(tenantUserId: string, id: string) {
+    const businessIds = await this.getMappedBusinessIds(tenantUserId);
+    const taxType = await this.prisma.tenantTaxType.findFirst({
+      where: { id, tenantBusinessId: { in: businessIds }, status: { not: 'DELETED' } },
+      include: TAX_TYPE_INCLUDE,
+    });
+    if (!taxType) throw new NotFoundException('Tax type not found');
+    return taxType;
+  }
+
+  async createForTenantUser(tenantUserId: string, dto: CreateTenantTaxTypeDto) {
+    await this.assertBusinessOwned(tenantUserId, dto.tenantBusinessId);
+    return this.create(dto);
+  }
+
+  async updateForTenantUser(tenantUserId: string, id: string, dto: UpdateTenantTaxTypeDto) {
+    await this.findOneForTenantUser(tenantUserId, id);
+    if (dto.tenantBusinessId) await this.assertBusinessOwned(tenantUserId, dto.tenantBusinessId);
+    return this.update(id, dto);
+  }
+
+  async removeForTenantUser(tenantUserId: string, id: string) {
+    await this.findOneForTenantUser(tenantUserId, id);
+    return this.remove(id);
+  }
+
+  private async getMappedBusinessIds(tenantUserId: string): Promise<string[]> {
+    const mappings = await this.prisma.tenantMappedBusiness.findMany({
+      where: { tenantUserId, status: 'ACTIVE' },
+      select: { tenantBusinessId: true },
+    });
+    return mappings.map((m) => m.tenantBusinessId);
+  }
+
+  private async assertBusinessOwned(tenantUserId: string, tenantBusinessId: string) {
+    const businessIds = await this.getMappedBusinessIds(tenantUserId);
+    if (!businessIds.includes(tenantBusinessId)) {
+      throw new ForbiddenException('You are not mapped to this business');
     }
   }
 }

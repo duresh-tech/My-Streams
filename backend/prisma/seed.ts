@@ -147,7 +147,16 @@ async function main() {
   await seedRole(
     'TENANT_ADMIN',
     'Tenant Administrator',
-    ['tenant-dashboard:view', 'tenant-account:view', 'tenant-account:update']
+    [
+      'tenant-dashboard:view',
+      'tenant-account:view',
+      'tenant-account:update',
+      'tenant-tax-types:list',
+      'tenant-tax-types:view',
+      'tenant-tax-types:create',
+      'tenant-tax-types:update',
+      'tenant-tax-types:delete',
+    ]
       .map((k) => keyToId.get(k)!)
       .filter(Boolean),
     true,
