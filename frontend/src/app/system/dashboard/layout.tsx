@@ -32,7 +32,7 @@ import {
 import { SidebarNav } from "@/components/sidebar-nav";
 import { PageTransition } from "@/components/motion/page-transition";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { useSession } from "@/hooks/use-session";
+import { SessionProvider, useSession } from "@/hooks/use-session";
 
 function Brand() {
   return (
@@ -53,6 +53,14 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  return (
+    <SessionProvider>
+      <DashboardLayoutInner>{children}</DashboardLayoutInner>
+    </SessionProvider>
+  );
+}
+
+function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const { user, loading, logout, hasPermission } = useSession();
   const [mobileOpen, setMobileOpen] = React.useState(false);
 

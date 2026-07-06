@@ -34,7 +34,7 @@ import {
 import { SidebarNav, type NavItem } from "@/components/sidebar-nav";
 import { PageTransition } from "@/components/motion/page-transition";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { useTenantSession } from "@/hooks/use-tenant-session";
+import { TenantSessionProvider, useTenantSession } from "@/hooks/use-tenant-session";
 
 const TENANT_NAV_ITEMS: NavItem[] = [
   { href: "/tenant/dashboard", label: "Dashboard", icon: LayoutDashboard, permission: "tenant-dashboard:view" },
@@ -56,6 +56,14 @@ function Brand() {
 }
 
 export function TenantShell({ children }: { children: React.ReactNode }) {
+  return (
+    <TenantSessionProvider>
+      <TenantShellInner>{children}</TenantShellInner>
+    </TenantSessionProvider>
+  );
+}
+
+function TenantShellInner({ children }: { children: React.ReactNode }) {
   const { user, loading, logout, hasPermission } = useTenantSession();
   const [mobileOpen, setMobileOpen] = React.useState(false);
 

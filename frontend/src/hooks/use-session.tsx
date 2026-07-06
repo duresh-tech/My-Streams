@@ -11,8 +11,14 @@ interface SessionState {
   hasPermission: (permissionKey: string) => boolean;
 }
 
-/** Client-side auth guard: loads /system/me, bounces to login on failure. */
-export function useSession(): SessionState {
+const SessionContext = React.createContext<SessionState | null>(null);
+
+/**
+ * Fetches /system/me once per mount and shares it via context. Wrap the system
+ * dashboard route tree once (in DashboardLayout) so nested components calling
+ * useSession() don't each trigger their own /system/me request.
+ */
+export function SessionProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [user, setUser] = React.useState<SessionUser | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -55,5 +61,19 @@ export function useSession(): SessionState {
     [user],
   );
 
-  return { user, loading, logout, hasPermission };
+  const value = React.useMemo(
+    () => ({ user, loading, logout, hasPermission }),
+    [user, loading, logout, hasPermission],
+  );
+
+  return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
+}
+
+/** Client-side auth guard: reads the session loaded by SessionProvider. */
+export function useSession(): SessionState {
+  const ctx = React.useContext(SessionContext);
+  if (!ctx) {
+    throw new Error("useSession must be used within a SessionProvider");
+  }
+  return ctx;
 }

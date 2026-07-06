@@ -16,8 +16,14 @@ interface TenantSessionState {
   hasPermission: (permissionKey: string) => boolean;
 }
 
-/** Client-side tenant auth guard: loads /tenant/me, bounces to tenant login on failure. */
-export function useTenantSession(): TenantSessionState {
+const TenantSessionContext = React.createContext<TenantSessionState | null>(null);
+
+/**
+ * Fetches /tenant/me once per mount and shares it via context. Wrap the tenant
+ * route tree once (in TenantShell) so nested components calling useTenantSession()
+ * don't each trigger their own /tenant/me request.
+ */
+export function TenantSessionProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [user, setUser] = React.useState<TenantSessionUser | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -60,5 +66,21 @@ export function useTenantSession(): TenantSessionState {
     [user],
   );
 
-  return { user, loading, logout, hasPermission };
+  const value = React.useMemo(
+    () => ({ user, loading, logout, hasPermission }),
+    [user, loading, logout, hasPermission],
+  );
+
+  return (
+    <TenantSessionContext.Provider value={value}>{children}</TenantSessionContext.Provider>
+  );
+}
+
+/** Client-side tenant auth guard: reads the session loaded by TenantSessionProvider. */
+export function useTenantSession(): TenantSessionState {
+  const ctx = React.useContext(TenantSessionContext);
+  if (!ctx) {
+    throw new Error("useTenantSession must be used within a TenantSessionProvider");
+  }
+  return ctx;
 }
