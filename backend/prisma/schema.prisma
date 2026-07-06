@@ -163,11 +163,44 @@ model TenantBusiness {
   deletedAt        BigInt?
 
   mappedTenantUsers TenantMappedBusiness[]
+  taxTypes          TenantTaxType[]
 
   @@index([status])
   @@index([country])
   @@index([isParentBusiness])
   @@map("tenant_business")
+}
+
+enum TaxCalculationType {
+  PERCENTAGE
+  FIXED
+}
+
+enum TenantTaxTypeStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+  DELETED
+}
+
+model TenantTaxType {
+  id               String              @id @db.Char(36) // UUIDv7
+  systemCode       String              @unique @db.VarChar(30)
+  tenantBusinessId String              @db.Char(36)
+  taxName          String              @db.VarChar(100)
+  calculationType  TaxCalculationType
+  value            Float
+  description      String?             @db.VarChar(255)
+  status           TenantTaxTypeStatus @default(ACTIVE)
+  createdAt        BigInt
+  updatedAt        BigInt
+  deletedAt        BigInt?
+
+  tenantBusiness TenantBusiness @relation(fields: [tenantBusinessId], references: [id])
+
+  @@index([status])
+  @@index([tenantBusinessId])
+  @@map("tenant_tax_types")
 }
 
 enum TenantMappedBusinessStatus {
