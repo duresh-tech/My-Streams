@@ -17,6 +17,7 @@ import { TenantMappedBusinessModule } from './tenant-mapped-business/tenant-mapp
 import { TenantTaxTypesModule } from './tenant-tax-types/tenant-tax-types.module';
 import { TenantPaymentModesModule } from './tenant-payment-modes/tenant-payment-modes.module';
 import { TenantExpenseCategoriesModule } from './tenant-expense-categories/tenant-expense-categories.module';
+import { TenantBusinessBranchesModule } from './tenant-business-branches/tenant-business-branches.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { TenantDashboardModule } from './tenant-dashboard/tenant-dashboard.module';
 import { UploadsModule } from './uploads/uploads.module';
@@ -52,6 +53,7 @@ import { DeviceHeaderGuard } from './common/guards/device-header.guard';
     TenantTaxTypesModule,
     TenantPaymentModesModule,
     TenantExpenseCategoriesModule,
+    TenantBusinessBranchesModule,
     DashboardModule,
     TenantDashboardModule,
     UploadsModule,

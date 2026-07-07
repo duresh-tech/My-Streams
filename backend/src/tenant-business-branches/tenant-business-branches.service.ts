@@ -8,20 +8,20 @@ import { PrismaService } from '../prisma/prisma.service';
 import { newId, newSystemCode, now } from '../common/utils/id.util';
 import { listResponse, paginate } from '../common/dto/query.dto';
 import {
-  CreateTenantPaymentModeDto,
-  UpdateTenantPaymentModeDto,
-} from './dto/tenant-payment-mode.dto';
-import { TenantPaymentModeListQueryDto } from './dto/tenant-payment-mode-query.dto';
+  CreateTenantBusinessBranchDto,
+  UpdateTenantBusinessBranchDto,
+} from './dto/tenant-business-branch.dto';
+import { TenantBusinessBranchListQueryDto } from './dto/tenant-business-branch-query.dto';
 
-const PAYMENT_MODE_INCLUDE = {
+const BRANCH_INCLUDE = {
   tenantBusiness: { select: { id: true, systemCode: true, name: true } },
 };
 
 @Injectable()
-export class TenantPaymentModesService {
+export class TenantBusinessBranchesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(query: TenantPaymentModeListQueryDto) {
+  async findAll(query: TenantBusinessBranchListQueryDto) {
     const { page, limit, search, status, tenantBusinessId, sortBy, sortOrder } = query;
     const where = {
       status: status ? status : ({ not: 'DELETED' } as const),
@@ -29,79 +29,78 @@ export class TenantPaymentModesService {
       ...(search
         ? {
             OR: [
-              { paymentName: { contains: search } },
+              { branchName: { contains: search } },
               { systemCode: { contains: search } },
+              { email: { contains: search } },
             ],
           }
         : {}),
     };
     const [items, total] = await this.prisma.$transaction([
-      this.prisma.tenantPaymentMode.findMany({
+      this.prisma.tenantBusinessBranch.findMany({
         where,
-        include: PAYMENT_MODE_INCLUDE,
+        include: BRANCH_INCLUDE,
         orderBy: { [sortBy]: sortOrder },
         ...paginate(page, limit),
       }),
-      this.prisma.tenantPaymentMode.count({ where }),
+      this.prisma.tenantBusinessBranch.count({ where }),
     ]);
     return listResponse(items, total, page, limit);
   }
 
   async findOne(id: string) {
-    const mode = await this.prisma.tenantPaymentMode.findFirst({
+    const branch = await this.prisma.tenantBusinessBranch.findFirst({
       where: { id, status: { not: 'DELETED' } },
-      include: PAYMENT_MODE_INCLUDE,
+      include: BRANCH_INCLUDE,
     });
-    if (!mode) throw new NotFoundException('Payment mode not found');
-    return mode;
+    if (!branch) throw new NotFoundException('Business branch not found');
+    return branch;
   }
 
-  async create(dto: CreateTenantPaymentModeDto) {
+  async create(dto: CreateTenantBusinessBranchDto) {
     await this.assertBusinessExists(dto.tenantBusinessId);
 
     const timestamp = now();
-    return this.prisma.tenantPaymentMode.create({
+    return this.prisma.tenantBusinessBranch.create({
       data: {
         id: newId(),
-        systemCode: newSystemCode('PAY'),
+        systemCode: newSystemCode('BRN'),
         tenantBusinessId: dto.tenantBusinessId,
-        paymentName: dto.paymentName,
+        branchName: dto.branchName,
+        email: dto.email,
+        phone: dto.phone,
+        addressLine1: dto.addressLine1,
+        addressLine2: dto.addressLine2,
         description: dto.description,
         createdAt: timestamp,
         updatedAt: timestamp,
       },
-      include: PAYMENT_MODE_INCLUDE,
+      include: BRANCH_INCLUDE,
     });
   }
 
-  async update(id: string, dto: UpdateTenantPaymentModeDto) {
-    const mode = await this.prisma.tenantPaymentMode.findFirst({
+  async update(id: string, dto: UpdateTenantBusinessBranchDto) {
+    const branch = await this.prisma.tenantBusinessBranch.findFirst({
       where: { id, status: { not: 'DELETED' } },
     });
-    if (!mode) throw new NotFoundException('Payment mode not found');
-    if (mode.isSystem) {
-      throw new BadRequestException('System payment modes cannot be edited');
-    }
+    if (!branch) throw new NotFoundException('Business branch not found');
     if (dto.tenantBusinessId) await this.assertBusinessExists(dto.tenantBusinessId);
 
-    return this.prisma.tenantPaymentMode.update({
+    return this.prisma.tenantBusinessBranch.update({
       where: { id },
       data: { ...dto, updatedAt: now() },
-      include: PAYMENT_MODE_INCLUDE,
+      include: BRANCH_INCLUDE,
     });
   }
 
   async remove(id: string) {
-    const mode = await this.prisma.tenantPaymentMode.findFirst({
+    const branch = await this.prisma.tenantBusinessBranch.findFirst({
       where: { id, status: { not: 'DELETED' } },
     });
-    if (!mode) throw new NotFoundException('Payment mode not found');
-    if (mode.isSystem) {
-      throw new BadRequestException('System payment modes cannot be deleted');
-    }
+    if (!branch) throw new NotFoundException('Business branch not found');
 
     const timestamp = now();
-    await this.prisma.tenantPaymentMode.update({
+    await this.prisma.tenantBusinessBranch.update({
       where: { id },
       data: { status: 'DELETED', deletedAt: timestamp, updatedAt: timestamp },
     });
@@ -109,16 +108,16 @@ export class TenantPaymentModesService {
   }
 
   async restore(id: string) {
-    const mode = await this.prisma.tenantPaymentMode.findFirst({
+    const branch = await this.prisma.tenantBusinessBranch.findFirst({
       where: { id, status: 'DELETED' },
     });
-    if (!mode) {
-      throw new NotFoundException('Payment mode not found or not deleted');
+    if (!branch) {
+      throw new NotFoundException('Business branch not found or not deleted');
     }
-    return this.prisma.tenantPaymentMode.update({
+    return this.prisma.tenantBusinessBranch.update({
       where: { id },
       data: { status: 'ACTIVE', deletedAt: null, updatedAt: now() },
-      include: PAYMENT_MODE_INCLUDE,
+      include: BRANCH_INCLUDE,
     });
   }
 
@@ -142,62 +141,57 @@ export class TenantPaymentModesService {
     });
   }
 
-  async findAllForTenantUser(tenantUserId: string, query: TenantPaymentModeListQueryDto) {
+  async findAllForTenantUser(tenantUserId: string, query: TenantBusinessBranchListQueryDto) {
     const businessIds = await this.getMappedBusinessIds(tenantUserId);
     const { page, limit, search, status, tenantBusinessId, sortBy, sortOrder } = query;
-    // System payment modes are global defaults, visible to every business regardless
-    // of which business the caller is mapped to.
-    const businessScope = tenantBusinessId
-      ? { OR: [{ tenantBusinessId }, { isSystem: true }] }
-      : { OR: [{ tenantBusinessId: { in: businessIds } }, { isSystem: true }] };
+    const scopedBusinessIds = tenantBusinessId
+      ? businessIds.filter((id) => id === tenantBusinessId)
+      : businessIds;
     const where = {
-      AND: [
-        businessScope,
-        { status: status ? status : ({ not: 'DELETED' } as const) },
-        ...(search
-          ? [
-              {
-                OR: [
-                  { paymentName: { contains: search } },
-                  { systemCode: { contains: search } },
-                ],
-              },
-            ]
-          : []),
-      ],
+      tenantBusinessId: { in: scopedBusinessIds },
+      status: status ? status : ({ not: 'DELETED' } as const),
+      ...(search
+        ? {
+            OR: [
+              { branchName: { contains: search } },
+              { systemCode: { contains: search } },
+              { email: { contains: search } },
+            ],
+          }
+        : {}),
     };
     const [items, total] = await this.prisma.$transaction([
-      this.prisma.tenantPaymentMode.findMany({
+      this.prisma.tenantBusinessBranch.findMany({
         where,
-        include: PAYMENT_MODE_INCLUDE,
+        include: BRANCH_INCLUDE,
         orderBy: { [sortBy]: sortOrder },
         ...paginate(page, limit),
       }),
-      this.prisma.tenantPaymentMode.count({ where }),
+      this.prisma.tenantBusinessBranch.count({ where }),
     ]);
     return listResponse(items, total, page, limit);
   }
 
   async findOneForTenantUser(tenantUserId: string, id: string) {
     const businessIds = await this.getMappedBusinessIds(tenantUserId);
-    const mode = await this.prisma.tenantPaymentMode.findFirst({
-      where: {
-        id,
-        OR: [{ tenantBusinessId: { in: businessIds } }, { isSystem: true }],
-        status: { not: 'DELETED' },
-      },
-      include: PAYMENT_MODE_INCLUDE,
+    const branch = await this.prisma.tenantBusinessBranch.findFirst({
+      where: { id, tenantBusinessId: { in: businessIds }, status: { not: 'DELETED' } },
+      include: BRANCH_INCLUDE,
     });
-    if (!mode) throw new NotFoundException('Payment mode not found');
-    return mode;
+    if (!branch) throw new NotFoundException('Business branch not found');
+    return branch;
   }
 
-  async createForTenantUser(tenantUserId: string, dto: CreateTenantPaymentModeDto) {
+  async createForTenantUser(tenantUserId: string, dto: CreateTenantBusinessBranchDto) {
     await this.assertBusinessOwned(tenantUserId, dto.tenantBusinessId);
     return this.create(dto);
   }
 
-  async updateForTenantUser(tenantUserId: string, id: string, dto: UpdateTenantPaymentModeDto) {
+  async updateForTenantUser(
+    tenantUserId: string,
+    id: string,
+    dto: UpdateTenantBusinessBranchDto,
+  ) {
     await this.findOneForTenantUser(tenantUserId, id);
     if (dto.tenantBusinessId) await this.assertBusinessOwned(tenantUserId, dto.tenantBusinessId);
     return this.update(id, dto);

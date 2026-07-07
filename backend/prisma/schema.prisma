@@ -166,6 +166,7 @@ model TenantBusiness {
   taxTypes          TenantTaxType[]
   paymentModes      TenantPaymentMode[]
   expenseCategories TenantExpenseCategory[]
+  branches          TenantBusinessBranch[]
 
   @@index([status])
   @@index([country])
@@ -255,6 +256,35 @@ model TenantExpenseCategory {
   @@index([status])
   @@index([tenantBusinessId])
   @@map("tenant_expense_categories")
+}
+
+enum TenantBusinessBranchStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+  DELETED
+}
+
+model TenantBusinessBranch {
+  id               String                     @id @db.Char(36) // UUIDv7
+  systemCode       String                     @unique @db.VarChar(30)
+  tenantBusinessId String                     @db.Char(36)
+  branchName       String                     @db.VarChar(150)
+  email            String                     @db.VarChar(150)
+  phone            String                     @db.VarChar(20)
+  addressLine1     String                     @db.VarChar(255)
+  addressLine2     String?                    @db.VarChar(255)
+  description      String?                    @db.VarChar(255)
+  status           TenantBusinessBranchStatus @default(ACTIVE)
+  createdAt        BigInt
+  updatedAt        BigInt
+  deletedAt        BigInt?
+
+  tenantBusiness TenantBusiness @relation(fields: [tenantBusinessId], references: [id])
+
+  @@index([status])
+  @@index([tenantBusinessId])
+  @@map("tenant_business_branches")
 }
 
 enum TenantMappedBusinessStatus {

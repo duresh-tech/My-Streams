@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "motion/react";
 import {
+  Building,
   Building2,
   CreditCard,
   KeyRound,
@@ -31,6 +32,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/system/dashboard/tenant-users", label: "Tenant Users", icon: UserCog, permission: "tenant-users:read" },
   { href: "/system/dashboard/tenant-business", label: "Tenant Business", icon: Building2, permission: "tenant-business:list" },
   { href: "/system/dashboard/tenant-mapped-business", label: "Tenant Mapped Business", icon: Network, permission: "tenant-mapped-business:list" },
+  { href: "/system/dashboard/tenant-business-branches", label: "Business Branches", icon: Building, permission: "tenant-business-branches:list" },
   { href: "/system/dashboard/tenant-tax-types", label: "Tax Types", icon: Percent, permission: "tenant-tax-types:list" },
   { href: "/system/dashboard/tenant-payment-modes", label: "Payment Modes", icon: CreditCard, permission: "tenant-payment-modes:list" },
   { href: "/system/dashboard/tenant-expense-categories", label: "Expense Categories", icon: Receipt, permission: "tenant-expense-categories:list" },

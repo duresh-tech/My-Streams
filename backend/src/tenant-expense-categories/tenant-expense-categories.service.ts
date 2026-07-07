@@ -145,20 +145,26 @@ export class TenantExpenseCategoriesService {
   async findAllForTenantUser(tenantUserId: string, query: TenantExpenseCategoryListQueryDto) {
     const businessIds = await this.getMappedBusinessIds(tenantUserId);
     const { page, limit, search, status, tenantBusinessId, sortBy, sortOrder } = query;
-    const scopedBusinessIds = tenantBusinessId
-      ? businessIds.filter((id) => id === tenantBusinessId)
-      : businessIds;
+    // System expense categories are global defaults, visible to every business regardless
+    // of which business the caller is mapped to.
+    const businessScope = tenantBusinessId
+      ? { OR: [{ tenantBusinessId }, { isSystem: true }] }
+      : { OR: [{ tenantBusinessId: { in: businessIds } }, { isSystem: true }] };
     const where = {
-      tenantBusinessId: { in: scopedBusinessIds },
-      status: status ? status : ({ not: 'DELETED' } as const),
-      ...(search
-        ? {
-            OR: [
-              { expenseCategorieName: { contains: search } },
-              { systemCode: { contains: search } },
-            ],
-          }
-        : {}),
+      AND: [
+        businessScope,
+        { status: status ? status : ({ not: 'DELETED' } as const) },
+        ...(search
+          ? [
+              {
+                OR: [
+                  { expenseCategorieName: { contains: search } },
+                  { systemCode: { contains: search } },
+                ],
+              },
+            ]
+          : []),
+      ],
     };
     const [items, total] = await this.prisma.$transaction([
       this.prisma.tenantExpenseCategory.findMany({
@@ -175,7 +181,11 @@ export class TenantExpenseCategoriesService {
   async findOneForTenantUser(tenantUserId: string, id: string) {
     const businessIds = await this.getMappedBusinessIds(tenantUserId);
     const category = await this.prisma.tenantExpenseCategory.findFirst({
-      where: { id, tenantBusinessId: { in: businessIds }, status: { not: 'DELETED' } },
+      where: {
+        id,
+        OR: [{ tenantBusinessId: { in: businessIds } }, { isSystem: true }],
+        status: { not: 'DELETED' },
+      },
       include: EXPENSE_CATEGORY_INCLUDE,
     });
     if (!category) throw new NotFoundException('Expense category not found');
