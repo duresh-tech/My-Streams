@@ -94,20 +94,20 @@ export class TenantMappedBusinessController {
   @Post()
   @RequirePermissions('tenant-mapped-business:create')
   @ApiOperation({
-    summary: 'Assign one or more businesses to a tenant user',
+    summary: 'Assign a business to a tenant user',
     description:
-      'Validates the tenant user and all businesses exist. Skips pairs already ' +
-      'actively mapped, and revives any previously soft-deleted mapping for a pair ' +
-      'instead of erroring (the (tenantUserId, tenantBusinessId) pair is unique ' +
-      'regardless of status).',
+      'A tenant user can be mapped to only one business at a time (tenantUserId is ' +
+      'unique). Revives a previously soft-deleted mapping for this tenant user instead ' +
+      'of erroring; rejects with 409 if the tenant user already has an active mapping ' +
+      '(use PUT to reassign it instead).',
   })
   @ApiResponse({
     status: 201,
-    description: 'Created (and/or revived) mappings, plus any skipped duplicates.',
-    schema: { example: { created: [MAPPING_EXAMPLE], skipped: [] } },
+    description: 'Mapping created (or revived).',
+    schema: { example: MAPPING_EXAMPLE },
   })
-  @ApiResponse({ status: 400, description: 'One or more tenant businesses do not exist.' })
-  @ApiResponse({ status: 404, description: 'Tenant user not found.' })
+  @ApiResponse({ status: 404, description: 'Tenant user or tenant business not found.' })
+  @ApiResponse({ status: 409, description: 'Tenant user is already mapped to a business.' })
   create(@Body() dto: CreateMappedBusinessDto) {
     return this.tenantMappedBusinessService.create(dto);
   }
@@ -122,7 +122,7 @@ export class TenantMappedBusinessController {
     schema: { example: MAPPING_EXAMPLE },
   })
   @ApiResponse({ status: 404, description: 'Mapping, tenant user, or tenant business not found.' })
-  @ApiResponse({ status: 409, description: 'That tenant user is already mapped to that business.' })
+  @ApiResponse({ status: 409, description: 'That tenant user is already mapped to a business.' })
   update(@Param('id') id: string, @Body() dto: UpdateMappedBusinessDto) {
     return this.tenantMappedBusinessService.update(id, dto);
   }

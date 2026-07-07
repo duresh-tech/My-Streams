@@ -277,9 +277,8 @@ model TenantMappedBusiness {
   tenantUser     TenantUser     @relation(fields: [tenantUserId], references: [id])
   tenantBusiness TenantBusiness @relation(fields: [tenantBusinessId], references: [id])
 
-  @@unique([tenantUserId, tenantBusinessId], name: "uk_tenant_user_business")
+  @@unique([tenantUserId]) // one business per tenant user
   @@index([status])
-  @@index([tenantUserId])
   @@index([tenantBusinessId])
   @@map("tenant_mapped_business")
 }

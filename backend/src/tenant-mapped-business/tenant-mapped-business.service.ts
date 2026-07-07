@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { newId, newSystemCode, now } from '../common/utils/id.util';
 import { listResponse, paginate } from '../common/dto/query.dto';
@@ -66,53 +66,45 @@ export class TenantMappedBusinessService {
     });
     if (!tenantUser) throw new NotFoundException('Tenant user not found');
 
-    const businessIds = [...new Set(dto.tenantBusinessIds)];
-    const businesses = await this.prisma.tenantBusiness.findMany({
-      where: { id: { in: businessIds }, status: { not: 'DELETED' } },
-      select: { id: true },
+    const tenantBusiness = await this.prisma.tenantBusiness.findFirst({
+      where: { id: dto.tenantBusinessId, status: { not: 'DELETED' } },
     });
-    const foundIds = new Set(businesses.map((b) => b.id));
-    const missing = businessIds.filter((id) => !foundIds.has(id));
-    if (missing.length > 0) {
-      throw new BadRequestException(
-        `One or more tenant businesses do not exist or are deleted: ${missing.join(', ')}`,
-      );
-    }
+    if (!tenantBusiness) throw new NotFoundException('Tenant business not found');
 
-    const created: unknown[] = [];
-    const skipped: string[] = [];
     const timestamp = now();
+    const existing = await this.prisma.tenantMappedBusiness.findUnique({
+      where: { tenantUserId: dto.tenantUserId },
+    });
 
-    for (const tenantBusinessId of businessIds) {
-      const existing = await this.prisma.tenantMappedBusiness.findUnique({
-        where: { uk_tenant_user_business: { tenantUserId: dto.tenantUserId, tenantBusinessId } },
-      });
-      if (!existing) {
-        const mapping = await this.prisma.tenantMappedBusiness.create({
-          data: {
-            id: newId(),
-            systemCode: newSystemCode('TMB'),
-            tenantUserId: dto.tenantUserId,
-            tenantBusinessId,
-            createdAt: timestamp,
-            updatedAt: timestamp,
-          },
-          include: MAPPING_INCLUDE,
-        });
-        created.push(mapping);
-      } else if (existing.status === 'DELETED') {
-        const mapping = await this.prisma.tenantMappedBusiness.update({
-          where: { id: existing.id },
-          data: { status: 'ACTIVE', deletedAt: null, updatedAt: timestamp },
-          include: MAPPING_INCLUDE,
-        });
-        created.push(mapping);
-      } else {
-        skipped.push(tenantBusinessId);
+    if (existing) {
+      if (existing.status !== 'DELETED') {
+        throw new ConflictException(
+          'This tenant user is already mapped to a business; edit the existing mapping instead',
+        );
       }
+      return this.prisma.tenantMappedBusiness.update({
+        where: { id: existing.id },
+        data: {
+          tenantBusinessId: dto.tenantBusinessId,
+          status: 'ACTIVE',
+          deletedAt: null,
+          updatedAt: timestamp,
+        },
+        include: MAPPING_INCLUDE,
+      });
     }
 
-    return { created, skipped };
+    return this.prisma.tenantMappedBusiness.create({
+      data: {
+        id: newId(),
+        systemCode: newSystemCode('TMB'),
+        tenantUserId: dto.tenantUserId,
+        tenantBusinessId: dto.tenantBusinessId,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
+      include: MAPPING_INCLUDE,
+    });
   }
 
   async update(id: string, dto: UpdateMappedBusinessDto) {
@@ -131,20 +123,12 @@ export class TenantMappedBusinessService {
     });
     if (!tenantBusiness) throw new NotFoundException('Tenant business not found');
 
-    if (
-      dto.tenantUserId !== mapping.tenantUserId ||
-      dto.tenantBusinessId !== mapping.tenantBusinessId
-    ) {
+    if (dto.tenantUserId !== mapping.tenantUserId) {
       const clash = await this.prisma.tenantMappedBusiness.findUnique({
-        where: {
-          uk_tenant_user_business: {
-            tenantUserId: dto.tenantUserId,
-            tenantBusinessId: dto.tenantBusinessId,
-          },
-        },
+        where: { tenantUserId: dto.tenantUserId },
       });
       if (clash && clash.id !== id) {
-        throw new ConflictException('This tenant user is already mapped to that business');
+        throw new ConflictException('That tenant user is already mapped to a business');
       }
     }
 

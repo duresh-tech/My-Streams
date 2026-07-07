@@ -5,7 +5,6 @@ import { Eye, LoaderCircle, Pencil, Plus, RotateCcw, Trash2 } from "lucide-react
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Combobox } from "@/components/ui/combobox";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import {
@@ -40,12 +39,6 @@ interface MappingRow {
   tenantBusiness: { id: string; name: string; email: string };
 }
 
-interface GroupedMappingRow {
-  id: string;
-  tenantUser: MappingRow["tenantUser"];
-  mappings: MappingRow[];
-}
-
 interface TenantUserOption {
   id: string;
   fName: string;
@@ -59,14 +52,12 @@ interface TenantBusinessOption {
 
 interface MappingFormValues {
   tenantUserId: string;
-  tenantBusinessIds: string[];
   tenantBusinessId: string;
   status: "ACTIVE" | "INACTIVE" | "BLOCKED";
 }
 
 const EMPTY_FORM: MappingFormValues = {
   tenantUserId: "",
-  tenantBusinessIds: [],
   tenantBusinessId: "",
   status: "ACTIVE",
 };
@@ -106,19 +97,6 @@ export default function TenantMappedBusinessPage() {
 
   const [viewTarget, setViewTarget] = React.useState<MappingRow | null>(null);
 
-  const groupedRows = React.useMemo<GroupedMappingRow[] | null>(() => {
-    if (!list.rows) return null;
-    const byUser = new Map<string, GroupedMappingRow>();
-    for (const row of list.rows) {
-      const key = row.tenantUser.id;
-      if (!byUser.has(key)) {
-        byUser.set(key, { id: key, tenantUser: row.tenantUser, mappings: [] });
-      }
-      byUser.get(key)!.mappings.push(row);
-    }
-    return Array.from(byUser.values());
-  }, [list.rows]);
-
   function ensureTenantUserOptions() {
     if (tenantUserOptions) return;
     api<ListResponse<TenantUserOption>>("/system/tenant-users?limit=100&page=1")
@@ -147,20 +125,10 @@ export default function TenantMappedBusinessPage() {
     setEditing(row);
     setForm({
       tenantUserId: row.tenantUser.id,
-      tenantBusinessIds: [],
       tenantBusinessId: row.tenantBusiness.id,
       status: row.status === "DELETED" ? "ACTIVE" : row.status,
     });
     setFormOpen(true);
-  }
-
-  function toggleBusiness(id: string, checked: boolean) {
-    setForm((f) => ({
-      ...f,
-      tenantBusinessIds: checked
-        ? [...f.tenantBusinessIds, id]
-        : f.tenantBusinessIds.filter((b) => b !== id),
-    }));
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -178,21 +146,14 @@ export default function TenantMappedBusinessPage() {
         });
         toast.success("Mapping updated");
       } else {
-        const result = await api<{ created: unknown[]; skipped: string[] }>(
-          "/tenant/mapped-business",
-          {
-            method: "POST",
-            body: {
-              tenantUserId: form.tenantUserId,
-              tenantBusinessIds: form.tenantBusinessIds,
-            },
+        await api("/tenant/mapped-business", {
+          method: "POST",
+          body: {
+            tenantUserId: form.tenantUserId,
+            tenantBusinessId: form.tenantBusinessId,
           },
-        );
-        toast.success(
-          `${result.created.length} mapping(s) created${
-            result.skipped.length ? `, ${result.skipped.length} already mapped` : ""
-          }`,
-        );
+        });
+        toast.success("Mapping created");
       }
       setFormOpen(false);
       list.refresh();
@@ -231,79 +192,29 @@ export default function TenantMappedBusinessPage() {
     }
   }
 
-  function mappingActions(row: MappingRow) {
-    return [
-      ...(canView ? [{ label: "View", icon: Eye, onClick: () => setViewTarget(row) }] : []),
-      ...(row.status === "DELETED"
-        ? canRestore
-          ? [
-              {
-                label: "Restore",
-                icon: RotateCcw,
-                onClick: () => onRestore(row),
-                loading: restoringId === row.id,
-                disabled: restoringId === row.id,
-              },
-            ]
-          : []
-        : [
-            ...(canUpdate ? [{ label: "Edit", icon: Pencil, onClick: () => openEdit(row) }] : []),
-            ...(canDelete
-              ? [
-                  {
-                    label: "Delete",
-                    icon: Trash2,
-                    onClick: () => setDeleteTarget(row),
-                    destructive: true,
-                  },
-                ]
-              : []),
-          ]),
-    ];
-  }
-
-  const columns: Column<GroupedMappingRow>[] = [
+  const columns: Column<MappingRow>[] = [
     {
       header: "Tenant User",
-      cell: (group) => (
+      cell: (row) => (
         <div className="min-w-0">
-          <p className="font-medium">{group.tenantUser.fName}</p>
+          <p className="font-medium">{row.tenantUser.fName}</p>
           <p className="truncate text-xs text-muted-foreground">
-            {group.tenantUser.username} · {group.tenantUser.email}
+            {row.tenantUser.username} · {row.tenantUser.email}
           </p>
         </div>
       ),
     },
-    {
-      header: "Mapped Businesses",
-      cell: (group) => (
-        <div className="grid gap-1.5">
-          {group.mappings.map((mapping) => (
-            <div
-              key={mapping.id}
-              className="flex items-center justify-between gap-3 rounded-md border px-2.5 py-1.5"
-            >
-              <span className="truncate text-sm font-medium">{mapping.tenantBusiness.name}</span>
-              <div className="flex shrink-0 items-center gap-2">
-                <StatusBadgeText status={mapping.status} />
-                {(canView || canUpdate || canDelete || canRestore) && (
-                  <RowActionsMenu actions={mappingActions(mapping)} />
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      ),
-    },
+    { header: "Business", cell: (row) => row.tenantBusiness.name },
+    { header: "Status", cell: (row) => <StatusBadgeText status={row.status} /> },
   ];
 
   return (
     <>
-      <ResourceTable<GroupedMappingRow>
+      <ResourceTable<MappingRow>
         title="Tenant Mapped Business"
-        description="Assign tenant users to one or more businesses."
+        description="Assign each tenant user to a single business."
         columns={columns}
-        rows={groupedRows}
+        rows={list.rows}
         error={list.error}
         page={list.page}
         totalPages={list.totalPages}
@@ -378,6 +289,44 @@ export default function TenantMappedBusinessPage() {
             )}
           </>
         }
+        renderActions={
+          canView || canUpdate || canDelete || canRestore
+            ? (row) => (
+                <RowActionsMenu
+                  actions={[
+                    ...(canView ? [{ label: "View", icon: Eye, onClick: () => setViewTarget(row) }] : []),
+                    ...(row.status === "DELETED"
+                      ? canRestore
+                        ? [
+                            {
+                              label: "Restore",
+                              icon: RotateCcw,
+                              onClick: () => onRestore(row),
+                              loading: restoringId === row.id,
+                              disabled: restoringId === row.id,
+                            },
+                          ]
+                        : []
+                      : [
+                          ...(canUpdate
+                            ? [{ label: "Edit", icon: Pencil, onClick: () => openEdit(row) }]
+                            : []),
+                          ...(canDelete
+                            ? [
+                                {
+                                  label: "Delete",
+                                  icon: Trash2,
+                                  onClick: () => setDeleteTarget(row),
+                                  destructive: true,
+                                },
+                              ]
+                            : []),
+                        ]),
+                  ]}
+                />
+              )
+            : undefined
+        }
       />
 
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
@@ -388,7 +337,7 @@ export default function TenantMappedBusinessPage() {
               <DialogDescription>
                 {editing
                   ? "Change which tenant user/business this mapping points to, or its status."
-                  : "Assign one tenant user to one or more businesses."}
+                  : "Assign one tenant user to one business. A tenant user can only be mapped to a single business."}
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -410,46 +359,18 @@ export default function TenantMappedBusinessPage() {
                 />
               </div>
 
-              {editing ? (
-                <div className="grid gap-2">
-                  <Label>Tenant business</Label>
-                  <Combobox
-                    options={tenantBusinessOptions?.map((b) => ({ value: b.id, label: b.name })) ?? null}
-                    value={form.tenantBusinessId}
-                    onValueChange={(v) => setForm((f) => ({ ...f, tenantBusinessId: v }))}
-                    onOpenChange={(open) => open && ensureTenantBusinessOptions()}
-                    placeholder="Select a business"
-                    searchPlaceholder="Search businesses..."
-                    emptyText="No businesses found."
-                  />
-                </div>
-              ) : (
-                <div className="grid gap-2">
-                  <Label>Businesses</Label>
-                  <div className="max-h-64 overflow-y-auto rounded-md border p-3">
-                    {!tenantBusinessOptions ? (
-                      <div className="flex justify-center py-6">
-                        <LoaderCircle className="size-4 animate-spin text-muted-foreground" />
-                      </div>
-                    ) : (
-                      <div className="grid gap-2 sm:grid-cols-2">
-                        {tenantBusinessOptions.map((biz) => (
-                          <div key={biz.id} className="flex items-center gap-2">
-                            <Checkbox
-                              id={`biz-${biz.id}`}
-                              checked={form.tenantBusinessIds.includes(biz.id)}
-                              onCheckedChange={(v) => toggleBusiness(biz.id, v === true)}
-                            />
-                            <Label htmlFor={`biz-${biz.id}`} className="font-normal">
-                              <span className="text-xs">{biz.name}</span>
-                            </Label>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
+              <div className="grid gap-2">
+                <Label>Tenant business</Label>
+                <Combobox
+                  options={tenantBusinessOptions?.map((b) => ({ value: b.id, label: b.name })) ?? null}
+                  value={form.tenantBusinessId}
+                  onValueChange={(v) => setForm((f) => ({ ...f, tenantBusinessId: v }))}
+                  onOpenChange={(open) => open && ensureTenantBusinessOptions()}
+                  placeholder="Select a business"
+                  searchPlaceholder="Search businesses..."
+                  emptyText="No businesses found."
+                />
+              </div>
 
               {editing && (
                 <div className="grid gap-2">
@@ -478,11 +399,7 @@ export default function TenantMappedBusinessPage() {
               </Button>
               <Button
                 type="submit"
-                disabled={
-                  saving ||
-                  !form.tenantUserId ||
-                  (editing ? !form.tenantBusinessId : form.tenantBusinessIds.length === 0)
-                }
+                disabled={saving || !form.tenantUserId || !form.tenantBusinessId}
               >
                 {saving && <LoaderCircle className="size-4 animate-spin" />}
                 Save

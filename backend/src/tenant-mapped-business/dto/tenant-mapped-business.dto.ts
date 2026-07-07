@@ -5,7 +5,7 @@ const MappedBusinessStatusEnum = z.enum(['ACTIVE', 'INACTIVE', 'BLOCKED', 'DELET
 
 const CreateMappedBusinessSchema = z.object({
   tenantUserId: z.string().uuid(),
-  tenantBusinessIds: z.array(z.string().uuid()).min(1),
+  tenantBusinessId: z.string().uuid(),
 });
 
 const UpdateMappedBusinessSchema = z.object({
