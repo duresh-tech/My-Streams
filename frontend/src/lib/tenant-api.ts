@@ -133,6 +133,32 @@ export async function uploadTenantAvatar(file: File): Promise<{ path: string }> 
   return data as { path: string };
 }
 
+/** Uploads the tenant user's own business logo and returns its stored path. */
+export async function uploadTenantBusinessLogo(file: File): Promise<{ path: string }> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const headers: Record<string, string> = { "x-device-type": "website" };
+  const token = getTenantAccessToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const response = await fetch(`${API_URL}/tenant/business/logo`, {
+    method: "POST",
+    headers,
+    credentials: "include",
+    body: formData,
+  });
+
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    const message =
+      (data && (Array.isArray(data.message) ? data.message[0] : data.message)) ||
+      `Upload failed (${response.status})`;
+    throw new TenantApiError(response.status, message, data);
+  }
+  return data as { path: string };
+}
+
 async function tryTenantRefresh(): Promise<boolean> {
   try {
     const csrfToken = getTenantCsrfToken();
@@ -197,4 +223,26 @@ export interface TenantAccountProfile {
   createdAt: number;
   updatedAt: number;
   role?: { id: string; roleKey: string; displayName: string };
+}
+
+export interface TenantBusinessProfile {
+  id: string;
+  systemCode: string;
+  name: string;
+  tagLine: string | null;
+  email: string;
+  phone: string;
+  country: string;
+  countryCode: string;
+  state: string;
+  city: string;
+  pincode: string;
+  addressLine1: string;
+  addressLine2: string | null;
+  logoPath: string | null;
+  taxNumber: string | null;
+  isParentBusiness: boolean;
+  status: "ACTIVE" | "INACTIVE" | "BLOCKED" | "DELETED";
+  createdAt: number;
+  updatedAt: number;
 }

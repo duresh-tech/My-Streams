@@ -155,6 +155,8 @@ async function main() {
       'tenant-dashboard:view',
       'tenant-account:view',
       'tenant-account:update',
+      'tenant-business:view',
+      'tenant-business:update',
       'tenant-tax-types:list',
       'tenant-tax-types:view',
       'tenant-tax-types:create',
