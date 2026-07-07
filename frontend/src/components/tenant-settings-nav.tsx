@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { ArrowLeftRight, Building, Building2, CreditCard, Percent, User, Wifi } from "lucide-react";
+import { ArrowLeftRight, Building, Building2, CreditCard, Mail, Percent, User, Wifi } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import {
@@ -22,6 +22,7 @@ const SETTINGS_NAV_ITEMS = [
   { href: "/tenant/settings/tax-types", label: "Tax Types", icon: Percent, permission: "tenant-tax-types:list" },
   { href: "/tenant/settings/payment-modes", label: "Payment Modes", icon: CreditCard, permission: "tenant-payment-modes:list" },
   { href: "/tenant/settings/in-ex-categories", label: "Income & Expense Categories", icon: ArrowLeftRight, permission: "tenant-in-ex-categories:list" },
+  { href: "/tenant/settings/mail-config", label: "Mail Config", icon: Mail, permission: "tenant-mail-config:list" },
 ];
 
 export function TenantSettingsNav() {

@@ -168,6 +168,7 @@ model TenantBusiness {
   inExCategories    TenantInExCategory[]
   branches          TenantBusinessBranch[]
   networkProviders  TenantNetworkProvider[]
+  mailConfigs       TenantMailConfig[]
 
   @@index([status])
   @@index([country])
@@ -330,6 +331,39 @@ model TenantNetworkProvider {
   @@index([status])
   @@index([tenantBusinessId])
   @@map("tenant_network_providers")
+}
+
+enum TenantMailDriver {
+  SMTP
+}
+
+enum TenantMailEncryption {
+  NONE
+  SSL
+  TLS
+  SMTP
+  SMTPS
+}
+
+model TenantMailConfig {
+  id               String               @id @db.Char(36) // UUIDv7
+  systemCode       String               @unique @db.VarChar(30)
+  tenantBusinessId String               @db.Char(36)
+  mailDriver       TenantMailDriver     @default(SMTP)
+  mailHost         String?              @db.VarChar(255)
+  mailPort         Int?
+  mailUsername     String?              @db.VarChar(150)
+  mailPassword     String?              @db.VarChar(255)
+  mailEncryption   TenantMailEncryption @default(NONE)
+  fromMailAddress  String?              @db.VarChar(150)
+  fromMailName     String?              @db.VarChar(150)
+  createdAt        BigInt
+  updatedAt        BigInt
+
+  tenantBusiness TenantBusiness @relation(fields: [tenantBusinessId], references: [id])
+
+  @@index([tenantBusinessId])
+  @@map("tenant_mail_config")
 }
 
 enum TenantMappedBusinessStatus {
