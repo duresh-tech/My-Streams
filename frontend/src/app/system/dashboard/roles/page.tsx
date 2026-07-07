@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { LoaderCircle, Pencil, Plus, Trash2 } from "lucide-react";
+import { LoaderCircle, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -69,6 +69,20 @@ const EMPTY_FORM: RoleFormValues = {
   permissionIds: [],
 };
 
+function titleCase(input: string) {
+  return input
+    .split(/[-_]/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
+interface PermissionModuleGroup {
+  moduleName: string;
+  label: string;
+  permissions: PermissionOption[];
+}
+
 export default function RolesPage() {
   const { hasPermission } = useSession();
   const list = useResourceList<RoleRow>("/system/roles");
@@ -78,6 +92,7 @@ export default function RolesPage() {
   const canDelete = hasPermission("roles:delete");
 
   const [permissionOptions, setPermissionOptions] = React.useState<PermissionOption[] | null>(null);
+  const [permissionFilter, setPermissionFilter] = React.useState("");
 
   const [formOpen, setFormOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<RoleRow | null>(null);
@@ -99,12 +114,14 @@ export default function RolesPage() {
     ensurePermissionOptions();
     setEditing(null);
     setForm(EMPTY_FORM);
+    setPermissionFilter("");
     setFormOpen(true);
   }
 
   async function openEdit(row: RoleRow) {
     ensurePermissionOptions();
     setEditing(row);
+    setPermissionFilter("");
     setFormOpen(true);
     setLoadingDetail(true);
     try {
@@ -132,6 +149,47 @@ export default function RolesPage() {
         : f.permissionIds.filter((p) => p !== id),
     }));
   }
+
+  function toggleGroupPermissions(ids: string[], checked: boolean) {
+    setForm((f) => ({
+      ...f,
+      permissionIds: checked
+        ? Array.from(new Set([...f.permissionIds, ...ids]))
+        : f.permissionIds.filter((id) => !ids.includes(id)),
+    }));
+  }
+
+  const permissionGroups = React.useMemo<PermissionModuleGroup[]>(() => {
+    if (!permissionOptions) return [];
+
+    const byModule = new Map<string, PermissionOption[]>();
+    for (const perm of permissionOptions) {
+      if (!byModule.has(perm.moduleName)) byModule.set(perm.moduleName, []);
+      byModule.get(perm.moduleName)!.push(perm);
+    }
+
+    const groups = Array.from(byModule.entries())
+      .map(([moduleName, permissions]) => ({
+        moduleName,
+        label: titleCase(moduleName),
+        permissions: permissions
+          .slice()
+          .sort((a, b) => a.permissionKey.localeCompare(b.permissionKey)),
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+
+    const filterText = permissionFilter.trim().toLowerCase();
+    if (!filterText) return groups;
+
+    return groups
+      .map((group) => ({
+        ...group,
+        permissions: group.label.toLowerCase().includes(filterText)
+          ? group.permissions
+          : group.permissions.filter((p) => p.permissionKey.toLowerCase().includes(filterText)),
+      }))
+      .filter((group) => group.permissions.length > 0);
+  }, [permissionOptions, permissionFilter]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -317,26 +375,102 @@ export default function RolesPage() {
                 )}
 
                 <div className="grid gap-2">
-                  <Label>Permissions</Label>
-                  <div className="max-h-64 overflow-y-auto rounded-md border p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <Label>Permissions</Label>
+                    <span className="text-xs text-muted-foreground">
+                      {form.permissionIds.length} selected
+                    </span>
+                  </div>
+
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      value={permissionFilter}
+                      onChange={(e) => setPermissionFilter(e.target.value)}
+                      placeholder="Filter by module or action..."
+                      className="h-8 pl-8 text-sm"
+                    />
+                    {permissionFilter && (
+                      <button
+                        type="button"
+                        onClick={() => setPermissionFilter("")}
+                        aria-label="Clear filter"
+                        className="absolute top-1/2 right-2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="size-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="max-h-80 overflow-y-auto rounded-md border">
                     {!permissionOptions ? (
                       <div className="flex justify-center py-6">
                         <LoaderCircle className="size-4 animate-spin text-muted-foreground" />
                       </div>
+                    ) : permissionGroups.length === 0 ? (
+                      <p className="p-4 text-center text-sm text-muted-foreground">
+                        No permissions match &ldquo;{permissionFilter}&rdquo;.
+                      </p>
                     ) : (
-                      <div className="grid gap-2 sm:grid-cols-2">
-                        {permissionOptions.map((perm) => (
-                          <div key={perm.id} className="flex items-center gap-2">
-                            <Checkbox
-                              id={`perm-${perm.id}`}
-                              checked={form.permissionIds.includes(perm.id)}
-                              onCheckedChange={(v) => togglePermission(perm.id, v === true)}
-                            />
-                            <Label htmlFor={`perm-${perm.id}`} className="font-normal">
-                              <span className="text-xs">{perm.permissionKey}</span>
-                            </Label>
-                          </div>
-                        ))}
+                      <div className="divide-y">
+                        {permissionGroups.map((group) => {
+                          const groupIds = group.permissions.map((p) => p.id);
+                          const selectedCount = groupIds.filter((id) =>
+                            form.permissionIds.includes(id),
+                          ).length;
+                          const groupChecked: boolean | "indeterminate" =
+                            selectedCount === 0
+                              ? false
+                              : selectedCount === groupIds.length
+                                ? true
+                                : "indeterminate";
+
+                          return (
+                            <div key={group.moduleName} className="p-3">
+                              <div className="mb-2 flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                  <Checkbox
+                                    id={`group-${group.moduleName}`}
+                                    checked={groupChecked}
+                                    onCheckedChange={(v) =>
+                                      toggleGroupPermissions(groupIds, v === true)
+                                    }
+                                  />
+                                  <Label
+                                    htmlFor={`group-${group.moduleName}`}
+                                    className="text-sm font-medium"
+                                  >
+                                    {group.label}
+                                  </Label>
+                                </div>
+                                <span className="text-xs text-muted-foreground">
+                                  {selectedCount}/{groupIds.length}
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 pl-6 sm:grid-cols-3">
+                                {group.permissions.map((perm) => {
+                                  const action = perm.permissionKey.split(":")[1] ?? perm.permissionKey;
+                                  return (
+                                    <div key={perm.id} className="flex items-center gap-2">
+                                      <Checkbox
+                                        id={`perm-${perm.id}`}
+                                        checked={form.permissionIds.includes(perm.id)}
+                                        onCheckedChange={(v) => togglePermission(perm.id, v === true)}
+                                      />
+                                      <Label
+                                        htmlFor={`perm-${perm.id}`}
+                                        className="font-normal text-sm cursor-pointer"
+                                        title={perm.permissionKey}
+                                      >
+                                        {titleCase(action)}
+                                      </Label>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
