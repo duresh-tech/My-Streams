@@ -167,6 +167,7 @@ model TenantBusiness {
   paymentModes      TenantPaymentMode[]
   expenseCategories TenantExpenseCategory[]
   branches          TenantBusinessBranch[]
+  networkProviders  TenantNetworkProvider[]
 
   @@index([status])
   @@index([country])
@@ -285,6 +286,43 @@ model TenantBusinessBranch {
   @@index([status])
   @@index([tenantBusinessId])
   @@map("tenant_business_branches")
+}
+
+enum TenantNetworkProviderType {
+  CABLE_TV
+  ISP
+  IPTV
+  OTHERS
+}
+
+enum TenantNetworkProviderStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+  DELETED
+}
+
+model TenantNetworkProvider {
+  id               String                       @id @db.Char(36) // UUIDv7
+  systemCode       String                       @unique @db.VarChar(30)
+  tenantBusinessId String                       @db.Char(36)
+  type             TenantNetworkProviderType
+  name             String                       @db.VarChar(150)
+  email            String?                      @db.VarChar(150)
+  phone            String?                      @db.VarChar(20)
+  addressLine1     String?                      @db.VarChar(255)
+  addressLine2     String?                      @db.VarChar(255)
+  description      String?                      @db.VarChar(255)
+  status           TenantNetworkProviderStatus  @default(ACTIVE)
+  createdAt        BigInt
+  updatedAt        BigInt
+  deletedAt        BigInt?
+
+  tenantBusiness TenantBusiness @relation(fields: [tenantBusinessId], references: [id])
+
+  @@index([status])
+  @@index([tenantBusinessId])
+  @@map("tenant_network_providers")
 }
 
 enum TenantMappedBusinessStatus {
