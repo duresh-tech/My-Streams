@@ -18,6 +18,7 @@ import {
 import { TenantMailConfigService } from './tenant-mail-config.service';
 import {
   CreateTenantMailConfigDto,
+  TestTenantMailConfigDto,
   UpdateTenantMailConfigDto,
 } from './dto/tenant-mail-config.dto';
 import { TenantMailConfigListQueryDto } from './dto/tenant-mail-config-query.dto';
@@ -37,6 +38,7 @@ const TENANT_MAIL_CONFIG_EXAMPLE = {
   hasPassword: true,
   createdAt: 1783308735,
   updatedAt: 1783308735,
+  deletedAt: null,
   tenantBusiness: {
     id: '019f357b-c211-71a0-9062-adc0f927a584',
     systemCode: 'TNB-MR8NZ6OO-C0CB',
@@ -119,8 +121,8 @@ export class TenantMailConfigController {
   @Delete(':id')
   @RequirePermissions('tenant-mail-config:delete')
   @ApiOperation({
-    summary: 'Delete a tenant mail config',
-    description: 'Hard-deletes the row; there is no soft-delete/restore for this resource.',
+    summary: 'Soft-delete a tenant mail config',
+    description: 'Sets deletedAt; the row is excluded from all list/view/update/test-email operations thereafter. There is no restore endpoint for this resource.',
   })
   @ApiParam({ name: 'id', description: 'Mail config UUIDv7' })
   @ApiResponse({
@@ -131,5 +133,23 @@ export class TenantMailConfigController {
   @ApiResponse({ status: 404, description: 'Mail config not found.' })
   remove(@Param('id') id: string) {
     return this.tenantMailConfigService.remove(id);
+  }
+
+  @Post(':id/test-email')
+  @RequirePermissions('tenant-mail-config:test')
+  @ApiOperation({
+    summary: 'Send a test email using a tenant mail config',
+    description: 'Attempts a real SMTP send using the stored settings; reports the SMTP error on failure.',
+  })
+  @ApiParam({ name: 'id', description: 'Mail config UUIDv7' })
+  @ApiResponse({
+    status: 200,
+    description: 'Test email sent.',
+    schema: { example: { success: true } },
+  })
+  @ApiResponse({ status: 400, description: 'Mail config incomplete or the SMTP send failed.' })
+  @ApiResponse({ status: 404, description: 'Mail config not found.' })
+  sendTestEmail(@Param('id') id: string, @Body() dto: TestTenantMailConfigDto) {
+    return this.tenantMailConfigService.sendTestEmail(id, dto);
   }
 }

@@ -359,6 +359,7 @@ model TenantMailConfig {
   fromMailName     String?              @db.VarChar(150)
   createdAt        BigInt
   updatedAt        BigInt
+  deletedAt        BigInt?
 
   tenantBusiness TenantBusiness @relation(fields: [tenantBusinessId], references: [id])
 

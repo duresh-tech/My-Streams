@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ArrowDownAZ, ArrowUpAZ, LoaderCircle, Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowDownAZ, ArrowUpAZ, LoaderCircle, Pencil, Plus, Send, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +31,7 @@ import { useResourceList } from "@/hooks/use-resource-list";
 import { useSession } from "@/hooks/use-session";
 import { api, ApiError, type ListResponse } from "@/lib/api";
 
+type MailDriver = "SMTP";
 type MailEncryption = "NONE" | "SSL" | "TLS" | "SMTP" | "SMTPS";
 
 interface TenantMailConfigRow {
@@ -55,6 +56,7 @@ interface TenantBusinessOption {
 
 interface MailConfigFormValues {
   tenantBusinessId: string;
+  mailDriver: MailDriver;
   mailHost: string;
   mailPort: string;
   mailUsername: string;
@@ -66,6 +68,7 @@ interface MailConfigFormValues {
 
 const EMPTY_FORM: MailConfigFormValues = {
   tenantBusinessId: "",
+  mailDriver: "SMTP",
   mailHost: "",
   mailPort: "",
   mailUsername: "",
@@ -81,6 +84,7 @@ export default function TenantMailConfigPage() {
   const canCreate = hasPermission("tenant-mail-config:create");
   const canUpdate = hasPermission("tenant-mail-config:update");
   const canDelete = hasPermission("tenant-mail-config:delete");
+  const canTest = hasPermission("tenant-mail-config:test");
 
   const [businessFilter, setBusinessFilter] = React.useState<string>("");
   const [sortBy, setSortBy] = React.useState("createdAt");
@@ -102,6 +106,10 @@ export default function TenantMailConfigPage() {
   const [deleteTarget, setDeleteTarget] = React.useState<TenantMailConfigRow | null>(null);
   const [deleting, setDeleting] = React.useState(false);
 
+  const [testTarget, setTestTarget] = React.useState<TenantMailConfigRow | null>(null);
+  const [testEmail, setTestEmail] = React.useState("");
+  const [sendingTest, setSendingTest] = React.useState(false);
+
   function ensureBusinessOptions() {
     if (businessOptions) return;
     api<ListResponse<TenantBusinessOption>>("/system/tenant-business?limit=100&page=1")
@@ -121,6 +129,7 @@ export default function TenantMailConfigPage() {
     setEditing(row);
     setForm({
       tenantBusinessId: row.tenantBusinessId,
+      mailDriver: row.mailDriver,
       mailHost: row.mailHost ?? "",
       mailPort: row.mailPort != null ? String(row.mailPort) : "",
       mailUsername: row.mailUsername ?? "",
@@ -138,6 +147,7 @@ export default function TenantMailConfigPage() {
     try {
       const body = {
         tenantBusinessId: form.tenantBusinessId,
+        mailDriver: form.mailDriver,
         mailHost: form.mailHost || undefined,
         mailPort: form.mailPort ? Number(form.mailPort) : undefined,
         mailUsername: form.mailUsername || undefined,
@@ -177,8 +187,32 @@ export default function TenantMailConfigPage() {
     }
   }
 
+  function openTest(row: TenantMailConfigRow) {
+    setTestTarget(row);
+    setTestEmail("");
+  }
+
+  async function onSendTest(e: React.FormEvent) {
+    e.preventDefault();
+    if (!testTarget) return;
+    setSendingTest(true);
+    try {
+      await api(`/system/tenant-mail-config/${testTarget.id}/test-email`, {
+        method: "POST",
+        body: { toEmail: testEmail },
+      });
+      toast.success(`Test email sent to ${testEmail}`);
+      setTestTarget(null);
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Failed to send test email");
+    } finally {
+      setSendingTest(false);
+    }
+  }
+
   const columns: Column<TenantMailConfigRow>[] = [
     { header: "Business", cell: (row) => row.tenantBusiness?.name ?? "—" },
+    { header: "Driver", cell: (row) => <Badge variant="outline">{row.mailDriver}</Badge> },
     { header: "Host", cell: (row) => row.mailHost ?? "—" },
     { header: "Port", cell: (row) => row.mailPort ?? "—" },
     { header: "Encryption", cell: (row) => <Badge variant="outline">{row.mailEncryption}</Badge> },
@@ -246,10 +280,13 @@ export default function TenantMailConfigPage() {
           </>
         }
         renderActions={
-          canUpdate || canDelete
+          canUpdate || canDelete || canTest
             ? (row) => (
                 <RowActionsMenu
                   actions={[
+                    ...(canTest
+                      ? [{ label: "Send Test Email", icon: Send, onClick: () => openTest(row) }]
+                      : []),
                     ...(canUpdate ? [{ label: "Edit", icon: Pencil, onClick: () => openEdit(row) }] : []),
                     ...(canDelete
                       ? [
@@ -287,6 +324,21 @@ export default function TenantMailConfigPage() {
                   searchPlaceholder="Search businesses..."
                   emptyText="No businesses found."
                 />
+              </div>
+
+              <div className="grid gap-2">
+                <Label>Driver</Label>
+                <Select
+                  value={form.mailDriver}
+                  onValueChange={(v) => setForm((f) => ({ ...f, mailDriver: v as MailDriver }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="SMTP">SMTP</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -388,10 +440,45 @@ export default function TenantMailConfigPage() {
         open={!!deleteTarget}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
         title="Delete mail config"
-        description={`This will permanently delete the mail config for "${deleteTarget?.tenantBusiness?.name ?? "this business"}".`}
+        description={`This will soft-delete the mail config for "${deleteTarget?.tenantBusiness?.name ?? "this business"}".`}
         loading={deleting}
         onConfirm={onDelete}
       />
+
+      <Dialog open={!!testTarget} onOpenChange={(open) => !open && setTestTarget(null)}>
+        <DialogContent>
+          <form onSubmit={onSendTest}>
+            <DialogHeader>
+              <DialogTitle>Send Test Email</DialogTitle>
+              <DialogDescription>
+                Sends a real test email using this mail config's stored SMTP settings.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="testEmail">Recipient email</Label>
+                <Input
+                  id="testEmail"
+                  type="email"
+                  required
+                  value={testEmail}
+                  onChange={(e) => setTestEmail(e.target.value)}
+                  placeholder="you@example.com"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setTestTarget(null)} disabled={sendingTest}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={sendingTest || !testEmail}>
+                {sendingTest && <LoaderCircle className="size-4 animate-spin" />}
+                Send
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

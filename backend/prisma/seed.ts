@@ -38,7 +38,7 @@ const MODULES: Array<{ module: string; label: string; actions: string[] }> = [
   { module: 'tenant-in-ex-categories', label: 'Tenant Income & Expense Categories', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
   { module: 'tenant-business-branches', label: 'Tenant Business Branches', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
   { module: 'tenant-network-providers', label: 'Tenant Network Providers', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
-  { module: 'tenant-mail-config', label: 'Tenant Mail Config', actions: ['create', 'view', 'update', 'delete', 'list'] },
+  { module: 'tenant-mail-config', label: 'Tenant Mail Config', actions: ['create', 'view', 'update', 'delete', 'list', 'test'] },
   { module: 'system-settings', label: 'System Settings', actions: ['view', 'update'] },
   { module: 'uploads', label: 'Uploads', actions: ['create'] },
 ];
@@ -206,6 +206,7 @@ async function main() {
       'tenant-mail-config:create',
       'tenant-mail-config:update',
       'tenant-mail-config:delete',
+      'tenant-mail-config:test',
     ]
       .map((k) => keyToId.get(k)!)
       .filter(Boolean),

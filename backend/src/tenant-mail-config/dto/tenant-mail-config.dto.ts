@@ -18,5 +18,10 @@ const CreateTenantMailConfigSchema = z.object({
 
 const UpdateTenantMailConfigSchema = CreateTenantMailConfigSchema.partial();
 
+const TestTenantMailConfigSchema = z.object({
+  toEmail: z.string().email().max(150),
+});
+
 export class CreateTenantMailConfigDto extends createZodDto(CreateTenantMailConfigSchema) {}
 export class UpdateTenantMailConfigDto extends createZodDto(UpdateTenantMailConfigSchema) {}
+export class TestTenantMailConfigDto extends createZodDto(TestTenantMailConfigSchema) {}

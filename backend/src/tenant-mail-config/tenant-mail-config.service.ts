@@ -4,11 +4,13 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import * as nodemailer from 'nodemailer';
 import { PrismaService } from '../prisma/prisma.service';
 import { newId, newSystemCode, now } from '../common/utils/id.util';
 import { listResponse, paginate } from '../common/dto/query.dto';
 import {
   CreateTenantMailConfigDto,
+  TestTenantMailConfigDto,
   UpdateTenantMailConfigDto,
 } from './dto/tenant-mail-config.dto';
 import { TenantMailConfigListQueryDto } from './dto/tenant-mail-config-query.dto';
@@ -33,6 +35,7 @@ export class TenantMailConfigService {
   async findAll(query: TenantMailConfigListQueryDto) {
     const { page, limit, search, tenantBusinessId, sortBy, sortOrder } = query;
     const where = {
+      deletedAt: null,
       ...(tenantBusinessId ? { tenantBusinessId } : {}),
       ...(search
         ? {
@@ -57,8 +60,8 @@ export class TenantMailConfigService {
   }
 
   async findOne(id: string) {
-    const config = await this.prisma.tenantMailConfig.findUnique({
-      where: { id },
+    const config = await this.prisma.tenantMailConfig.findFirst({
+      where: { id, deletedAt: null },
       include: MAIL_CONFIG_INCLUDE,
     });
     if (!config) throw new NotFoundException('Mail config not found');
@@ -91,7 +94,7 @@ export class TenantMailConfigService {
   }
 
   async update(id: string, dto: UpdateTenantMailConfigDto) {
-    const config = await this.prisma.tenantMailConfig.findUnique({ where: { id } });
+    const config = await this.prisma.tenantMailConfig.findFirst({ where: { id, deletedAt: null } });
     if (!config) throw new NotFoundException('Mail config not found');
     if (dto.tenantBusinessId) await this.assertBusinessExists(dto.tenantBusinessId);
 
@@ -104,10 +107,74 @@ export class TenantMailConfigService {
   }
 
   async remove(id: string) {
-    const config = await this.prisma.tenantMailConfig.findUnique({ where: { id } });
+    const config = await this.prisma.tenantMailConfig.findFirst({ where: { id, deletedAt: null } });
     if (!config) throw new NotFoundException('Mail config not found');
 
-    await this.prisma.tenantMailConfig.delete({ where: { id } });
+    await this.prisma.tenantMailConfig.update({
+      where: { id },
+      data: { deletedAt: now(), updatedAt: now() },
+    });
+    return { success: true };
+  }
+
+  async sendTestEmail(id: string, dto: TestTenantMailConfigDto) {
+    const config = await this.prisma.tenantMailConfig.findFirst({ where: { id, deletedAt: null } });
+    if (!config) throw new NotFoundException('Mail config not found');
+    return this.deliverTestEmail(config, dto.toEmail);
+  }
+
+  private async deliverTestEmail(
+    config: {
+      mailHost: string | null;
+      mailPort: number | null;
+      mailUsername: string | null;
+      mailPassword: string | null;
+      mailEncryption: string;
+      fromMailAddress: string | null;
+      fromMailName: string | null;
+    },
+    toEmail: string,
+  ) {
+    if (!config.mailHost || !config.mailPort) {
+      throw new BadRequestException('mailHost and mailPort must be set before sending a test email');
+    }
+    if (!config.fromMailAddress) {
+      throw new BadRequestException('fromMailAddress must be set before sending a test email');
+    }
+
+    // Ports 465/2465 are always implicit TLS (SMTPS) by convention, regardless of
+    // what mailEncryption happens to be set to - getting this wrong causes the
+    // server to drop the connection before the SMTP handshake even starts.
+    const IMPLICIT_TLS_PORTS = new Set([465, 2465]);
+    const secure =
+      IMPLICIT_TLS_PORTS.has(config.mailPort) ||
+      config.mailEncryption === 'SSL' ||
+      config.mailEncryption === 'SMTPS';
+    const requireTLS = !secure && config.mailEncryption === 'TLS';
+
+    const transport = nodemailer.createTransport({
+      host: config.mailHost,
+      port: config.mailPort,
+      secure,
+      requireTLS,
+      auth: config.mailUsername
+        ? { user: config.mailUsername, pass: config.mailPassword ?? undefined }
+        : undefined,
+    });
+
+    try {
+      await transport.sendMail({
+        from: config.fromMailName
+          ? { name: config.fromMailName, address: config.fromMailAddress }
+          : config.fromMailAddress,
+        to: toEmail,
+        subject: 'Test email',
+        text: 'This is a test email to verify your mail configuration is working correctly.',
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to send test email';
+      throw new BadRequestException(`Failed to send test email: ${message}`);
+    }
     return { success: true };
   }
 
@@ -139,6 +206,7 @@ export class TenantMailConfigService {
       : businessIds;
     const where = {
       tenantBusinessId: { in: scopedBusinessIds },
+      deletedAt: null,
       ...(search
         ? {
             OR: [
@@ -164,7 +232,7 @@ export class TenantMailConfigService {
   async findOneForTenantUser(tenantUserId: string, id: string) {
     const businessIds = await this.getMappedBusinessIds(tenantUserId);
     const config = await this.prisma.tenantMailConfig.findFirst({
-      where: { id, tenantBusinessId: { in: businessIds } },
+      where: { id, tenantBusinessId: { in: businessIds }, deletedAt: null },
       include: MAIL_CONFIG_INCLUDE,
     });
     if (!config) throw new NotFoundException('Mail config not found');
@@ -185,6 +253,15 @@ export class TenantMailConfigService {
   async removeForTenantUser(tenantUserId: string, id: string) {
     await this.findOneForTenantUser(tenantUserId, id);
     return this.remove(id);
+  }
+
+  async sendTestEmailForTenantUser(tenantUserId: string, id: string, dto: TestTenantMailConfigDto) {
+    const businessIds = await this.getMappedBusinessIds(tenantUserId);
+    const config = await this.prisma.tenantMailConfig.findFirst({
+      where: { id, tenantBusinessId: { in: businessIds }, deletedAt: null },
+    });
+    if (!config) throw new NotFoundException('Mail config not found');
+    return this.deliverTestEmail(config, dto.toEmail);
   }
 
   private async getMappedBusinessIds(tenantUserId: string): Promise<string[]> {
