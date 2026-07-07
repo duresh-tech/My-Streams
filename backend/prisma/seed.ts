@@ -35,6 +35,7 @@ const MODULES: Array<{ module: string; label: string; actions: string[] }> = [
   { module: 'tenant-mapped-business', label: 'Tenant Mapped Business', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
   { module: 'tenant-tax-types', label: 'Tenant Tax Types', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
   { module: 'tenant-payment-modes', label: 'Tenant Payment Modes', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
+  { module: 'tenant-expense-categories', label: 'Tenant Expense Categories', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
   { module: 'uploads', label: 'Uploads', actions: ['create'] },
 ];
 
@@ -162,6 +163,11 @@ async function main() {
       'tenant-payment-modes:create',
       'tenant-payment-modes:update',
       'tenant-payment-modes:delete',
+      'tenant-expense-categories:list',
+      'tenant-expense-categories:view',
+      'tenant-expense-categories:create',
+      'tenant-expense-categories:update',
+      'tenant-expense-categories:delete',
     ]
       .map((k) => keyToId.get(k)!)
       .filter(Boolean),

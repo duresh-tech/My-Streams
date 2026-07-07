@@ -31,16 +31,16 @@ import { useResourceList } from "@/hooks/use-resource-list";
 import { useTenantSession } from "@/hooks/use-tenant-session";
 import { TenantApiError, tenantApi } from "@/lib/tenant-api";
 
-type PaymentModeStatus = "ACTIVE" | "INACTIVE" | "BLOCKED" | "DELETED";
+type ExpenseCategoryStatus = "ACTIVE" | "INACTIVE" | "BLOCKED" | "DELETED";
 
-interface TenantPaymentModeRow {
+interface TenantExpenseCategoryRow {
   id: string;
   systemCode: string;
   tenantBusinessId: string;
-  paymentName: string;
+  expenseCategorieName: string;
   description: string | null;
   isSystem: boolean;
-  status: PaymentModeStatus;
+  status: ExpenseCategoryStatus;
   tenantBusiness?: { id: string; systemCode: string; name: string };
 }
 
@@ -49,42 +49,42 @@ interface BusinessOption {
   name: string;
 }
 
-interface PaymentModeFormValues {
+interface ExpenseCategoryFormValues {
   tenantBusinessId: string;
-  paymentName: string;
+  expenseCategorieName: string;
   description: string;
   status: "ACTIVE" | "INACTIVE" | "BLOCKED";
 }
 
-const EMPTY_FORM: PaymentModeFormValues = {
+const EMPTY_FORM: ExpenseCategoryFormValues = {
   tenantBusinessId: "",
-  paymentName: "",
+  expenseCategorieName: "",
   description: "",
   status: "ACTIVE",
 };
 
-export default function TenantPaymentModesPage() {
+export default function TenantExpenseCategoriesPage() {
   const { hasPermission } = useTenantSession();
 
-  const canCreate = hasPermission("tenant-payment-modes:create");
-  const canUpdate = hasPermission("tenant-payment-modes:update");
-  const canDelete = hasPermission("tenant-payment-modes:delete");
+  const canCreate = hasPermission("tenant-expense-categories:create");
+  const canUpdate = hasPermission("tenant-expense-categories:update");
+  const canDelete = hasPermission("tenant-expense-categories:delete");
 
-  const list = useResourceList<TenantPaymentModeRow>("/tenant/payment-modes", {}, tenantApi);
+  const list = useResourceList<TenantExpenseCategoryRow>("/tenant/expense-categories", {}, tenantApi);
 
   const [businessOptions, setBusinessOptions] = React.useState<BusinessOption[] | null>(null);
 
   const [formOpen, setFormOpen] = React.useState(false);
-  const [editing, setEditing] = React.useState<TenantPaymentModeRow | null>(null);
-  const [form, setForm] = React.useState<PaymentModeFormValues>(EMPTY_FORM);
+  const [editing, setEditing] = React.useState<TenantExpenseCategoryRow | null>(null);
+  const [form, setForm] = React.useState<ExpenseCategoryFormValues>(EMPTY_FORM);
   const [saving, setSaving] = React.useState(false);
 
-  const [deleteTarget, setDeleteTarget] = React.useState<TenantPaymentModeRow | null>(null);
+  const [deleteTarget, setDeleteTarget] = React.useState<TenantExpenseCategoryRow | null>(null);
   const [deleting, setDeleting] = React.useState(false);
 
   function loadBusinessOptions(): Promise<BusinessOption[]> {
     if (businessOptions) return Promise.resolve(businessOptions);
-    return tenantApi<BusinessOption[]>("/tenant/payment-modes/businesses")
+    return tenantApi<BusinessOption[]>("/tenant/expense-categories/businesses")
       .then((data) => {
         setBusinessOptions(data);
         return data;
@@ -106,12 +106,12 @@ export default function TenantPaymentModesPage() {
     });
   }
 
-  function openEdit(row: TenantPaymentModeRow) {
+  function openEdit(row: TenantExpenseCategoryRow) {
     loadBusinessOptions();
     setEditing(row);
     setForm({
       tenantBusinessId: row.tenantBusinessId,
-      paymentName: row.paymentName,
+      expenseCategorieName: row.expenseCategorieName,
       description: row.description ?? "",
       status: row.status === "DELETED" ? "ACTIVE" : row.status,
     });
@@ -124,16 +124,16 @@ export default function TenantPaymentModesPage() {
     try {
       const body = {
         tenantBusinessId: form.tenantBusinessId,
-        paymentName: form.paymentName,
+        expenseCategorieName: form.expenseCategorieName,
         description: form.description || undefined,
         ...(editing ? { status: form.status } : {}),
       };
       if (editing) {
-        await tenantApi(`/tenant/payment-modes/${editing.id}`, { method: "PATCH", body });
-        toast.success("Payment mode updated");
+        await tenantApi(`/tenant/expense-categories/${editing.id}`, { method: "PATCH", body });
+        toast.success("Expense category updated");
       } else {
-        await tenantApi("/tenant/payment-modes", { method: "POST", body });
-        toast.success("Payment mode created");
+        await tenantApi("/tenant/expense-categories", { method: "POST", body });
+        toast.success("Expense category created");
       }
       setFormOpen(false);
       list.refresh();
@@ -148,8 +148,8 @@ export default function TenantPaymentModesPage() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      await tenantApi(`/tenant/payment-modes/${deleteTarget.id}`, { method: "DELETE" });
-      toast.success("Payment mode deleted");
+      await tenantApi(`/tenant/expense-categories/${deleteTarget.id}`, { method: "DELETE" });
+      toast.success("Expense category deleted");
       setDeleteTarget(null);
       list.refresh();
     } catch (error) {
@@ -159,8 +159,11 @@ export default function TenantPaymentModesPage() {
     }
   }
 
-  const columns: Column<TenantPaymentModeRow>[] = [
-    { header: "Payment Name", cell: (row) => <span className="font-medium">{row.paymentName}</span> },
+  const columns: Column<TenantExpenseCategoryRow>[] = [
+    {
+      header: "Category Name",
+      cell: (row) => <span className="font-medium">{row.expenseCategorieName}</span>,
+    },
     {
       header: "Type",
       cell: (row) =>
@@ -175,9 +178,9 @@ export default function TenantPaymentModesPage() {
 
   return (
     <>
-      <ResourceTable<TenantPaymentModeRow>
-        title="Payment Modes"
-        description="Payment modes accepted by your business."
+      <ResourceTable<TenantExpenseCategoryRow>
+        title="Expense Categories"
+        description="Expense categories used by your business."
         columns={columns}
         rows={list.rows}
         error={list.error}
@@ -190,7 +193,7 @@ export default function TenantPaymentModesPage() {
         toolbarAction={
           canCreate ? (
             <Button onClick={openCreate}>
-              <Plus className="size-4" /> Add Payment Mode
+              <Plus className="size-4" /> Add Expense Category
             </Button>
           ) : undefined
         }
@@ -223,8 +226,8 @@ export default function TenantPaymentModesPage() {
         <DialogContent>
           <form onSubmit={onSubmit}>
             <DialogHeader>
-              <DialogTitle>{editing ? "Edit Payment Mode" : "Add Payment Mode"}</DialogTitle>
-              <DialogDescription>Payment mode accepted by your business.</DialogDescription>
+              <DialogTitle>{editing ? "Edit Expense Category" : "Add Expense Category"}</DialogTitle>
+              <DialogDescription>Expense category used by your business.</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               {(businessOptions?.length ?? 0) > 1 && (
@@ -249,12 +252,12 @@ export default function TenantPaymentModesPage() {
               )}
 
               <div className="grid gap-2">
-                <Label htmlFor="paymentName">Name</Label>
+                <Label htmlFor="expenseCategorieName">Name</Label>
                 <Input
-                  id="paymentName"
+                  id="expenseCategorieName"
                   required
-                  value={form.paymentName}
-                  onChange={(e) => setForm((f) => ({ ...f, paymentName: e.target.value }))}
+                  value={form.expenseCategorieName}
+                  onChange={(e) => setForm((f) => ({ ...f, expenseCategorieName: e.target.value }))}
                 />
               </div>
 
@@ -273,7 +276,7 @@ export default function TenantPaymentModesPage() {
                   <Select
                     value={form.status}
                     onValueChange={(v) =>
-                      setForm((f) => ({ ...f, status: v as PaymentModeFormValues["status"] }))
+                      setForm((f) => ({ ...f, status: v as ExpenseCategoryFormValues["status"] }))
                     }
                   >
                     <SelectTrigger>
@@ -304,8 +307,8 @@ export default function TenantPaymentModesPage() {
       <ConfirmDialog
         open={!!deleteTarget}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
-        title="Delete payment mode"
-        description={`This will delete "${deleteTarget?.paymentName}".`}
+        title="Delete expense category"
+        description={`This will delete "${deleteTarget?.expenseCategorieName}".`}
         loading={deleting}
         onConfirm={onDelete}
       />

@@ -31,16 +31,16 @@ import { useResourceList } from "@/hooks/use-resource-list";
 import { useSession } from "@/hooks/use-session";
 import { api, ApiError, type ListResponse } from "@/lib/api";
 
-type PaymentModeStatus = "ACTIVE" | "INACTIVE" | "BLOCKED" | "DELETED";
+type ExpenseCategoryStatus = "ACTIVE" | "INACTIVE" | "BLOCKED" | "DELETED";
 
-interface TenantPaymentModeRow {
+interface TenantExpenseCategoryRow {
   id: string;
   systemCode: string;
   tenantBusinessId: string;
-  paymentName: string;
+  expenseCategorieName: string;
   description: string | null;
   isSystem: boolean;
-  status: PaymentModeStatus;
+  status: ExpenseCategoryStatus;
   tenantBusiness?: { id: string; systemCode: string; name: string };
 }
 
@@ -49,34 +49,34 @@ interface TenantBusinessOption {
   name: string;
 }
 
-interface PaymentModeFormValues {
+interface ExpenseCategoryFormValues {
   tenantBusinessId: string;
-  paymentName: string;
+  expenseCategorieName: string;
   description: string;
   status: "ACTIVE" | "INACTIVE" | "BLOCKED";
 }
 
-const EMPTY_FORM: PaymentModeFormValues = {
+const EMPTY_FORM: ExpenseCategoryFormValues = {
   tenantBusinessId: "",
-  paymentName: "",
+  expenseCategorieName: "",
   description: "",
   status: "ACTIVE",
 };
 
-export default function TenantPaymentModesPage() {
+export default function TenantExpenseCategoriesPage() {
   const { hasPermission } = useSession();
 
-  const canCreate = hasPermission("tenant-payment-modes:create");
-  const canUpdate = hasPermission("tenant-payment-modes:update");
-  const canDelete = hasPermission("tenant-payment-modes:delete");
-  const canRestore = hasPermission("tenant-payment-modes:restore");
+  const canCreate = hasPermission("tenant-expense-categories:create");
+  const canUpdate = hasPermission("tenant-expense-categories:update");
+  const canDelete = hasPermission("tenant-expense-categories:delete");
+  const canRestore = hasPermission("tenant-expense-categories:restore");
 
   const [statusFilter, setStatusFilter] = React.useState<string>("");
   const [businessFilter, setBusinessFilter] = React.useState<string>("");
   const [sortBy, setSortBy] = React.useState("createdAt");
   const [sortOrder, setSortOrder] = React.useState<"asc" | "desc">("desc");
 
-  const list = useResourceList<TenantPaymentModeRow>("/system/tenant-payment-modes", {
+  const list = useResourceList<TenantExpenseCategoryRow>("/system/tenant-expense-categories", {
     status: statusFilter || undefined,
     tenantBusinessId: businessFilter || undefined,
     sortBy,
@@ -86,11 +86,11 @@ export default function TenantPaymentModesPage() {
   const [businessOptions, setBusinessOptions] = React.useState<TenantBusinessOption[] | null>(null);
 
   const [formOpen, setFormOpen] = React.useState(false);
-  const [editing, setEditing] = React.useState<TenantPaymentModeRow | null>(null);
-  const [form, setForm] = React.useState<PaymentModeFormValues>(EMPTY_FORM);
+  const [editing, setEditing] = React.useState<TenantExpenseCategoryRow | null>(null);
+  const [form, setForm] = React.useState<ExpenseCategoryFormValues>(EMPTY_FORM);
   const [saving, setSaving] = React.useState(false);
 
-  const [deleteTarget, setDeleteTarget] = React.useState<TenantPaymentModeRow | null>(null);
+  const [deleteTarget, setDeleteTarget] = React.useState<TenantExpenseCategoryRow | null>(null);
   const [deleting, setDeleting] = React.useState(false);
   const [restoringId, setRestoringId] = React.useState<string | null>(null);
 
@@ -108,12 +108,12 @@ export default function TenantPaymentModesPage() {
     setFormOpen(true);
   }
 
-  function openEdit(row: TenantPaymentModeRow) {
+  function openEdit(row: TenantExpenseCategoryRow) {
     ensureBusinessOptions();
     setEditing(row);
     setForm({
       tenantBusinessId: row.tenantBusinessId,
-      paymentName: row.paymentName,
+      expenseCategorieName: row.expenseCategorieName,
       description: row.description ?? "",
       status: row.status === "DELETED" ? "ACTIVE" : row.status,
     });
@@ -126,16 +126,16 @@ export default function TenantPaymentModesPage() {
     try {
       const body = {
         tenantBusinessId: form.tenantBusinessId,
-        paymentName: form.paymentName,
+        expenseCategorieName: form.expenseCategorieName,
         description: form.description || undefined,
         ...(editing ? { status: form.status } : {}),
       };
       if (editing) {
-        await api(`/system/tenant-payment-modes/${editing.id}`, { method: "PATCH", body });
-        toast.success("Payment mode updated");
+        await api(`/system/tenant-expense-categories/${editing.id}`, { method: "PATCH", body });
+        toast.success("Expense category updated");
       } else {
-        await api("/system/tenant-payment-modes", { method: "POST", body });
-        toast.success("Payment mode created");
+        await api("/system/tenant-expense-categories", { method: "POST", body });
+        toast.success("Expense category created");
       }
       setFormOpen(false);
       list.refresh();
@@ -150,8 +150,8 @@ export default function TenantPaymentModesPage() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      await api(`/system/tenant-payment-modes/${deleteTarget.id}`, { method: "DELETE" });
-      toast.success("Payment mode deleted");
+      await api(`/system/tenant-expense-categories/${deleteTarget.id}`, { method: "DELETE" });
+      toast.success("Expense category deleted");
       setDeleteTarget(null);
       list.refresh();
     } catch (error) {
@@ -161,11 +161,11 @@ export default function TenantPaymentModesPage() {
     }
   }
 
-  async function onRestore(row: TenantPaymentModeRow) {
+  async function onRestore(row: TenantExpenseCategoryRow) {
     setRestoringId(row.id);
     try {
-      await api(`/system/tenant-payment-modes/${row.id}/restore`, { method: "PATCH" });
-      toast.success("Payment mode restored");
+      await api(`/system/tenant-expense-categories/${row.id}/restore`, { method: "PATCH" });
+      toast.success("Expense category restored");
       list.refresh();
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : "Restore failed");
@@ -174,8 +174,11 @@ export default function TenantPaymentModesPage() {
     }
   }
 
-  const columns: Column<TenantPaymentModeRow>[] = [
-    { header: "Payment Name", cell: (row) => <span className="font-medium">{row.paymentName}</span> },
+  const columns: Column<TenantExpenseCategoryRow>[] = [
+    {
+      header: "Category Name",
+      cell: (row) => <span className="font-medium">{row.expenseCategorieName}</span>,
+    },
     { header: "Business", cell: (row) => row.tenantBusiness?.name ?? "—" },
     {
       header: "Type",
@@ -191,9 +194,9 @@ export default function TenantPaymentModesPage() {
 
   return (
     <>
-      <ResourceTable<TenantPaymentModeRow>
-        title="Payment Modes"
-        description="Manage payment modes for tenant businesses."
+      <ResourceTable<TenantExpenseCategoryRow>
+        title="Expense Categories"
+        description="Manage expense categories for tenant businesses."
         columns={columns}
         rows={list.rows}
         error={list.error}
@@ -235,7 +238,7 @@ export default function TenantPaymentModesPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="createdAt">Created</SelectItem>
-                <SelectItem value="paymentName">Payment Name</SelectItem>
+                <SelectItem value="expenseCategorieName">Category Name</SelectItem>
                 <SelectItem value="status">Status</SelectItem>
               </SelectContent>
             </Select>
@@ -254,7 +257,7 @@ export default function TenantPaymentModesPage() {
             </Button>
             {canCreate && (
               <Button onClick={openCreate}>
-                <Plus className="size-4" /> Add Payment Mode
+                <Plus className="size-4" /> Add Expense Category
               </Button>
             )}
           </>
@@ -302,8 +305,8 @@ export default function TenantPaymentModesPage() {
         <DialogContent>
           <form onSubmit={onSubmit}>
             <DialogHeader>
-              <DialogTitle>{editing ? "Edit Payment Mode" : "Add Payment Mode"}</DialogTitle>
-              <DialogDescription>Payment mode accepted by a tenant business.</DialogDescription>
+              <DialogTitle>{editing ? "Edit Expense Category" : "Add Expense Category"}</DialogTitle>
+              <DialogDescription>Expense category for a tenant business.</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
@@ -326,12 +329,12 @@ export default function TenantPaymentModesPage() {
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="paymentName">Name</Label>
+                <Label htmlFor="expenseCategorieName">Name</Label>
                 <Input
-                  id="paymentName"
+                  id="expenseCategorieName"
                   required
-                  value={form.paymentName}
-                  onChange={(e) => setForm((f) => ({ ...f, paymentName: e.target.value }))}
+                  value={form.expenseCategorieName}
+                  onChange={(e) => setForm((f) => ({ ...f, expenseCategorieName: e.target.value }))}
                 />
               </div>
 
@@ -350,7 +353,7 @@ export default function TenantPaymentModesPage() {
                   <Select
                     value={form.status}
                     onValueChange={(v) =>
-                      setForm((f) => ({ ...f, status: v as PaymentModeFormValues["status"] }))
+                      setForm((f) => ({ ...f, status: v as ExpenseCategoryFormValues["status"] }))
                     }
                   >
                     <SelectTrigger>
@@ -381,8 +384,8 @@ export default function TenantPaymentModesPage() {
       <ConfirmDialog
         open={!!deleteTarget}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
-        title="Delete payment mode"
-        description={`This will soft-delete "${deleteTarget?.paymentName}".`}
+        title="Delete expense category"
+        description={`This will soft-delete "${deleteTarget?.expenseCategorieName}".`}
         loading={deleting}
         onConfirm={onDelete}
       />

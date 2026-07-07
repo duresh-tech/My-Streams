@@ -8,20 +8,20 @@ import { PrismaService } from '../prisma/prisma.service';
 import { newId, newSystemCode, now } from '../common/utils/id.util';
 import { listResponse, paginate } from '../common/dto/query.dto';
 import {
-  CreateTenantPaymentModeDto,
-  UpdateTenantPaymentModeDto,
-} from './dto/tenant-payment-mode.dto';
-import { TenantPaymentModeListQueryDto } from './dto/tenant-payment-mode-query.dto';
+  CreateTenantExpenseCategoryDto,
+  UpdateTenantExpenseCategoryDto,
+} from './dto/tenant-expense-category.dto';
+import { TenantExpenseCategoryListQueryDto } from './dto/tenant-expense-category-query.dto';
 
-const PAYMENT_MODE_INCLUDE = {
+const EXPENSE_CATEGORY_INCLUDE = {
   tenantBusiness: { select: { id: true, systemCode: true, name: true } },
 };
 
 @Injectable()
-export class TenantPaymentModesService {
+export class TenantExpenseCategoriesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(query: TenantPaymentModeListQueryDto) {
+  async findAll(query: TenantExpenseCategoryListQueryDto) {
     const { page, limit, search, status, tenantBusinessId, sortBy, sortOrder } = query;
     const where = {
       status: status ? status : ({ not: 'DELETED' } as const),
@@ -29,79 +29,79 @@ export class TenantPaymentModesService {
       ...(search
         ? {
             OR: [
-              { paymentName: { contains: search } },
+              { expenseCategorieName: { contains: search } },
               { systemCode: { contains: search } },
             ],
           }
         : {}),
     };
     const [items, total] = await this.prisma.$transaction([
-      this.prisma.tenantPaymentMode.findMany({
+      this.prisma.tenantExpenseCategory.findMany({
         where,
-        include: PAYMENT_MODE_INCLUDE,
+        include: EXPENSE_CATEGORY_INCLUDE,
         orderBy: { [sortBy]: sortOrder },
         ...paginate(page, limit),
       }),
-      this.prisma.tenantPaymentMode.count({ where }),
+      this.prisma.tenantExpenseCategory.count({ where }),
     ]);
     return listResponse(items, total, page, limit);
   }
 
   async findOne(id: string) {
-    const mode = await this.prisma.tenantPaymentMode.findFirst({
+    const category = await this.prisma.tenantExpenseCategory.findFirst({
       where: { id, status: { not: 'DELETED' } },
-      include: PAYMENT_MODE_INCLUDE,
+      include: EXPENSE_CATEGORY_INCLUDE,
     });
-    if (!mode) throw new NotFoundException('Payment mode not found');
-    return mode;
+    if (!category) throw new NotFoundException('Expense category not found');
+    return category;
   }
 
-  async create(dto: CreateTenantPaymentModeDto) {
+  async create(dto: CreateTenantExpenseCategoryDto) {
     await this.assertBusinessExists(dto.tenantBusinessId);
 
     const timestamp = now();
-    return this.prisma.tenantPaymentMode.create({
+    return this.prisma.tenantExpenseCategory.create({
       data: {
         id: newId(),
-        systemCode: newSystemCode('PAY'),
+        systemCode: newSystemCode('EXP'),
         tenantBusinessId: dto.tenantBusinessId,
-        paymentName: dto.paymentName,
+        expenseCategorieName: dto.expenseCategorieName,
         description: dto.description,
         createdAt: timestamp,
         updatedAt: timestamp,
       },
-      include: PAYMENT_MODE_INCLUDE,
+      include: EXPENSE_CATEGORY_INCLUDE,
     });
   }
 
-  async update(id: string, dto: UpdateTenantPaymentModeDto) {
-    const mode = await this.prisma.tenantPaymentMode.findFirst({
+  async update(id: string, dto: UpdateTenantExpenseCategoryDto) {
+    const category = await this.prisma.tenantExpenseCategory.findFirst({
       where: { id, status: { not: 'DELETED' } },
     });
-    if (!mode) throw new NotFoundException('Payment mode not found');
-    if (mode.isSystem) {
-      throw new BadRequestException('System payment modes cannot be edited');
+    if (!category) throw new NotFoundException('Expense category not found');
+    if (category.isSystem) {
+      throw new BadRequestException('System expense categories cannot be edited');
     }
     if (dto.tenantBusinessId) await this.assertBusinessExists(dto.tenantBusinessId);
 
-    return this.prisma.tenantPaymentMode.update({
+    return this.prisma.tenantExpenseCategory.update({
       where: { id },
       data: { ...dto, updatedAt: now() },
-      include: PAYMENT_MODE_INCLUDE,
+      include: EXPENSE_CATEGORY_INCLUDE,
     });
   }
 
   async remove(id: string) {
-    const mode = await this.prisma.tenantPaymentMode.findFirst({
+    const category = await this.prisma.tenantExpenseCategory.findFirst({
       where: { id, status: { not: 'DELETED' } },
     });
-    if (!mode) throw new NotFoundException('Payment mode not found');
-    if (mode.isSystem) {
-      throw new BadRequestException('System payment modes cannot be deleted');
+    if (!category) throw new NotFoundException('Expense category not found');
+    if (category.isSystem) {
+      throw new BadRequestException('System expense categories cannot be deleted');
     }
 
     const timestamp = now();
-    await this.prisma.tenantPaymentMode.update({
+    await this.prisma.tenantExpenseCategory.update({
       where: { id },
       data: { status: 'DELETED', deletedAt: timestamp, updatedAt: timestamp },
     });
@@ -109,16 +109,16 @@ export class TenantPaymentModesService {
   }
 
   async restore(id: string) {
-    const mode = await this.prisma.tenantPaymentMode.findFirst({
+    const category = await this.prisma.tenantExpenseCategory.findFirst({
       where: { id, status: 'DELETED' },
     });
-    if (!mode) {
-      throw new NotFoundException('Payment mode not found or not deleted');
+    if (!category) {
+      throw new NotFoundException('Expense category not found or not deleted');
     }
-    return this.prisma.tenantPaymentMode.update({
+    return this.prisma.tenantExpenseCategory.update({
       where: { id },
       data: { status: 'ACTIVE', deletedAt: null, updatedAt: now() },
-      include: PAYMENT_MODE_INCLUDE,
+      include: EXPENSE_CATEGORY_INCLUDE,
     });
   }
 
@@ -142,7 +142,7 @@ export class TenantPaymentModesService {
     });
   }
 
-  async findAllForTenantUser(tenantUserId: string, query: TenantPaymentModeListQueryDto) {
+  async findAllForTenantUser(tenantUserId: string, query: TenantExpenseCategoryListQueryDto) {
     const businessIds = await this.getMappedBusinessIds(tenantUserId);
     const { page, limit, search, status, tenantBusinessId, sortBy, sortOrder } = query;
     const scopedBusinessIds = tenantBusinessId
@@ -154,40 +154,44 @@ export class TenantPaymentModesService {
       ...(search
         ? {
             OR: [
-              { paymentName: { contains: search } },
+              { expenseCategorieName: { contains: search } },
               { systemCode: { contains: search } },
             ],
           }
         : {}),
     };
     const [items, total] = await this.prisma.$transaction([
-      this.prisma.tenantPaymentMode.findMany({
+      this.prisma.tenantExpenseCategory.findMany({
         where,
-        include: PAYMENT_MODE_INCLUDE,
+        include: EXPENSE_CATEGORY_INCLUDE,
         orderBy: { [sortBy]: sortOrder },
         ...paginate(page, limit),
       }),
-      this.prisma.tenantPaymentMode.count({ where }),
+      this.prisma.tenantExpenseCategory.count({ where }),
     ]);
     return listResponse(items, total, page, limit);
   }
 
   async findOneForTenantUser(tenantUserId: string, id: string) {
     const businessIds = await this.getMappedBusinessIds(tenantUserId);
-    const mode = await this.prisma.tenantPaymentMode.findFirst({
+    const category = await this.prisma.tenantExpenseCategory.findFirst({
       where: { id, tenantBusinessId: { in: businessIds }, status: { not: 'DELETED' } },
-      include: PAYMENT_MODE_INCLUDE,
+      include: EXPENSE_CATEGORY_INCLUDE,
     });
-    if (!mode) throw new NotFoundException('Payment mode not found');
-    return mode;
+    if (!category) throw new NotFoundException('Expense category not found');
+    return category;
   }
 
-  async createForTenantUser(tenantUserId: string, dto: CreateTenantPaymentModeDto) {
+  async createForTenantUser(tenantUserId: string, dto: CreateTenantExpenseCategoryDto) {
     await this.assertBusinessOwned(tenantUserId, dto.tenantBusinessId);
     return this.create(dto);
   }
 
-  async updateForTenantUser(tenantUserId: string, id: string, dto: UpdateTenantPaymentModeDto) {
+  async updateForTenantUser(
+    tenantUserId: string,
+    id: string,
+    dto: UpdateTenantExpenseCategoryDto,
+  ) {
     await this.findOneForTenantUser(tenantUserId, id);
     if (dto.tenantBusinessId) await this.assertBusinessOwned(tenantUserId, dto.tenantBusinessId);
     return this.update(id, dto);

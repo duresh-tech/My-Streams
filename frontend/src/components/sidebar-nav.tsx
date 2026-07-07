@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   Network,
   Percent,
+  Receipt,
   ShieldCheck,
   UserCog,
   Users,
@@ -32,6 +33,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/system/dashboard/tenant-mapped-business", label: "Tenant Mapped Business", icon: Network, permission: "tenant-mapped-business:list" },
   { href: "/system/dashboard/tenant-tax-types", label: "Tax Types", icon: Percent, permission: "tenant-tax-types:list" },
   { href: "/system/dashboard/tenant-payment-modes", label: "Payment Modes", icon: CreditCard, permission: "tenant-payment-modes:list" },
+  { href: "/system/dashboard/tenant-expense-categories", label: "Expense Categories", icon: Receipt, permission: "tenant-expense-categories:list" },
   { href: "/system/dashboard/roles", label: "Roles", icon: ShieldCheck, permission: "roles:read" },
   { href: "/system/dashboard/permissions", label: "Permissions", icon: KeyRound, permission: "permissions:read" },
 ];
