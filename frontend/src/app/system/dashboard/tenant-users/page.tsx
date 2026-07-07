@@ -5,6 +5,7 @@ import { LoaderCircle, LogIn, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { Combobox } from "@/components/ui/combobox";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import {
   Dialog,
@@ -322,21 +323,15 @@ export default function TenantUsersPage() {
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="grid gap-2">
                   <Label>Role</Label>
-                  <Select
+                  <Combobox
+                    options={roleOptions?.map((role) => ({ value: role.id, label: role.displayName })) ?? null}
                     value={form.roleId}
                     onValueChange={(v) => setForm((f) => ({ ...f, roleId: v }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {roleOptions?.map((role) => (
-                        <SelectItem key={role.id} value={role.id}>
-                          {role.displayName}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    onOpenChange={(open) => open && ensureRoleOptions()}
+                    placeholder="Select a role"
+                    searchPlaceholder="Search roles..."
+                    emptyText="No roles found."
+                  />
                 </div>
                 {editing && (
                   <div className="grid gap-2">

@@ -1,11 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { LoaderCircle, Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
+import { Eye, LoaderCircle, Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Combobox } from "@/components/ui/combobox";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import {
   Dialog,
@@ -39,6 +40,12 @@ interface MappingRow {
   tenantBusiness: { id: string; name: string; email: string };
 }
 
+interface GroupedMappingRow {
+  id: string;
+  tenantUser: MappingRow["tenantUser"];
+  mappings: MappingRow[];
+}
+
 interface TenantUserOption {
   id: string;
   fName: string;
@@ -68,6 +75,7 @@ export default function TenantMappedBusinessPage() {
   const { hasPermission } = useSession();
 
   const canCreate = hasPermission("tenant-mapped-business:create");
+  const canView = hasPermission("tenant-mapped-business:view");
   const canUpdate = hasPermission("tenant-mapped-business:update");
   const canDelete = hasPermission("tenant-mapped-business:delete");
   const canRestore = hasPermission("tenant-mapped-business:restore");
@@ -95,6 +103,21 @@ export default function TenantMappedBusinessPage() {
   const [deleteTarget, setDeleteTarget] = React.useState<MappingRow | null>(null);
   const [deleting, setDeleting] = React.useState(false);
   const [restoringId, setRestoringId] = React.useState<string | null>(null);
+
+  const [viewTarget, setViewTarget] = React.useState<MappingRow | null>(null);
+
+  const groupedRows = React.useMemo<GroupedMappingRow[] | null>(() => {
+    if (!list.rows) return null;
+    const byUser = new Map<string, GroupedMappingRow>();
+    for (const row of list.rows) {
+      const key = row.tenantUser.id;
+      if (!byUser.has(key)) {
+        byUser.set(key, { id: key, tenantUser: row.tenantUser, mappings: [] });
+      }
+      byUser.get(key)!.mappings.push(row);
+    }
+    return Array.from(byUser.values());
+  }, [list.rows]);
 
   function ensureTenantUserOptions() {
     if (tenantUserOptions) return;
@@ -208,26 +231,79 @@ export default function TenantMappedBusinessPage() {
     }
   }
 
-  const columns: Column<MappingRow>[] = [
+  function mappingActions(row: MappingRow) {
+    return [
+      ...(canView ? [{ label: "View", icon: Eye, onClick: () => setViewTarget(row) }] : []),
+      ...(row.status === "DELETED"
+        ? canRestore
+          ? [
+              {
+                label: "Restore",
+                icon: RotateCcw,
+                onClick: () => onRestore(row),
+                loading: restoringId === row.id,
+                disabled: restoringId === row.id,
+              },
+            ]
+          : []
+        : [
+            ...(canUpdate ? [{ label: "Edit", icon: Pencil, onClick: () => openEdit(row) }] : []),
+            ...(canDelete
+              ? [
+                  {
+                    label: "Delete",
+                    icon: Trash2,
+                    onClick: () => setDeleteTarget(row),
+                    destructive: true,
+                  },
+                ]
+              : []),
+          ]),
+    ];
+  }
+
+  const columns: Column<GroupedMappingRow>[] = [
     {
       header: "Tenant User",
-      cell: (row) => (
-        <span className="font-medium">
-          {row.tenantUser.fName} <span className="text-muted-foreground">({row.tenantUser.username})</span>
-        </span>
+      cell: (group) => (
+        <div className="min-w-0">
+          <p className="font-medium">{group.tenantUser.fName}</p>
+          <p className="truncate text-xs text-muted-foreground">
+            {group.tenantUser.username} · {group.tenantUser.email}
+          </p>
+        </div>
       ),
     },
-    { header: "Tenant Business", cell: (row) => row.tenantBusiness.name },
-    { header: "Status", cell: (row) => <StatusBadgeText status={row.status} /> },
+    {
+      header: "Mapped Businesses",
+      cell: (group) => (
+        <div className="grid gap-1.5">
+          {group.mappings.map((mapping) => (
+            <div
+              key={mapping.id}
+              className="flex items-center justify-between gap-3 rounded-md border px-2.5 py-1.5"
+            >
+              <span className="truncate text-sm font-medium">{mapping.tenantBusiness.name}</span>
+              <div className="flex shrink-0 items-center gap-2">
+                <StatusBadgeText status={mapping.status} />
+                {(canView || canUpdate || canDelete || canRestore) && (
+                  <RowActionsMenu actions={mappingActions(mapping)} />
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      ),
+    },
   ];
 
   return (
     <>
-      <ResourceTable<MappingRow>
+      <ResourceTable<GroupedMappingRow>
         title="Tenant Mapped Business"
         description="Assign tenant users to one or more businesses."
         columns={columns}
-        rows={list.rows}
+        rows={groupedRows}
         error={list.error}
         page={list.page}
         totalPages={list.totalPages}
@@ -237,46 +313,46 @@ export default function TenantMappedBusinessPage() {
         onSearchSubmit={list.applySearch}
         toolbarAction={
           <>
-            <Select
+            <Combobox
+              className="w-40"
+              options={
+                tenantUserOptions
+                  ? [
+                      { value: "ALL", label: "All tenant users" },
+                      ...tenantUserOptions.map((u) => ({ value: u.id, label: u.fName })),
+                    ]
+                  : null
+              }
               value={tenantUserFilter || "ALL"}
               onValueChange={(v) => {
-                ensureTenantUserOptions();
                 setTenantUserFilter(v === "ALL" ? "" : v);
                 list.setPage(1);
               }}
-            >
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Tenant user" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">All tenant users</SelectItem>
-                {tenantUserOptions?.map((u) => (
-                  <SelectItem key={u.id} value={u.id}>
-                    {u.fName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
+              onOpenChange={(open) => open && ensureTenantUserOptions()}
+              placeholder="Tenant user"
+              searchPlaceholder="Search tenant users..."
+              emptyText="No tenant users found."
+            />
+            <Combobox
+              className="w-40"
+              options={
+                tenantBusinessOptions
+                  ? [
+                      { value: "ALL", label: "All businesses" },
+                      ...tenantBusinessOptions.map((b) => ({ value: b.id, label: b.name })),
+                    ]
+                  : null
+              }
               value={tenantBusinessFilter || "ALL"}
               onValueChange={(v) => {
-                ensureTenantBusinessOptions();
                 setTenantBusinessFilter(v === "ALL" ? "" : v);
                 list.setPage(1);
               }}
-            >
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Business" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">All businesses</SelectItem>
-                {tenantBusinessOptions?.map((b) => (
-                  <SelectItem key={b.id} value={b.id}>
-                    {b.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              onOpenChange={(open) => open && ensureTenantBusinessOptions()}
+              placeholder="Business"
+              searchPlaceholder="Search businesses..."
+              emptyText="No businesses found."
+            />
             <Select
               value={statusFilter || "ALL"}
               onValueChange={(v) => {
@@ -302,43 +378,6 @@ export default function TenantMappedBusinessPage() {
             )}
           </>
         }
-        renderActions={
-          canUpdate || canDelete || canRestore
-            ? (row) => (
-                <RowActionsMenu
-                  actions={
-                    row.status === "DELETED"
-                      ? canRestore
-                        ? [
-                            {
-                              label: "Restore",
-                              icon: RotateCcw,
-                              onClick: () => onRestore(row),
-                              loading: restoringId === row.id,
-                              disabled: restoringId === row.id,
-                            },
-                          ]
-                        : []
-                      : [
-                          ...(canUpdate
-                            ? [{ label: "Edit", icon: Pencil, onClick: () => openEdit(row) }]
-                            : []),
-                          ...(canDelete
-                            ? [
-                                {
-                                  label: "Delete",
-                                  icon: Trash2,
-                                  onClick: () => setDeleteTarget(row),
-                                  destructive: true,
-                                },
-                              ]
-                            : []),
-                        ]
-                  }
-                />
-              )
-            : undefined
-        }
       />
 
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
@@ -355,41 +394,34 @@ export default function TenantMappedBusinessPage() {
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
                 <Label>Tenant user</Label>
-                <Select
+                <Combobox
+                  options={
+                    tenantUserOptions?.map((u) => ({
+                      value: u.id,
+                      label: `${u.fName} (${u.username})`,
+                    })) ?? null
+                  }
                   value={form.tenantUserId}
                   onValueChange={(v) => setForm((f) => ({ ...f, tenantUserId: v }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a tenant user" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {tenantUserOptions?.map((u) => (
-                      <SelectItem key={u.id} value={u.id}>
-                        {u.fName} ({u.username})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  onOpenChange={(open) => open && ensureTenantUserOptions()}
+                  placeholder="Select a tenant user"
+                  searchPlaceholder="Search tenant users..."
+                  emptyText="No tenant users found."
+                />
               </div>
 
               {editing ? (
                 <div className="grid gap-2">
                   <Label>Tenant business</Label>
-                  <Select
+                  <Combobox
+                    options={tenantBusinessOptions?.map((b) => ({ value: b.id, label: b.name })) ?? null}
                     value={form.tenantBusinessId}
                     onValueChange={(v) => setForm((f) => ({ ...f, tenantBusinessId: v }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a business" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {tenantBusinessOptions?.map((b) => (
-                        <SelectItem key={b.id} value={b.id}>
-                          {b.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    onOpenChange={(open) => open && ensureTenantBusinessOptions()}
+                    placeholder="Select a business"
+                    searchPlaceholder="Search businesses..."
+                    emptyText="No businesses found."
+                  />
                 </div>
               ) : (
                 <div className="grid gap-2">
@@ -460,6 +492,58 @@ export default function TenantMappedBusinessPage() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={!!viewTarget} onOpenChange={(open) => !open && setViewTarget(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Mapping details</DialogTitle>
+            <DialogDescription>{viewTarget?.systemCode}</DialogDescription>
+          </DialogHeader>
+
+          {viewTarget && (
+            <div className="grid gap-4 py-2">
+              <div className="flex items-center gap-1.5">
+                <StatusBadgeText status={viewTarget.status} />
+              </div>
+
+              <div className="grid gap-3 rounded-md border p-4">
+                <p className="text-xs font-medium text-muted-foreground">Tenant User</p>
+                <div className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+                  <DetailField label="Name" value={viewTarget.tenantUser.fName} />
+                  <DetailField label="Username" value={viewTarget.tenantUser.username} />
+                  <DetailField label="Email" value={viewTarget.tenantUser.email} />
+                </div>
+              </div>
+
+              <div className="grid gap-3 rounded-md border p-4">
+                <p className="text-xs font-medium text-muted-foreground">Tenant Business</p>
+                <div className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+                  <DetailField label="Name" value={viewTarget.tenantBusiness.name} />
+                  <DetailField label="Email" value={viewTarget.tenantBusiness.email} />
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setViewTarget(null)}>
+              Close
+            </Button>
+            {canUpdate && viewTarget && (
+              <Button
+                type="button"
+                onClick={() => {
+                  const row = viewTarget;
+                  setViewTarget(null);
+                  openEdit(row);
+                }}
+              >
+                <Pencil className="size-4" /> Edit
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <ConfirmDialog
         open={!!deleteTarget}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
@@ -469,5 +553,14 @@ export default function TenantMappedBusinessPage() {
         onConfirm={onDelete}
       />
     </>
+  );
+}
+
+function DetailField({ label, value }: { label: string; value: string | null | undefined }) {
+  return (
+    <div className="min-w-0">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="truncate text-sm font-medium">{value || "—"}</p>
+    </div>
   );
 }

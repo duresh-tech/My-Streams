@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Combobox } from "@/components/ui/combobox";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import {
   Dialog,
@@ -311,21 +312,15 @@ export default function TenantExpenseCategoriesPage() {
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
                 <Label>Business</Label>
-                <Select
+                <Combobox
+                  options={businessOptions?.map((biz) => ({ value: biz.id, label: biz.name })) ?? null}
                   value={form.tenantBusinessId}
                   onValueChange={(v) => setForm((f) => ({ ...f, tenantBusinessId: v }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a business" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {businessOptions?.map((biz) => (
-                      <SelectItem key={biz.id} value={biz.id}>
-                        {biz.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  onOpenChange={(open) => open && ensureBusinessOptions()}
+                  placeholder="Select a business"
+                  searchPlaceholder="Search businesses..."
+                  emptyText="No businesses found."
+                />
               </div>
 
               <div className="grid gap-2">

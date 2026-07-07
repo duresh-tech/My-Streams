@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ArrowDownAZ, ArrowUpAZ, LoaderCircle, Pencil, Plus, RotateCcw, Trash2, Upload } from "lucide-react";
+import { ArrowDownAZ, ArrowUpAZ, Eye, LoaderCircle, Pencil, Plus, RotateCcw, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -93,6 +93,7 @@ export default function TenantBusinessPage() {
   const { hasPermission } = useSession();
 
   const canCreate = hasPermission("tenant-business:create");
+  const canView = hasPermission("tenant-business:view");
   const canUpdate = hasPermission("tenant-business:update");
   const canDelete = hasPermission("tenant-business:delete");
   const canRestore = hasPermission("tenant-business:restore");
@@ -119,6 +120,8 @@ export default function TenantBusinessPage() {
   const [deleteTarget, setDeleteTarget] = React.useState<TenantBusinessRow | null>(null);
   const [deleting, setDeleting] = React.useState(false);
   const [restoringId, setRestoringId] = React.useState<string | null>(null);
+
+  const [viewTarget, setViewTarget] = React.useState<TenantBusinessRow | null>(null);
 
   function openCreate() {
     setEditing(null);
@@ -326,11 +329,12 @@ export default function TenantBusinessPage() {
           </>
         }
         renderActions={
-          canUpdate || canDelete || canRestore
+          canView || canUpdate || canDelete || canRestore
             ? (row) => (
                 <RowActionsMenu
-                  actions={
-                    row.status === "DELETED"
+                  actions={[
+                    ...(canView ? [{ label: "View", icon: Eye, onClick: () => setViewTarget(row) }] : []),
+                    ...(row.status === "DELETED"
                       ? canRestore
                         ? [
                             {
@@ -356,8 +360,8 @@ export default function TenantBusinessPage() {
                                 },
                               ]
                             : []),
-                        ]
-                  }
+                        ]),
+                  ]}
                 />
               )
             : undefined
@@ -572,6 +576,78 @@ export default function TenantBusinessPage() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={!!viewTarget} onOpenChange={(open) => !open && setViewTarget(null)}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Business details</DialogTitle>
+            <DialogDescription>{viewTarget?.systemCode}</DialogDescription>
+          </DialogHeader>
+
+          {viewTarget && (
+            <div className="grid gap-4 py-2">
+              <div className="flex items-center gap-4">
+                <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-muted">
+                  {viewTarget.logoPath ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={`${UPLOADS_ORIGIN}/uploads/${viewTarget.logoPath}`}
+                      alt="Business logo"
+                      className="size-full object-cover"
+                    />
+                  ) : (
+                    <Upload className="size-5 text-muted-foreground" />
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-base font-semibold">{viewTarget.name}</p>
+                  {viewTarget.tagLine && (
+                    <p className="truncate text-sm text-muted-foreground">{viewTarget.tagLine}</p>
+                  )}
+                  <div className="mt-1.5 flex items-center gap-1.5">
+                    {viewTarget.isParentBusiness ? (
+                      <Badge variant="secondary">Parent</Badge>
+                    ) : (
+                      <Badge variant="outline">Child</Badge>
+                    )}
+                    <StatusBadgeText status={viewTarget.status} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-x-6 gap-y-3 rounded-md border p-4 sm:grid-cols-2">
+                <DetailField label="Email" value={viewTarget.email} />
+                <DetailField label="Phone" value={viewTarget.phone} />
+                <DetailField label="Country" value={`${viewTarget.country} (${viewTarget.countryCode})`} />
+                <DetailField label="State" value={viewTarget.state} />
+                <DetailField label="City" value={viewTarget.city} />
+                <DetailField label="Pincode" value={viewTarget.pincode} />
+                <DetailField label="Address line 1" value={viewTarget.addressLine1} />
+                <DetailField label="Address line 2" value={viewTarget.addressLine2} />
+                <DetailField label="Tax number" value={viewTarget.taxNumber} />
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setViewTarget(null)}>
+              Close
+            </Button>
+            {canUpdate && viewTarget && (
+              <Button
+                type="button"
+                onClick={() => {
+                  const row = viewTarget;
+                  setViewTarget(null);
+                  openEdit(row);
+                }}
+              >
+                <Pencil className="size-4" /> Edit
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <ConfirmDialog
         open={!!deleteTarget}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
@@ -581,5 +657,14 @@ export default function TenantBusinessPage() {
         onConfirm={onDelete}
       />
     </>
+  );
+}
+
+function DetailField({ label, value }: { label: string; value: string | null | undefined }) {
+  return (
+    <div className="min-w-0">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="truncate text-sm font-medium">{value || "—"}</p>
+    </div>
   );
 }
