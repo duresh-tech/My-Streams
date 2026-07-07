@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { Percent, User } from "lucide-react";
+import { CreditCard, Percent, User } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import {
@@ -17,6 +17,7 @@ import { useTenantSession } from "@/hooks/use-tenant-session";
 const SETTINGS_NAV_ITEMS = [
   { href: "/tenant/settings/user-account", label: "Account Settings", icon: User, permission: "tenant-account:view" },
   { href: "/tenant/settings/tax-types", label: "Tax Types", icon: Percent, permission: "tenant-tax-types:list" },
+  { href: "/tenant/settings/payment-modes", label: "Payment Modes", icon: CreditCard, permission: "tenant-payment-modes:list" },
 ];
 
 export function TenantSettingsNav() {

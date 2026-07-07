@@ -164,6 +164,7 @@ model TenantBusiness {
 
   mappedTenantUsers TenantMappedBusiness[]
   taxTypes          TenantTaxType[]
+  paymentModes      TenantPaymentMode[]
 
   @@index([status])
   @@index([country])
@@ -201,6 +202,32 @@ model TenantTaxType {
   @@index([status])
   @@index([tenantBusinessId])
   @@map("tenant_tax_types")
+}
+
+enum TenantPaymentModeStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+  DELETED
+}
+
+model TenantPaymentMode {
+  id               String                  @id @db.Char(36) // UUIDv7
+  systemCode       String                  @unique @db.VarChar(30)
+  tenantBusinessId String                  @db.Char(36)
+  paymentName      String                  @db.VarChar(100)
+  description      String?                 @db.VarChar(255)
+  isSystem         Boolean                 @default(false)
+  status           TenantPaymentModeStatus @default(ACTIVE)
+  createdAt        BigInt
+  updatedAt        BigInt
+  deletedAt        BigInt?
+
+  tenantBusiness TenantBusiness @relation(fields: [tenantBusinessId], references: [id])
+
+  @@index([status])
+  @@index([tenantBusinessId])
+  @@map("tenant_payment_modes")
 }
 
 enum TenantMappedBusinessStatus {
