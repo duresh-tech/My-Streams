@@ -20,6 +20,17 @@ export interface ComboboxOption {
   label: string;
 }
 
+/**
+ * cmdk's default filter fuzzy-scores against `value`, which here is an opaque
+ * id (UUID) rather than human-readable text. Use a plain case-insensitive
+ * substring match against the value + its keywords (the visible label)
+ * instead, so typing part of the label reliably filters the list.
+ */
+function comboboxFilter(itemValue: string, search: string, keywords?: string[]): number {
+  const haystack = [itemValue, ...(keywords ?? [])].join(" ").toLowerCase();
+  return haystack.includes(search.toLowerCase()) ? 1 : 0;
+}
+
 interface ComboboxProps {
   /** Pass `null` while options are still loading — shows a spinner instead of the empty state. */
   options: ComboboxOption[] | null;
@@ -54,7 +65,7 @@ export function Combobox({
   }
 
   return (
-    <Popover open={open} onOpenChange={handleOpenChange}>
+    <Popover open={open} onOpenChange={handleOpenChange} modal>
       <PopoverTrigger asChild>
         <Button
           type="button"
@@ -77,7 +88,7 @@ export function Combobox({
         className="w-(--radix-popover-trigger-width) min-w-40 p-0"
         align="start"
       >
-        <Command shouldFilter={!!options}>
+        <Command filter={comboboxFilter}>
           <CommandInput placeholder={searchPlaceholder} />
           <CommandList>
             {!options ? (
