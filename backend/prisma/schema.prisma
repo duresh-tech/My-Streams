@@ -165,7 +165,7 @@ model TenantBusiness {
   mappedTenantUsers TenantMappedBusiness[]
   taxTypes          TenantTaxType[]
   paymentModes      TenantPaymentMode[]
-  expenseCategories TenantExpenseCategory[]
+  inExCategories    TenantInExCategory[]
   branches          TenantBusinessBranch[]
   networkProviders  TenantNetworkProvider[]
 
@@ -233,30 +233,37 @@ model TenantPaymentMode {
   @@map("tenant_payment_modes")
 }
 
-enum TenantExpenseCategoryStatus {
+enum TenantInExCategoryType {
+  INCOME
+  EXPENSE
+}
+
+enum TenantInExCategoryStatus {
   ACTIVE
   INACTIVE
   BLOCKED
   DELETED
 }
 
-model TenantExpenseCategory {
-  id                   String                      @id @db.Char(36) // UUIDv7
-  systemCode           String                      @unique @db.VarChar(30)
-  tenantBusinessId     String                      @db.Char(36)
-  expenseCategorieName String                      @db.VarChar(100)
-  description          String?                     @db.VarChar(255)
-  isSystem             Boolean                     @default(false)
-  status               TenantExpenseCategoryStatus @default(ACTIVE)
-  createdAt            BigInt
-  updatedAt            BigInt
-  deletedAt            BigInt?
+model TenantInExCategory {
+  id               String                    @id @db.Char(36) // UUIDv7
+  systemCode       String                    @unique @db.VarChar(30)
+  tenantBusinessId String                    @db.Char(36)
+  type             TenantInExCategoryType
+  name             String                    @db.VarChar(100)
+  inExCode         String                    @db.VarChar(100) // Uppercase, underscore-separated code derived from name (frontend-generated)
+  isSystem         Boolean                   @default(false)
+  description      String?                   @db.VarChar(255)
+  status           TenantInExCategoryStatus  @default(ACTIVE)
+  createdAt        BigInt
+  updatedAt        BigInt
+  deletedAt        BigInt?
 
   tenantBusiness TenantBusiness @relation(fields: [tenantBusinessId], references: [id])
 
   @@index([status])
   @@index([tenantBusinessId])
-  @@map("tenant_expense_categories")
+  @@map("tenant_in_ex_categories")
 }
 
 enum TenantBusinessBranchStatus {
@@ -381,4 +388,16 @@ model TenantRefreshToken {
   @@index([tenantUserId])
   @@index([tokenHash])
   @@map("tenant_refresh_tokens")
+}
+
+// Single-row app-wide branding config (SaaS name/logo). Always fetched/updated
+// via the fixed id below; there is exactly one row.
+model AppSettings {
+  id        String  @id @default("default") @db.VarChar(30)
+  appName   String  @db.VarChar(100)
+  logoPath  String? @db.VarChar(255)
+  createdAt BigInt
+  updatedAt BigInt
+
+  @@map("app_settings")
 }

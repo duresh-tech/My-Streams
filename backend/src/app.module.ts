@@ -16,9 +16,10 @@ import { TenantBusinessModule } from './tenant-business/tenant-business.module';
 import { TenantMappedBusinessModule } from './tenant-mapped-business/tenant-mapped-business.module';
 import { TenantTaxTypesModule } from './tenant-tax-types/tenant-tax-types.module';
 import { TenantPaymentModesModule } from './tenant-payment-modes/tenant-payment-modes.module';
-import { TenantExpenseCategoriesModule } from './tenant-expense-categories/tenant-expense-categories.module';
+import { TenantInExCategoriesModule } from './tenant-in-ex-categories/tenant-in-ex-categories.module';
 import { TenantBusinessBranchesModule } from './tenant-business-branches/tenant-business-branches.module';
 import { TenantNetworkProvidersModule } from './tenant-network-providers/tenant-network-providers.module';
+import { SystemSettingsModule } from './system-settings/system-settings.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { TenantDashboardModule } from './tenant-dashboard/tenant-dashboard.module';
 import { UploadsModule } from './uploads/uploads.module';
@@ -53,9 +54,10 @@ import { DeviceHeaderGuard } from './common/guards/device-header.guard';
     TenantMappedBusinessModule,
     TenantTaxTypesModule,
     TenantPaymentModesModule,
-    TenantExpenseCategoriesModule,
+    TenantInExCategoriesModule,
     TenantBusinessBranchesModule,
     TenantNetworkProvidersModule,
+    SystemSettingsModule,
     DashboardModule,
     TenantDashboardModule,
     UploadsModule,

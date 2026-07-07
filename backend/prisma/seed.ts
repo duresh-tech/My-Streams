@@ -35,9 +35,10 @@ const MODULES: Array<{ module: string; label: string; actions: string[] }> = [
   { module: 'tenant-mapped-business', label: 'Tenant Mapped Business', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
   { module: 'tenant-tax-types', label: 'Tenant Tax Types', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
   { module: 'tenant-payment-modes', label: 'Tenant Payment Modes', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
-  { module: 'tenant-expense-categories', label: 'Tenant Expense Categories', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
+  { module: 'tenant-in-ex-categories', label: 'Tenant Income & Expense Categories', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
   { module: 'tenant-business-branches', label: 'Tenant Business Branches', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
   { module: 'tenant-network-providers', label: 'Tenant Network Providers', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
+  { module: 'system-settings', label: 'System Settings', actions: ['view', 'update'] },
   { module: 'uploads', label: 'Uploads', actions: ['create'] },
 ];
 
@@ -49,6 +50,20 @@ const PERMISSIONS: PermissionSeed[] = MODULES.flatMap(({ module, label, actions 
     description: `${action} access for ${module}`.slice(0, 50),
   })),
 );
+
+/**
+ * One-time cleanup: tenant-expense-categories was renamed to
+ * tenant-in-ex-categories. Deletes the old permission rows (RolePermission
+ * grants cascade) so stale keys don't linger in the Roles UI. No-op once run.
+ */
+async function cleanupLegacyPermissions() {
+  const { count } = await prisma.permission.deleteMany({
+    where: { moduleName: 'tenant-expense-categories' },
+  });
+  if (count > 0) {
+    console.log(`  - removed ${count} legacy tenant-expense-categories permission(s)`);
+  }
+}
 
 async function seedPermissions(): Promise<Map<string, string>> {
   const keyToId = new Map<string, string>();
@@ -137,6 +152,9 @@ async function seedSuperAdmin(roleId: string) {
 }
 
 async function main() {
+  console.log('Cleaning up legacy permissions...');
+  await cleanupLegacyPermissions();
+
   console.log('Seeding permissions...');
   const keyToId = await seedPermissions();
   const allIds = [...keyToId.values()];
@@ -167,11 +185,11 @@ async function main() {
       'tenant-payment-modes:create',
       'tenant-payment-modes:update',
       'tenant-payment-modes:delete',
-      'tenant-expense-categories:list',
-      'tenant-expense-categories:view',
-      'tenant-expense-categories:create',
-      'tenant-expense-categories:update',
-      'tenant-expense-categories:delete',
+      'tenant-in-ex-categories:list',
+      'tenant-in-ex-categories:view',
+      'tenant-in-ex-categories:create',
+      'tenant-in-ex-categories:update',
+      'tenant-in-ex-categories:delete',
       'tenant-business-branches:list',
       'tenant-business-branches:view',
       'tenant-business-branches:create',

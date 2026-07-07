@@ -1,17 +1,19 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "motion/react";
 import {
+  ArrowLeftRight,
   Building,
   Building2,
   CreditCard,
   KeyRound,
   LayoutDashboard,
   Network,
+  Palette,
   Percent,
-  Receipt,
   ShieldCheck,
   UserCog,
   Users,
@@ -25,6 +27,8 @@ export interface NavItem {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   permission: string;
+  /** Groups items under a section header. Items without one render ungrouped at the top. */
+  section?: string;
 }
 
 export const NAV_ITEMS: NavItem[] = [
@@ -37,9 +41,10 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/system/dashboard/tenant-network-providers", label: "Network Providers", icon: Wifi, permission: "tenant-network-providers:list" },
   { href: "/system/dashboard/tenant-tax-types", label: "Tax Types", icon: Percent, permission: "tenant-tax-types:list" },
   { href: "/system/dashboard/tenant-payment-modes", label: "Payment Modes", icon: CreditCard, permission: "tenant-payment-modes:list" },
-  { href: "/system/dashboard/tenant-expense-categories", label: "Expense Categories", icon: Receipt, permission: "tenant-expense-categories:list" },
+  { href: "/system/dashboard/tenant-in-ex-categories", label: "Income & Expense Categories", icon: ArrowLeftRight, permission: "tenant-in-ex-categories:list" },
   { href: "/system/dashboard/roles", label: "Roles", icon: ShieldCheck, permission: "roles:read" },
   { href: "/system/dashboard/permissions", label: "Permissions", icon: KeyRound, permission: "permissions:read" },
+  { href: "/system/dashboard/settings/customization", label: "Customization", icon: Palette, permission: "system-settings:view", section: "Settings" },
 ];
 
 interface SidebarNavProps {
@@ -64,33 +69,40 @@ export function SidebarNav({
 
   return (
     <nav className="grid gap-1 px-2">
-      {items.map((item) => {
+      {items.map((item, index) => {
         const active =
           item.href === rootHref
             ? pathname === item.href
             : pathname.startsWith(item.href);
+        const showSectionHeader = item.section && item.section !== items[index - 1]?.section;
         return (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={onNavigate}
-            className={cn(
-              "relative flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-              active
-                ? "text-primary-foreground"
-                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+          <React.Fragment key={item.href}>
+            {showSectionHeader && (
+              <div className="mt-4 mb-1 px-3 text-xs font-semibold tracking-wide text-muted-foreground/80 uppercase">
+                {item.section}
+              </div>
             )}
-          >
-            {active && (
-              <motion.span
-                layoutId={`active-nav-pill-${instanceId}`}
-                className="absolute inset-0 rounded-md bg-primary"
-                transition={{ type: "spring", stiffness: 380, damping: 30 }}
-              />
-            )}
-            <item.icon className="relative z-10 size-4" />
-            <span className="relative z-10">{item.label}</span>
-          </Link>
+            <Link
+              href={item.href}
+              onClick={onNavigate}
+              className={cn(
+                "relative flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                active
+                  ? "text-primary-foreground"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+              )}
+            >
+              {active && (
+                <motion.span
+                  layoutId={`active-nav-pill-${instanceId}`}
+                  className="absolute inset-0 rounded-md bg-primary"
+                  transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                />
+              )}
+              <item.icon className="relative z-10 size-4" />
+              <span className="relative z-10">{item.label}</span>
+            </Link>
+          </React.Fragment>
         );
       })}
     </nav>

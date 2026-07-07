@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { Building, Building2, CreditCard, Percent, Receipt, User, Wifi } from "lucide-react";
+import { ArrowLeftRight, Building, Building2, CreditCard, Percent, User, Wifi } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import {
@@ -21,7 +21,7 @@ const SETTINGS_NAV_ITEMS = [
   { href: "/tenant/settings/network-providers", label: "Network Providers", icon: Wifi, permission: "tenant-network-providers:list" },
   { href: "/tenant/settings/tax-types", label: "Tax Types", icon: Percent, permission: "tenant-tax-types:list" },
   { href: "/tenant/settings/payment-modes", label: "Payment Modes", icon: CreditCard, permission: "tenant-payment-modes:list" },
-  { href: "/tenant/settings/expense-categories", label: "Expense Categories", icon: Receipt, permission: "tenant-expense-categories:list" },
+  { href: "/tenant/settings/in-ex-categories", label: "Income & Expense Categories", icon: ArrowLeftRight, permission: "tenant-in-ex-categories:list" },
 ];
 
 export function TenantSettingsNav() {

@@ -16,6 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useAppSettings } from "@/hooks/use-app-settings";
 
 const MotionTableRow = motion.create(TableRow);
 const SKELETON_ROWS = 5;
@@ -59,10 +60,14 @@ export function ResourceTable<T extends { id: string }>({
   actionsHeader = "Actions",
   renderActions,
 }: ResourceTableProps<T>) {
+  const { appName } = useAppSettings();
   return (
     <div className="grid gap-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
+          <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+            {appName}
+          </p>
           <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
           <p className="text-sm text-muted-foreground">{description}</p>
         </div>

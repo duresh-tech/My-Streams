@@ -31,17 +31,21 @@ import { RowActionsMenu } from "@/components/row-actions-menu";
 import { useResourceList } from "@/hooks/use-resource-list";
 import { useTenantSession } from "@/hooks/use-tenant-session";
 import { TenantApiError, tenantApi } from "@/lib/tenant-api";
+import { toCode } from "@/lib/utils";
 
-type ExpenseCategoryStatus = "ACTIVE" | "INACTIVE" | "BLOCKED" | "DELETED";
+type InExCategoryStatus = "ACTIVE" | "INACTIVE" | "BLOCKED" | "DELETED";
+type InExCategoryType = "INCOME" | "EXPENSE";
 
-interface TenantExpenseCategoryRow {
+interface TenantInExCategoryRow {
   id: string;
   systemCode: string;
   tenantBusinessId: string;
-  expenseCategorieName: string;
+  type: InExCategoryType;
+  name: string;
+  inExCode: string;
   description: string | null;
   isSystem: boolean;
-  status: ExpenseCategoryStatus;
+  status: InExCategoryStatus;
   tenantBusiness?: { id: string; systemCode: string; name: string };
 }
 
@@ -50,42 +54,46 @@ interface BusinessOption {
   name: string;
 }
 
-interface ExpenseCategoryFormValues {
+interface InExCategoryFormValues {
   tenantBusinessId: string;
-  expenseCategorieName: string;
+  type: InExCategoryType;
+  name: string;
   description: string;
   status: "ACTIVE" | "INACTIVE" | "BLOCKED";
 }
 
-const EMPTY_FORM: ExpenseCategoryFormValues = {
+const EMPTY_FORM: InExCategoryFormValues = {
   tenantBusinessId: "",
-  expenseCategorieName: "",
+  type: "EXPENSE",
+  name: "",
   description: "",
   status: "ACTIVE",
 };
 
-export default function TenantExpenseCategoriesPage() {
+export default function TenantInExCategoriesPage() {
   const { hasPermission } = useTenantSession();
 
-  const canCreate = hasPermission("tenant-expense-categories:create");
-  const canUpdate = hasPermission("tenant-expense-categories:update");
-  const canDelete = hasPermission("tenant-expense-categories:delete");
+  const canCreate = hasPermission("tenant-in-ex-categories:create");
+  const canUpdate = hasPermission("tenant-in-ex-categories:update");
+  const canDelete = hasPermission("tenant-in-ex-categories:delete");
 
-  const list = useResourceList<TenantExpenseCategoryRow>("/tenant/expense-categories", {}, tenantApi);
+  const list = useResourceList<TenantInExCategoryRow>("/tenant/in-ex-categories", {}, tenantApi);
 
   const [businessOptions, setBusinessOptions] = React.useState<BusinessOption[] | null>(null);
 
   const [formOpen, setFormOpen] = React.useState(false);
-  const [editing, setEditing] = React.useState<TenantExpenseCategoryRow | null>(null);
-  const [form, setForm] = React.useState<ExpenseCategoryFormValues>(EMPTY_FORM);
+  const [editing, setEditing] = React.useState<TenantInExCategoryRow | null>(null);
+  const [form, setForm] = React.useState<InExCategoryFormValues>(EMPTY_FORM);
   const [saving, setSaving] = React.useState(false);
 
-  const [deleteTarget, setDeleteTarget] = React.useState<TenantExpenseCategoryRow | null>(null);
+  const [deleteTarget, setDeleteTarget] = React.useState<TenantInExCategoryRow | null>(null);
   const [deleting, setDeleting] = React.useState(false);
+
+  const inExCode = toCode(form.name);
 
   function loadBusinessOptions(): Promise<BusinessOption[]> {
     if (businessOptions) return Promise.resolve(businessOptions);
-    return tenantApi<BusinessOption[]>("/tenant/expense-categories/businesses")
+    return tenantApi<BusinessOption[]>("/tenant/in-ex-categories/businesses")
       .then((data) => {
         setBusinessOptions(data);
         return data;
@@ -107,12 +115,13 @@ export default function TenantExpenseCategoriesPage() {
     });
   }
 
-  function openEdit(row: TenantExpenseCategoryRow) {
+  function openEdit(row: TenantInExCategoryRow) {
     loadBusinessOptions();
     setEditing(row);
     setForm({
       tenantBusinessId: row.tenantBusinessId,
-      expenseCategorieName: row.expenseCategorieName,
+      type: row.type,
+      name: row.name,
       description: row.description ?? "",
       status: row.status === "DELETED" ? "ACTIVE" : row.status,
     });
@@ -125,16 +134,18 @@ export default function TenantExpenseCategoriesPage() {
     try {
       const body = {
         tenantBusinessId: form.tenantBusinessId,
-        expenseCategorieName: form.expenseCategorieName,
+        type: form.type,
+        name: form.name,
+        inExCode,
         description: form.description || undefined,
         ...(editing ? { status: form.status } : {}),
       };
       if (editing) {
-        await tenantApi(`/tenant/expense-categories/${editing.id}`, { method: "PATCH", body });
-        toast.success("Expense category updated");
+        await tenantApi(`/tenant/in-ex-categories/${editing.id}`, { method: "PATCH", body });
+        toast.success("Category updated");
       } else {
-        await tenantApi("/tenant/expense-categories", { method: "POST", body });
-        toast.success("Expense category created");
+        await tenantApi("/tenant/in-ex-categories", { method: "POST", body });
+        toast.success("Category created");
       }
       setFormOpen(false);
       list.refresh();
@@ -149,8 +160,8 @@ export default function TenantExpenseCategoriesPage() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      await tenantApi(`/tenant/expense-categories/${deleteTarget.id}`, { method: "DELETE" });
-      toast.success("Expense category deleted");
+      await tenantApi(`/tenant/in-ex-categories/${deleteTarget.id}`, { method: "DELETE" });
+      toast.success("Category deleted");
       setDeleteTarget(null);
       list.refresh();
     } catch (error) {
@@ -160,18 +171,16 @@ export default function TenantExpenseCategoriesPage() {
     }
   }
 
-  const columns: Column<TenantExpenseCategoryRow>[] = [
-    {
-      header: "Category Name",
-      cell: (row) => <span className="font-medium">{row.expenseCategorieName}</span>,
-    },
+  const columns: Column<TenantInExCategoryRow>[] = [
+    { header: "Name", cell: (row) => <span className="font-medium">{row.name}</span> },
+    { header: "Code", cell: (row) => <code className="text-xs">{row.inExCode}</code> },
     {
       header: "Type",
       cell: (row) =>
-        row.isSystem ? (
-          <Badge variant="secondary">System</Badge>
+        row.type === "INCOME" ? (
+          <Badge variant="secondary">Income</Badge>
         ) : (
-          <Badge variant="outline">Custom</Badge>
+          <Badge variant="outline">Expense</Badge>
         ),
     },
     { header: "Status", cell: (row) => <StatusBadgeText status={row.status} /> },
@@ -179,9 +188,9 @@ export default function TenantExpenseCategoriesPage() {
 
   return (
     <>
-      <ResourceTable<TenantExpenseCategoryRow>
-        title="Expense Categories"
-        description="Expense categories used by your business."
+      <ResourceTable<TenantInExCategoryRow>
+        title="Income & Expense Categories"
+        description="Income/expense categories used by your business."
         columns={columns}
         rows={list.rows}
         error={list.error}
@@ -194,7 +203,7 @@ export default function TenantExpenseCategoriesPage() {
         toolbarAction={
           canCreate ? (
             <Button onClick={openCreate}>
-              <Plus className="size-4" /> Add Expense Category
+              <Plus className="size-4" /> Add Category
             </Button>
           ) : undefined
         }
@@ -227,8 +236,8 @@ export default function TenantExpenseCategoriesPage() {
         <DialogContent>
           <form onSubmit={onSubmit}>
             <DialogHeader>
-              <DialogTitle>{editing ? "Edit Expense Category" : "Add Expense Category"}</DialogTitle>
-              <DialogDescription>Expense category used by your business.</DialogDescription>
+              <DialogTitle>{editing ? "Edit Category" : "Add Category"}</DialogTitle>
+              <DialogDescription>Income/expense category used by your business.</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               {(businessOptions?.length ?? 0) > 1 && (
@@ -246,14 +255,36 @@ export default function TenantExpenseCategoriesPage() {
                 </div>
               )}
 
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="grid gap-2">
+                  <Label htmlFor="name">Name</Label>
+                  <Input
+                    id="name"
+                    required
+                    value={form.name}
+                    onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Type</Label>
+                  <Select
+                    value={form.type}
+                    onValueChange={(v) => setForm((f) => ({ ...f, type: v as InExCategoryType }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="INCOME">Income</SelectItem>
+                      <SelectItem value="EXPENSE">Expense</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
               <div className="grid gap-2">
-                <Label htmlFor="expenseCategorieName">Name</Label>
-                <Input
-                  id="expenseCategorieName"
-                  required
-                  value={form.expenseCategorieName}
-                  onChange={(e) => setForm((f) => ({ ...f, expenseCategorieName: e.target.value }))}
-                />
+                <Label htmlFor="inExCode">Code</Label>
+                <Input id="inExCode" disabled value={inExCode} placeholder="Derived from name" />
               </div>
 
               <div className="grid gap-2">
@@ -271,7 +302,7 @@ export default function TenantExpenseCategoriesPage() {
                   <Select
                     value={form.status}
                     onValueChange={(v) =>
-                      setForm((f) => ({ ...f, status: v as ExpenseCategoryFormValues["status"] }))
+                      setForm((f) => ({ ...f, status: v as InExCategoryFormValues["status"] }))
                     }
                   >
                     <SelectTrigger>
@@ -290,7 +321,7 @@ export default function TenantExpenseCategoriesPage() {
               <Button type="button" variant="outline" onClick={() => setFormOpen(false)} disabled={saving}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={saving || !form.tenantBusinessId}>
+              <Button type="submit" disabled={saving || !form.tenantBusinessId || !inExCode}>
                 {saving && <LoaderCircle className="size-4 animate-spin" />}
                 Save
               </Button>
@@ -302,8 +333,8 @@ export default function TenantExpenseCategoriesPage() {
       <ConfirmDialog
         open={!!deleteTarget}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
-        title="Delete expense category"
-        description={`This will delete "${deleteTarget?.expenseCategorieName}".`}
+        title="Delete category"
+        description={`This will delete "${deleteTarget?.name}".`}
         loading={deleting}
         onConfirm={onDelete}
       />

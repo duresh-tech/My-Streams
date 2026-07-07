@@ -137,6 +137,32 @@ export async function uploadFile(file: File): Promise<{ path: string; driver: st
   return data as { path: string; driver: string };
 }
 
+/** Uploads and immediately persists the application (SaaS) logo; returns its stored path. */
+export async function uploadAppLogo(file: File): Promise<{ path: string }> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const headers: Record<string, string> = { "x-device-type": "website" };
+  const token = getAccessToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const response = await fetch(`${API_URL}/system/settings/logo`, {
+    method: "POST",
+    headers,
+    credentials: "include",
+    body: formData,
+  });
+
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    const message =
+      (data && (Array.isArray(data.message) ? data.message[0] : data.message)) ||
+      `Upload failed (${response.status})`;
+    throw new ApiError(response.status, message, data);
+  }
+  return data as { path: string };
+}
+
 async function tryRefresh(): Promise<boolean> {
   try {
     const csrfToken = getCsrfToken();
