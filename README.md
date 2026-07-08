@@ -1,10 +1,14 @@
 # Project 5 — System Console
 
-[![Backend](https://img.shields.io/badge/backend-v1.3.0-blue)](./backend/CHANGELOG.md)
-[![Frontend](https://img.shields.io/badge/frontend-v1.2.0-blue)](./frontend/CHANGELOG.md)
+[![Backend](https://img.shields.io/badge/backend-v1.4.0-blue)](./backend/CHANGELOG.md)
+[![Frontend](https://img.shields.io/badge/frontend-v1.3.0-blue)](./frontend/CHANGELOG.md)
 
-Full-stack system administration console with RBAC-driven CRUD for
-system users, tenant users, tenant businesses, roles, and permissions.
+Full-stack system administration console with RBAC-driven CRUD for system
+users, roles, and permissions, plus a parallel **tenant portal**: tenant
+users log in separately and manage their own business — team members,
+branches, network providers, tax types, payment modes, income & expense
+categories, mail config, places, and streets — mirroring the system-admin
+CRUD for each resource, scoped to their own mapped business.
 
 | Layer    | Stack                                                             |
 | -------- | ----------------------------------------------------------------- |
@@ -54,8 +58,9 @@ Login page: `http://localhost:3000/system/login` → redirects to `/system/dashb
 - **API versioning**: URI-based, driven by the `API_VERSION` env var (defaults to `1` → `/api/v1`). System-user routes live under `/api/v1/system/...`.
 - **Swagger / OpenAPI**: `http://localhost:4000/docs` — every endpoint documented (operations, params, responses with JSON examples, bearer auth, global `x-device-type` header). Keep decorators updated on every endpoint change.
 - **Auth (Passport.js)**: JWT access token (Bearer, 15 min) + rotating refresh token (httpOnly cookie, 7 days, SHA-256 hash stored in `refresh_tokens`). `POST /system/login`, `/system/register`, `/system/refresh`, `/system/logout`, `GET /system/me`.
-- **RBAC**: `permissions` ⇄ `role_permissions` ⇄ `roles` ⇄ `system_users`/`tenant_users`. Routes declare `@RequirePermissions('roles:delete')`; a global guard resolves the user's role permissions per request. Full CRUD is exposed for permissions, roles, system users, tenant users, and tenant businesses.
-- **Tenant Business**: `tenant_business` table (contact/address fields, optional logo path, `isParentBusiness` flag). First resource with a dedicated `restore` endpoint (undelete) and list-endpoint filtering/sorting (`status`, `country`, `isParentBusiness`, `sortBy`, `sortOrder`) beyond plain pagination/search.
+- **Tenant portal & auth**: a fully parallel, namespaced auth audience (own JWT strategy, refresh-token table, and cookie names) so a tenant session and a system-admin session coexist in the same browser. `POST /tenant/login`, `GET /tenant/me`, `GET /tenant/dashboard`. System admins can also "Login as" any tenant user.
+- **RBAC**: `permissions` ⇄ `role_permissions` ⇄ `roles` ⇄ `system_users`/`tenant_users`. System routes declare `@RequirePermissions('roles:delete')`; tenant routes use the parallel `@RequireTenantPermissions()`, evaluated by an independent guard. Full CRUD is exposed for permissions, roles, system users, and every tenant-scoped business resource (business, mapped business, tax types, payment modes, income & expense categories, business branches, network providers, mail config, places, streets, and now tenant users themselves via self-service).
+- **Dual-surface CRUD pattern**: each tenant-scoped resource is one Prisma model + one shared service, exposed through a system-admin controller (unrestricted) and a tenant self-service controller (scoped to the caller's own mapped business via `tenant_mapped_business`), sharing one permission-key namespace.
 - **Validation**: Zod schemas via `nestjs-zod` (global pipe), surfaced in Swagger.
 - **Security**: Argon2id password hashing · helmet security headers · CORS restricted to `CORS_ORIGINS` · rate limiting (global 100/min, login 5/min) · CSRF double-submit (cookie `csrf_token` + header `x-csrf-token` on cookie-based endpoints) · SQL injection prevented by Prisma parameterized queries · mandatory `x-device-type` header (`website | androidApp | iosApp | desktopApp`).
 - **Storage**: `STORAGE_DRIVER=local|s3`. Local files go to `public/uploads` (served at `/uploads`); S3 uses `@aws-sdk/client-s3`. Only the **path** is stored, never a URL. Upload endpoint: `POST /system/uploads`.
@@ -73,13 +78,15 @@ No application code changes required.
 
 ## Frontend
 
-- Responsive dashboard shell: top navbar + sidebar (Sheet drawer on mobile) + main content.
+- Two shells: the system dashboard (top navbar + sidebar) and a parallel tenant portal (`/tenant/login`, `/tenant/dashboard`, its own sidebar/topbar), both with a Sheet drawer on mobile.
 - Theme: light / dark / system via `next-themes` toggle.
-- Pages: `/system/login`, `/system/register`, `/system/dashboard`, plus full create/edit/delete management screens for System Users, Tenant Users, Tenant Business, Roles, and Permissions.
-- **Permission-gated UI**: create/edit/delete actions and sidebar sections only render if the signed-in user's resolved permissions allow them (mirrors, but does not replace, backend RBAC enforcement).
+- System dashboard pages: `/system/login`, `/system/register`, `/system/dashboard`, plus full create/edit/delete management screens for System Users, Tenant Users, Roles, Permissions, and every tenant-scoped resource (Tenant Business, Mapped Business, Tax Types, Payment Modes, Income & Expense Categories, Business Branches, Network Providers, Mail Config, Places, Streets), plus a Customization (SaaS branding) settings page.
+- Tenant portal pages: `/tenant/dashboard`, `/tenant/users` (team management), and `/tenant/settings/*` — a self-service twin of each admin resource page, scoped to the caller's own business.
+- **Permission-gated UI**: create/edit/delete/view actions and sidebar sections only render if the signed-in user's resolved permissions allow them (mirrors, but does not replace, backend RBAC enforcement).
+- **Map-based location picker**: an OpenStreetMap/Leaflet picker (address search, draggable marker, live radius circle) embedded in the create/edit dialog for Places and Streets.
 - **Animated + mobile-responsive**: page transitions, a sliding nav indicator, staggered stat cards, skeleton loading states, and animated table rows via `motion` (Framer Motion, respects `prefers-reduced-motion`); every admin table renders as stacked cards on mobile instead of a horizontally-scrolling table.
-- API client (`src/lib/api.ts`) sends `x-device-type: website`, attaches the Bearer token, and auto-refreshes it once on 401 using the CSRF-protected refresh endpoint.
-- Env: `NEXT_PUBLIC_API_URL` in `frontend/.env.local`.
+- API clients (`src/lib/api.ts` for system, `src/lib/tenant-api.ts` for tenant) send `x-device-type: website`, attach the Bearer token, and auto-refresh it once on 401 using the CSRF-protected refresh endpoint.
+- Env: `NEXT_PUBLIC_API_URL` and `NEXT_PUBLIC_OSM_TILE_URL` in `frontend/.env.local`.
 
 ## Environment variables
 

@@ -68,7 +68,7 @@ async function bootstrap() {
           'Bearer access token; refresh tokens are httpOnly cookies with ' +
           'CSRF double-submit protection.',
       )
-      .setVersion('1.3.0')
+      .setVersion('1.4.0')
       .addBearerAuth()
       .addGlobalParameters({
         name: 'x-device-type',

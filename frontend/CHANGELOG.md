@@ -7,6 +7,79 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-07-08
+
+A tenant-facing portal alongside the existing system console, plus a full
+set of tenant self-service settings pages mirroring their system-admin
+counterparts.
+
+### Added
+
+- **Tenant portal**: `/tenant/login`, `/tenant/dashboard`, and a
+  `TenantShell` layout (sidebar + top navbar + mobile drawer) parallel to
+  the system dashboard shell. `useTenantSession()` (Context provider) and
+  a namespaced `tenantApi` client keep a tenant session and a system-admin
+  session independent in the same browser.
+- **Tenant Settings** (`/tenant/settings/*`), permission-gated via a
+  dedicated sub-nav: Account Settings (profile/phone/avatar), Business
+  Information, Business Branches, Network Providers, Tax Types, Payment
+  Modes, Income & Expense Categories, Mail Config, Places, Streets.
+- **`/tenant/users`**: tenant admins manage the team members mapped to
+  their own business (list/create/edit/delete/view), sidebar-linked from
+  the tenant portal.
+- **System dashboard admin pages** for every new resource: Tenant
+  Business, Tenant Mapped Business, Tenant Tax Types, Tenant Payment
+  Modes, Tenant Income & Expense Categories, Tenant Business Branches,
+  Tenant Network Providers, Tenant Mail Config, Tenant Places, Tenant
+  Streets, plus a Customization page (SaaS branding: app name/logo) under
+  a new "Settings" sidebar section.
+- **OpenStreetMap/Leaflet location picker** (`location-picker-panel.tsx`,
+  `location-picker/leaflet-map.tsx`): address search via Nominatim, a
+  draggable marker, and a live radius circle, swapped into the existing
+  create/edit dialog instead of a nested `Dialog` (avoids a Radix
+  dialog-stacking conflict). Streets additionally frames the parent
+  Place's location/radius as a reference circle.
+- **Searchable `Combobox`** (Popover + Command): replaces every plain
+  scrollable `Select` used for business/tenant-user/role pickers across
+  system and tenant-settings pages.
+- **`RowActionsMenu`**: collapses per-row action buttons into a single
+  "..." dropdown across every resource table (Edit/Delete/Restore/Login
+  as/View, filtered to whichever the row and caller's permissions allow).
+- **Row-detail "View" modals** (read-only, with an Edit shortcut),
+  permission-gated by a dedicated `*:view` key: Tenant Business, Tenant
+  Mapped Business, and both Tenant Users pages (system admin + tenant
+  self-service).
+- Role permission picker now groups permissions by module, with a
+  per-module select-all (indeterminate when partially selected) and a
+  search filter.
+- `useAppSettings()` shows the configured app name as an eyebrow label
+  above every `ResourceTable` title.
+- System-admin "Login as" action opens the tenant portal in a new tab,
+  signed in as the selected tenant user.
+
+### Changed
+
+- `useSession()`/`useTenantSession()` converted to Context providers so
+  `/system/me`/`/tenant/me` are fetched once per navigation instead of
+  once per consuming component (layout, nav, and page each used to fire
+  their own request).
+- `useResourceList` accepts an optional fetcher argument, so tenant-facing
+  pages can point it at `tenantApi` instead of the system API client.
+- Tenant Mapped Business simplified to one business per tenant user: a
+  single searchable business picker instead of a multi-select checklist,
+  and the admin table is now one row per mapping instead of grouped by
+  user.
+
+### Fixed
+
+- Searchable `Combobox` didn't receive clicks or keystrokes while open
+  inside a `Dialog` — a Radix Popover/Dialog focus-scope conflict caused
+  by two divergent resolved versions of `@radix-ui/react-focus-scope`;
+  fixed by setting the Popover's `modal` prop and deduping the package
+  version.
+- Hydration mismatch warning caused by browser extensions (e.g.
+  Colorzilla) injecting attributes onto `<body>` before React hydrates.
+
 ## [1.2.0] - 2026-07-06
 
 ### Added
@@ -93,7 +166,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Client-side auth guard (`useSession`) that loads `/system/me` and
   redirects unauthenticated visitors to the login page.
 
-[Unreleased]: ../../compare/frontend-v1.2.0...HEAD
+[Unreleased]: ../../compare/frontend-v1.3.0...HEAD
+[1.3.0]: ../../compare/frontend-v1.2.0...frontend-v1.3.0
 [1.2.0]: ../../compare/frontend-v1.1.0...frontend-v1.2.0
 [1.1.0]: ../../compare/frontend-v1.0.0...frontend-v1.1.0
 [1.0.0]: ../../releases/tag/frontend-v1.0.0

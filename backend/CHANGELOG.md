@@ -7,6 +7,101 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-07-08
+
+A tenant-facing portal and a full set of business-scoped resources, all
+following the same dual-surface pattern established here: one Prisma
+model + one shared service, exposed through a system-admin controller
+(unrestricted) and a tenant self-service controller (scoped to the
+caller's own mapped business), sharing one permission-key namespace.
+
+### Added
+
+- **Tenant portal & auth**: a parallel tenant-facing auth audience, fully
+  namespaced so a tenant session and a system-admin session coexist in the
+  same browser — `TenantJwtStrategy` (`jwt-tenant`), its own
+  `tenant_refresh_tokens` table, distinct cookie names
+  (`tenant_refresh_token`/`tenant_csrf_token`), and a separate
+  `@RequireTenantPermissions`/`TenantPermissionsGuard` pair (own metadata
+  key, never evaluated by the system `PermissionsGuard`). `POST
+  /tenant/login`, `/tenant/refresh`, `/tenant/logout`, `GET /tenant/me`,
+  `GET /tenant/dashboard`. Seeded `tenant-dashboard:view` permission and a
+  default `TENANT_ADMIN` role (`visibleToTenants`).
+- **"Login as" impersonation**: `POST /system/tenant-users/:id/login-as`
+  issues a tenant session for a given tenant user without their password
+  (`tenant-users:login-as` permission), for system-admin support use.
+- **Tenant Business** (`tenant_business`): full CRUD + restore, contact/
+  address fields, optional logo, `isParentBusiness` flag, filtering by
+  `status`/`country`/`isParentBusiness` and sorting. Tenant self-service
+  surface added later for a caller to view/update their own business
+  profile (`isParentBusiness`/`status` stay system-admin-only).
+- **Tenant Mapped Business** (`tenant_mapped_business`): links a tenant
+  user to a business (unique per tenant user — one business at a time),
+  list/view/create/update/delete/restore.
+- **Tenant Account** self-service (`tenant-account:view/update`): tenant
+  users manage their own name/username/email/phone/password/avatar.
+- **Tenant Tax Types** (`tenant_tax_types`): `taxName`, `calculationType`
+  (PERCENTAGE/FIXED), `value`, `description`.
+- **Tenant Payment Modes** (`tenant_payment_modes`): adds an `isSystem`
+  flag (never client-settable) that protects system-seeded rows from
+  tenant edit/delete on both controllers.
+- **Tenant Income & Expense Categories** (`tenant_in_ex_categories`,
+  originally shipped as `tenant_expense_categories`): adds a `type`
+  (INCOME/EXPENSE) and a frontend-derived `inExCode`.
+- **Tenant Business Branches** (`tenant_business_branches`): branch name,
+  contact, address, description.
+- **Tenant Network Providers** (`tenant_network_providers`): `type` ENUM
+  (CABLE_TV/ISP/IPTV/OTHERS), name, contact, address (only name/type
+  required).
+- **Tenant Mail Config** (`tenant_mail_config`): SMTP settings
+  (`mailHost`/`mailPort`/`mailUsername`/`mailPassword`/`mailEncryption`/
+  `fromMailAddress`/`fromMailName`). `mailPassword` is write-only — reads
+  return a `hasPassword` boolean instead. `POST .../:id/test-email`
+  (`tenant-mail-config:test`) sends a real test email via nodemailer and
+  surfaces SMTP errors. No restore endpoint (soft-delete only, per spec).
+- **System Settings / SaaS customization**: an `AppSettings` singleton
+  (`appName`, `logoPath`) with a public unauthenticated `GET` (so the
+  branding can render anywhere) and a permission-gated `PATCH` +
+  logo-upload for system admins (`system-settings:view/update`).
+- **Tenant Places** (`tenant_places`): `placeName`, `remark`, and
+  `latitude`/`longitude`/`radiusMeters` for geofencing.
+- **Tenant Streets** (`tenant_streets`): scoped to a business and a place
+  within it (server-validated so a street's place must belong to its
+  business); a unique 3-letter `streetCode` per business.
+- **Tenant Users self-service** (`/tenant/users`): tenant admins manage
+  the users mapped to their own business, reusing the existing
+  `tenant-users:{create,read,update,delete}` permission keys — creating a
+  user auto-maps it to the caller's business, and callers can't delete
+  their own account. New `tenant-users:view` permission gates a read-only
+  detail view (additive; doesn't change any existing route's required
+  permission).
+- `backend/scripts/free-port.js`: frees port 4000 before `npm run dev` /
+  `start:dev` (wired as `predev`/`prestart:dev`), so a leftover
+  `node dist/src/main` instance no longer blocks the dev server with
+  `EADDRINUSE`.
+
+### Changed
+
+- Tenant-scoped Payment Mode / Income & Expense Category listings now
+  treat `isSystem: true` rows as global defaults, visible to every tenant
+  user regardless of which business they're mapped to.
+- `tenant_mapped_business` restricted to one active business per tenant
+  user (unique constraint changed from a composite key to `tenantUserId`
+  alone); create/update simplified to a single `tenantBusinessId`.
+
+### Fixed
+
+- Payment Modes: `isSystem` rows could still be **edited** even though
+  delete was already blocked — update is now guarded too.
+- A permission-rename cleanup (`tenant-expense-categories` →
+  `tenant-in-ex-categories`) left orphaned `RolePermission` rows pointing
+  at deleted permission ids, crashing tenant login's nested permission
+  include; removed the orphaned rows directly.
+- Mail config: SMTP port 465/2465 (implicit TLS, e.g. Resend) combined
+  with `mailEncryption=NONE` dropped the connection before the handshake
+  — these ports now force `secure: true` regardless of the stored
+  encryption value.
+
 ## [1.3.0] - 2026-07-06
 
 ### Added
@@ -80,7 +175,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Seed script for system permissions, `SUPER_ADMIN`/`SYSTEM_USER` roles,
   and a default super admin account.
 
-[Unreleased]: ../../compare/backend-v1.3.0...HEAD
+[Unreleased]: ../../compare/backend-v1.4.0...HEAD
+[1.4.0]: ../../compare/backend-v1.3.0...backend-v1.4.0
 [1.3.0]: ../../compare/backend-v1.2.0...backend-v1.3.0
 [1.2.0]: ../../compare/backend-v1.1.0...backend-v1.2.0
 [1.1.0]: ../../compare/backend-v1.0.0...backend-v1.1.0

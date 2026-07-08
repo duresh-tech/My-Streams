@@ -1,6 +1,6 @@
 # Backend — System API
 
-[![Version](https://img.shields.io/badge/version-1.3.0-blue)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.4.0-blue)](./CHANGELOG.md)
 
 NestJS + Prisma REST API for the system console. See [`CHANGELOG.md`](./CHANGELOG.md)
 for release history and [`../README.md`](../README.md) for the project overview.
@@ -42,18 +42,28 @@ Default seeded super admin: **admin / Admin@12345** (change or remove in product
 ## API surface
 
 All routes are versioned under `/api/v{API_VERSION}` (defaults to `/api/v1`
-via the `API_VERSION` env var — see below). System-user-facing routes live
-under `/api/v1/system/...`. Every request must send an `x-device-type`
-header (`website | androidApp | iosApp | desktopApp`).
+via the `API_VERSION` env var — see below). Every request must send an
+`x-device-type` header (`website | androidApp | iosApp | desktopApp`).
+
+System-admin routes live under `/api/v1/system/...`. Every business-scoped
+resource also has a **tenant self-service** twin under `/api/v1/tenant/...`,
+authenticated with a separate tenant JWT and scoped to the caller's own
+mapped business — same permission keys, same shared service, two
+controllers (see `CHANGELOG.md` for the full per-resource list).
 
 | Area | Routes |
 | --- | --- |
-| Auth | `POST /system/login`, `/system/register`, `/system/refresh`, `/system/logout`, `GET /system/me` |
+| System auth | `POST /system/login`, `/system/register`, `/system/refresh`, `/system/logout`, `GET /system/me` |
+| Tenant auth | `POST /tenant/login`, `/tenant/refresh`, `/tenant/logout`, `GET /tenant/me`, `GET /tenant/dashboard` |
 | Permissions | `GET/POST /system/permissions`, `GET/PATCH/DELETE /system/permissions/:id` |
 | Roles | `GET/POST /system/roles`, `GET/PATCH/DELETE /system/roles/:id` |
 | System users | `GET/POST /system/users`, `GET/PATCH/DELETE /system/users/:id` |
-| Tenant users | `GET/POST /system/tenant-users`, `GET/PATCH/DELETE /system/tenant-users/:id` |
-| Tenant business | `GET/POST /system/tenant-business`, `GET/PATCH/DELETE /system/tenant-business/:id`, `PATCH /system/tenant-business/:id/restore` |
+| Tenant users | `GET/POST /system/tenant-users`, `GET/PATCH/DELETE /system/tenant-users/:id`, `POST /system/tenant-users/:id/login-as`; tenant self-service twin at `/tenant/users` (+ `GET /tenant/users/roles`) |
+| Tenant business | `GET/POST /system/tenant-business`, `GET/PATCH/DELETE /system/tenant-business/:id`, `PATCH .../restore`; tenant self-service twin at `/tenant/business` (own profile only) |
+| Tenant mapped business | `GET/POST /system/tenant-mapped-business`, `GET/PUT/PATCH/DELETE /system/tenant-mapped-business/:id`, `PATCH .../restore` |
+| Tenant account | `GET/PATCH /tenant/account`, `POST /tenant/account/avatar` |
+| Tenant tax types, payment modes, income & expense categories, business branches, network providers, mail config, places, streets | Each: `GET/POST /system/tenant-<resource>`, `GET/PATCH/DELETE /system/tenant-<resource>/:id` (+ `restore` where applicable); tenant self-service twin at `/tenant/<resource>` scoped to the caller's mapped business. Mail config additionally has `POST .../:id/test-email`. |
+| System settings | `GET /system/settings` (public), `PATCH /system/settings`, `POST /system/settings/logo` |
 | Dashboard | `GET /system/dashboard` |
 | Uploads | `POST /system/uploads` |
 
@@ -62,16 +72,42 @@ every success response — are at `http://localhost:4000/docs`.
 
 ## RBAC
 
-Every protected route declares its required permission key with
-`@RequirePermissions('module:action')` (e.g. `roles:delete`). A global guard
+Every protected system-admin route declares its required permission key
+with `@RequirePermissions('module:action')` (e.g. `roles:delete`); tenant
+self-service routes use the parallel `@RequireTenantPermissions()` /
+`TenantPermissionsGuard`, evaluated independently of the system guard so
+the two audiences never cross-check each other's routes. A global guard
 resolves the caller's role → permissions on each request. `isSystem` roles
 and permissions cannot be deleted, and a role's `roleKey` (or a system
 permission's `permissionKey`/`moduleName`) is immutable once created.
 
-Seeded permission keys: `dashboard:view`, `permissions:{create,read,update,delete}`,
-`roles:{create,read,update,delete}`, `system-users:{create,read,update,delete}`,
-`tenant-users:{create,read,update,delete}`,
-`tenant-business:{create,view,update,delete,list,restore}`, `uploads:create`.
+Seeded permission keys (module: actions):
+
+| Module | Actions |
+| --- | --- |
+| `dashboard` | `view` |
+| `tenant-dashboard` | `view` |
+| `tenant-account` | `view`, `update` |
+| `permissions` | `create`, `read`, `update`, `delete` |
+| `roles` | `create`, `read`, `update`, `delete` |
+| `system-users` | `create`, `read`, `update`, `delete` |
+| `tenant-users` | `create`, `read`, `view`, `update`, `delete`, `login-as` |
+| `tenant-business` | `create`, `view`, `update`, `delete`, `list`, `restore` |
+| `tenant-mapped-business` | `create`, `view`, `update`, `delete`, `list`, `restore` |
+| `tenant-tax-types` | `create`, `view`, `update`, `delete`, `list`, `restore` |
+| `tenant-payment-modes` | `create`, `view`, `update`, `delete`, `list`, `restore` |
+| `tenant-in-ex-categories` | `create`, `view`, `update`, `delete`, `list`, `restore` |
+| `tenant-places` | `create`, `view`, `update`, `delete`, `list`, `restore` |
+| `tenant-streets` | `create`, `view`, `update`, `delete`, `list`, `restore` |
+| `tenant-business-branches` | `create`, `view`, `update`, `delete`, `list`, `restore` |
+| `tenant-network-providers` | `create`, `view`, `update`, `delete`, `list`, `restore` |
+| `tenant-mail-config` | `create`, `view`, `update`, `delete`, `list`, `test` |
+| `system-settings` | `view`, `update` |
+| `uploads` | `create` |
+
+`TENANT_ADMIN` (the default `visibleToTenants` role) is granted the
+non-`restore` actions of every tenant-scoped module, plus `tenant-users:*`
+minus `login-as`.
 
 ## Security
 
