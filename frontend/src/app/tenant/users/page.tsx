@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { LoaderCircle, Pencil, Plus, Trash2 } from "lucide-react";
+import { Eye, LoaderCircle, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -72,6 +72,7 @@ export default function TenantUsersPage() {
   const { user: currentUser, hasPermission } = useTenantSession();
 
   const canCreate = hasPermission("tenant-users:create");
+  const canView = hasPermission("tenant-users:view");
   const canUpdate = hasPermission("tenant-users:update");
   const canDelete = hasPermission("tenant-users:delete");
 
@@ -84,6 +85,7 @@ export default function TenantUsersPage() {
   const [form, setForm] = React.useState<TenantUserFormValues>(EMPTY_FORM);
   const [saving, setSaving] = React.useState(false);
 
+  const [viewTarget, setViewTarget] = React.useState<TenantUserRow | null>(null);
   const [deleteTarget, setDeleteTarget] = React.useState<TenantUserRow | null>(null);
   const [deleting, setDeleting] = React.useState(false);
 
@@ -203,10 +205,11 @@ export default function TenantUsersPage() {
           ) : undefined
         }
         renderActions={
-          canUpdate || canDelete
+          canView || canUpdate || canDelete
             ? (row) => (
                 <RowActionsMenu
                   actions={[
+                    ...(canView ? [{ label: "View", icon: Eye, onClick: () => setViewTarget(row) }] : []),
                     ...(canUpdate ? [{ label: "Edit", icon: Pencil, onClick: () => openEdit(row) }] : []),
                     ...(canDelete && row.id !== currentUser?.id
                       ? [
@@ -338,6 +341,49 @@ export default function TenantUsersPage() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={!!viewTarget} onOpenChange={(open) => !open && setViewTarget(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Team member details</DialogTitle>
+            <DialogDescription>{viewTarget?.systemCode}</DialogDescription>
+          </DialogHeader>
+
+          {viewTarget && (
+            <div className="grid gap-4 py-2">
+              <div className="flex items-center justify-between">
+                <p className="text-base font-semibold">{viewTarget.fName}</p>
+                <StatusBadgeText status={viewTarget.status} />
+              </div>
+
+              <div className="grid grid-cols-1 gap-x-6 gap-y-3 rounded-md border p-4 sm:grid-cols-2">
+                <DetailField label="Username" value={viewTarget.username} />
+                <DetailField label="Email" value={viewTarget.email} />
+                <DetailField label="Phone" value={viewTarget.phone} />
+                <DetailField label="Role" value={viewTarget.role?.displayName} />
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setViewTarget(null)}>
+              Close
+            </Button>
+            {canUpdate && viewTarget && (
+              <Button
+                type="button"
+                onClick={() => {
+                  const row = viewTarget;
+                  setViewTarget(null);
+                  openEdit(row);
+                }}
+              >
+                <Pencil className="size-4" /> Edit
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <ConfirmDialog
         open={!!deleteTarget}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
@@ -347,5 +393,14 @@ export default function TenantUsersPage() {
         onConfirm={onDelete}
       />
     </>
+  );
+}
+
+function DetailField({ label, value }: { label: string; value: string | null | undefined }) {
+  return (
+    <div className="min-w-0">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="truncate text-sm font-medium">{value || "—"}</p>
+    </div>
   );
 }
