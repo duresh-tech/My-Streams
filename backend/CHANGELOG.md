@@ -7,6 +7,57 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-07-09
+
+### Added
+
+- **Tenant Customers** (`tenant_customers`): the largest dual-surface
+  resource yet — customer records scoped to a tenant business, with a
+  cascading Place → Street picker (`tenantPlaceId` optional,
+  `tenantStreetId` optional but must belong to the chosen place), KYC/tax
+  fields, four notification/access flags, and a map-pickable
+  latitude/longitude. Nine permissions (not the usual six): `create`,
+  `view`, `update`, `delete`, `view_deleted`, `restore`, `export`,
+  `import`, `change_status`.
+  - `GET /system/tenant-customers/deleted` (and the tenant-scoped twin)
+    is the only way to see soft-deleted rows — the normal `GET` list
+    always excludes `DELETED` regardless of any `status` query param,
+    gated by the new `view_deleted` permission instead of `view`.
+  - `PATCH .../:id/status` changes status to `ACTIVE`/`INACTIVE`/`BLOCKED`
+    only, kept separate from the full `PATCH` update and from
+    delete/restore.
+  - `GET .../export` streams a CSV of the current filtered list;
+    `POST .../import` accepts a CSV upload and validates each row
+    independently — a bad row is skipped and reported by row number
+    rather than aborting the whole batch.
+- **Tenant Uploads** (`POST /tenant/uploads`): a generic tenant-scoped
+  file upload endpoint (mirrors the system `/system/uploads`), gated only
+  by a valid tenant JWT (no extra permission) so any authenticated tenant
+  user can upload a customer photo or ID-proof file and get back a
+  storage path.
+- **App Settings redesign** (`app_settings`): replaced the fixed-shape
+  `AppSettings` branding singleton with a generic typed key-value store —
+  `key` (unique), `dataType` (`STRING`/`TEXT`/`INTEGER`/`DECIMAL`/
+  `BOOLEAN`/`JSON`/`DATE`/`DATETIME`/`TIME`), `value` (validated against
+  `dataType` on write), `description`, soft-delete `status`. `key` and
+  `dataType` are immutable after creation.
+  - `GET /system/app-settings/public/branding` replaces the old
+    `GET /system/settings` — same public, unauthenticated
+    `{ appName, logoPath }` response shape, now backed by the `app.name`
+    and `app.logo_path` keys internally so nothing downstream had to
+    change.
+  - Full CRUD + restore under `/system/app-settings`, plus
+    `GET .../key/:key` (look up a setting by its key) and
+    `POST .../logo` (upload/replace the app logo, upserting the
+    `app.logo_path` row).
+  - The existing branding row's values were carried forward as the first
+    two seeded rows rather than lost in the schema change.
+
+### Changed
+
+- Permission module `system-settings` (`view`/`update`) replaced by
+  `app-settings` (`create`/`view`/`update`/`delete`/`list`/`restore`).
+
 ## [1.4.0] - 2026-07-08
 
 A tenant-facing portal and a full set of business-scoped resources, all
@@ -175,7 +226,8 @@ caller's own mapped business), sharing one permission-key namespace.
 - Seed script for system permissions, `SUPER_ADMIN`/`SYSTEM_USER` roles,
   and a default super admin account.
 
-[Unreleased]: ../../compare/backend-v1.4.0...HEAD
+[Unreleased]: ../../compare/backend-v1.5.0...HEAD
+[1.5.0]: ../../compare/backend-v1.4.0...backend-v1.5.0
 [1.4.0]: ../../compare/backend-v1.3.0...backend-v1.4.0
 [1.3.0]: ../../compare/backend-v1.2.0...backend-v1.3.0
 [1.2.0]: ../../compare/backend-v1.1.0...backend-v1.2.0

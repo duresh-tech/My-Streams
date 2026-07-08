@@ -1,6 +1,6 @@
 # Backend — System API
 
-[![Version](https://img.shields.io/badge/version-1.4.0-blue)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.5.0-blue)](./CHANGELOG.md)
 
 NestJS + Prisma REST API for the system console. See [`CHANGELOG.md`](./CHANGELOG.md)
 for release history and [`../README.md`](../README.md) for the project overview.
@@ -63,9 +63,10 @@ controllers (see `CHANGELOG.md` for the full per-resource list).
 | Tenant mapped business | `GET/POST /system/tenant-mapped-business`, `GET/PUT/PATCH/DELETE /system/tenant-mapped-business/:id`, `PATCH .../restore` |
 | Tenant account | `GET/PATCH /tenant/account`, `POST /tenant/account/avatar` |
 | Tenant tax types, payment modes, income & expense categories, business branches, network providers, mail config, places, streets | Each: `GET/POST /system/tenant-<resource>`, `GET/PATCH/DELETE /system/tenant-<resource>/:id` (+ `restore` where applicable); tenant self-service twin at `/tenant/<resource>` scoped to the caller's mapped business. Mail config additionally has `POST .../:id/test-email`. |
-| System settings | `GET /system/settings` (public), `PATCH /system/settings`, `POST /system/settings/logo` |
+| Tenant customers | `GET/POST /system/tenant-customers`, `GET/PATCH/DELETE /system/tenant-customers/:id`, `PATCH .../restore`, `PATCH .../:id/status`, `GET .../deleted`, `GET .../export` (CSV), `POST .../import` (CSV); tenant self-service twin at `/tenant/customers`, scoped to the caller's mapped business |
+| App settings | `GET /system/app-settings/public/branding` (public), `GET/POST /system/app-settings`, `GET/PATCH/DELETE /system/app-settings/:id`, `PATCH .../restore`, `GET .../key/:key`, `POST .../logo` |
 | Dashboard | `GET /system/dashboard` |
-| Uploads | `POST /system/uploads` |
+| Uploads | `POST /system/uploads`; tenant self-service twin at `POST /tenant/uploads` |
 
 Full request/response schemas — including a concrete JSON example for
 every success response — are at `http://localhost:4000/docs`.
@@ -102,12 +103,16 @@ Seeded permission keys (module: actions):
 | `tenant-business-branches` | `create`, `view`, `update`, `delete`, `list`, `restore` |
 | `tenant-network-providers` | `create`, `view`, `update`, `delete`, `list`, `restore` |
 | `tenant-mail-config` | `create`, `view`, `update`, `delete`, `list`, `test` |
-| `system-settings` | `view`, `update` |
+| `tenant-customers` | `create`, `view`, `update`, `delete`, `view_deleted`, `restore`, `export`, `import`, `change_status` |
+| `app-settings` | `create`, `view`, `update`, `delete`, `list`, `restore` |
 | `uploads` | `create` |
 
 `TENANT_ADMIN` (the default `visibleToTenants` role) is granted the
 non-`restore` actions of every tenant-scoped module, plus `tenant-users:*`
-minus `login-as`.
+minus `login-as`. `tenant-customers` is the one exception — `TENANT_ADMIN`
+gets all 9 actions including `restore`/`view_deleted`/`export`/`import`/
+`change_status`. `app-settings` is system-admin-only and not granted to
+`TENANT_ADMIN` at all.
 
 ## Security
 

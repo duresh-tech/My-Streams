@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-07-09
+
+### Added
+
+- **Tenant Customers** pages, both surfaces: `/system/dashboard/tenant-customers`
+  (all businesses, with a Business filter) and `/tenant/customers`
+  (top-level nav item, like Users — not under Settings). A cascading
+  Business → Place → Street `Combobox` chain feeds the map picker's
+  reference circle; picture and ID-proof file inputs upload via the new
+  generic upload endpoints and store just the returned path. Toolbar adds
+  CSV Export/Import buttons (Import shows a results dialog listing
+  per-row errors) and a "Change Status" row action separate from Edit/
+  Delete/Restore. A "View Deleted" toggle (tenant side) / a "Deleted"
+  status-filter option (system side) switches to the dedicated
+  soft-deleted list, gated by the new `view_deleted` permission.
+- **App Settings** admin page (`/system/dashboard/app-settings`): generic
+  list/create/edit/delete/restore for the redesigned key-value config
+  store, with a Value input that switches control per selected Data Type
+  (text/textarea/number/Yes-No select/date-time pickers) and Key/Data
+  Type locked once a row is created.
+
+### Changed
+
+- **Customization page** now reads/writes the `app.name`/`app.logo_path`
+  keys through the new App Settings API instead of the old singleton
+  endpoint — same UI, same behavior, permission checks moved from
+  `system-settings:*` to `app-settings:*`.
+
 ## [1.3.0] - 2026-07-08
 
 A tenant-facing portal alongside the existing system console, plus a full
@@ -166,7 +194,8 @@ counterparts.
 - Client-side auth guard (`useSession`) that loads `/system/me` and
   redirects unauthenticated visitors to the login page.
 
-[Unreleased]: ../../compare/frontend-v1.3.0...HEAD
+[Unreleased]: ../../compare/frontend-v1.4.0...HEAD
+[1.4.0]: ../../compare/frontend-v1.3.0...frontend-v1.4.0
 [1.3.0]: ../../compare/frontend-v1.2.0...frontend-v1.3.0
 [1.2.0]: ../../compare/frontend-v1.1.0...frontend-v1.2.0
 [1.1.0]: ../../compare/frontend-v1.0.0...frontend-v1.1.0
