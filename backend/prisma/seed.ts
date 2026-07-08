@@ -42,7 +42,7 @@ const MODULES: Array<{ module: string; label: string; actions: string[] }> = [
   { module: 'tenant-business-branches', label: 'Tenant Business Branches', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
   { module: 'tenant-network-providers', label: 'Tenant Network Providers', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
   { module: 'tenant-mail-config', label: 'Tenant Mail Config', actions: ['create', 'view', 'update', 'delete', 'list', 'test'] },
-  { module: 'system-settings', label: 'System Settings', actions: ['view', 'update'] },
+  { module: 'app-settings', label: 'App Settings', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
   { module: 'uploads', label: 'Uploads', actions: ['create'] },
 ];
 
@@ -155,6 +155,42 @@ async function seedSuperAdmin(roleId: string) {
   console.log('  + user admin (password: Admin@12345)');
 }
 
+// Carried forward from the old AppSettings singleton (appName/logoPath) when
+// the table was redesigned into a generic typed key-value store. Idempotent -
+// upsert leaves an existing row untouched on subsequent seed runs.
+async function seedAppSettings() {
+  const timestamp = now();
+  await prisma.appSetting.upsert({
+    where: { key: 'app.name' },
+    update: {},
+    create: {
+      id: uuidv7(),
+      key: 'app.name',
+      dataType: 'STRING',
+      value: 'SaaS - Web Solutions',
+      description: 'Name of the application',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    },
+  });
+  console.log('  + app setting app.name');
+
+  await prisma.appSetting.upsert({
+    where: { key: 'app.logo_path' },
+    update: {},
+    create: {
+      id: uuidv7(),
+      key: 'app.logo_path',
+      dataType: 'STRING',
+      value: 'app-settings/019f3d95-8bce-704a-aa81-4e4c2149e733.png',
+      description: 'Path to the application logo',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    },
+  });
+  console.log('  + app setting app.logo_path');
+}
+
 async function main() {
   console.log('Cleaning up legacy permissions...');
   await cleanupLegacyPermissions();
@@ -242,6 +278,9 @@ async function main() {
 
   console.log('Seeding super admin user...');
   await seedSuperAdmin(superAdminRoleId);
+
+  console.log('Seeding app settings (carried forward from the old branding singleton)...');
+  await seedAppSettings();
 
   console.log('Seed complete.');
 }

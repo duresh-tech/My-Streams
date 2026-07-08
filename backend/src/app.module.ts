@@ -23,7 +23,7 @@ import { TenantMailConfigModule } from './tenant-mail-config/tenant-mail-config.
 import { TenantPlacesModule } from './tenant-places/tenant-places.module';
 import { TenantStreetsModule } from './tenant-streets/tenant-streets.module';
 import { TenantCustomersModule } from './tenant-customers/tenant-customers.module';
-import { SystemSettingsModule } from './system-settings/system-settings.module';
+import { AppSettingsModule } from './app-settings/app-settings.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { TenantDashboardModule } from './tenant-dashboard/tenant-dashboard.module';
 import { UploadsModule } from './uploads/uploads.module';
@@ -66,7 +66,7 @@ import { DeviceHeaderGuard } from './common/guards/device-header.guard';
     TenantPlacesModule,
     TenantStreetsModule,
     TenantCustomersModule,
-    SystemSettingsModule,
+    AppSettingsModule,
     DashboardModule,
     TenantDashboardModule,
     UploadsModule,

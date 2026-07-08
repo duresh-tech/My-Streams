@@ -146,7 +146,7 @@ export async function uploadAppLogo(file: File): Promise<{ path: string }> {
   const token = getAccessToken();
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const response = await fetch(`${API_URL}/system/settings/logo`, {
+  const response = await fetch(`${API_URL}/system/app-settings/logo`, {
     method: "POST",
     headers,
     credentials: "include",

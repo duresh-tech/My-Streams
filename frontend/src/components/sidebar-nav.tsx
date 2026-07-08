@@ -16,6 +16,7 @@ import {
   MapPin,
   Network,
   Palette,
+  SlidersHorizontal,
   Percent,
   Route,
   ShieldCheck,
@@ -52,7 +53,8 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/system/dashboard/tenant-customers", label: "Customers", icon: Contact, permission: "tenant-customers:view" },
   { href: "/system/dashboard/roles", label: "Roles", icon: ShieldCheck, permission: "roles:read" },
   { href: "/system/dashboard/permissions", label: "Permissions", icon: KeyRound, permission: "permissions:read" },
-  { href: "/system/dashboard/settings/customization", label: "Customization", icon: Palette, permission: "system-settings:view", section: "Settings" },
+  { href: "/system/dashboard/settings/customization", label: "Customization", icon: Palette, permission: "app-settings:view", section: "Settings" },
+  { href: "/system/dashboard/app-settings", label: "App Settings", icon: SlidersHorizontal, permission: "app-settings:view", section: "Settings" },
 ];
 
 interface SidebarNavProps {

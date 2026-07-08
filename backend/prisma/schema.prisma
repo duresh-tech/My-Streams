@@ -428,15 +428,37 @@ model TenantRefreshToken {
   @@map("tenant_refresh_tokens")
 }
 
-// Single-row app-wide branding config (SaaS name/logo). Always fetched/updated
-// via the fixed id below; there is exactly one row.
-model AppSettings {
-  id        String  @id @default("default") @db.VarChar(30)
-  appName   String  @db.VarChar(100)
-  logoPath  String? @db.VarChar(255)
-  createdAt BigInt
-  updatedAt BigInt
+enum AppSettingDataType {
+  STRING
+  TEXT
+  INTEGER
+  DECIMAL
+  BOOLEAN
+  JSON
+  DATE
+  DATETIME
+  TIME
+}
 
+enum AppSettingStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+  DELETED
+}
+
+model AppSetting {
+  id          String             @id @db.Char(36) // UUIDv7
+  key         String             @unique @db.VarChar(150)
+  dataType    AppSettingDataType
+  value       String             @db.LongText
+  description String?            @db.VarChar(255)
+  status      AppSettingStatus   @default(ACTIVE)
+  createdAt   BigInt
+  updatedAt   BigInt
+  deletedAt   BigInt?
+
+  @@index([status])
   @@map("app_settings")
 }
 

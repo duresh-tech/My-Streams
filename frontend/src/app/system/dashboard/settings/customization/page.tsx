@@ -12,20 +12,22 @@ import { api, ApiError, uploadAppLogo, UPLOADS_ORIGIN } from "@/lib/api";
 import { setAppSettings } from "@/hooks/use-app-settings";
 import { useSession } from "@/hooks/use-session";
 
-interface AppSettingsRecord {
+interface AppSettingRow {
   id: string;
-  appName: string;
-  logoPath: string | null;
-  createdAt: number;
-  updatedAt: number;
+  key: string;
+  dataType: string;
+  value: string;
+  description: string | null;
+  status: string;
 }
 
 export default function CustomizationPage() {
   const { hasPermission } = useSession();
-  const canView = hasPermission("system-settings:view");
-  const canUpdate = hasPermission("system-settings:update");
+  const canView = hasPermission("app-settings:view");
+  const canUpdate = hasPermission("app-settings:update");
 
-  const [settings, setSettings] = React.useState<AppSettingsRecord | null>(null);
+  const [nameSettingId, setNameSettingId] = React.useState<string | null>(null);
+  const [logoPath, setLogoPath] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [loadError, setLoadError] = React.useState<string | null>(null);
   const [appName, setAppName] = React.useState("");
@@ -39,17 +41,23 @@ export default function CustomizationPage() {
       return;
     }
     let cancelled = false;
-    api<AppSettingsRecord>("/system/settings")
+    api<AppSettingRow>("/system/app-settings/key/app.name")
       .then((data) => {
         if (cancelled) return;
-        setSettings(data);
-        setAppName(data.appName);
+        setNameSettingId(data.id);
+        setAppName(data.value);
       })
       .catch((error) => {
         if (cancelled) return;
         setLoadError(error instanceof ApiError ? error.message : "Failed to load settings");
       })
-      .finally(() => !cancelled && setLoading(false));
+      .finally(() => {
+        if (cancelled) return;
+        api<AppSettingRow>("/system/app-settings/key/app.logo_path")
+          .then((data) => !cancelled && setLogoPath(data.value))
+          .catch(() => !cancelled && setLogoPath(null))
+          .finally(() => !cancelled && setLoading(false));
+      });
     return () => {
       cancelled = true;
     };
@@ -62,8 +70,8 @@ export default function CustomizationPage() {
     setUploadingLogo(true);
     try {
       const { path } = await uploadAppLogo(file);
-      setSettings((s) => (s ? { ...s, logoPath: path } : s));
-      setAppSettings({ appName: settings?.appName ?? appName, logoPath: path });
+      setLogoPath(path);
+      setAppSettings({ appName, logoPath: path });
       toast.success("Logo updated");
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : "Upload failed");
@@ -74,14 +82,15 @@ export default function CustomizationPage() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!nameSettingId) return;
     setSaving(true);
     try {
-      const updated = await api<AppSettingsRecord>("/system/settings", {
+      const updated = await api<AppSettingRow>(`/system/app-settings/${nameSettingId}`, {
         method: "PATCH",
-        body: { appName },
+        body: { value: appName },
       });
-      setSettings(updated);
-      setAppSettings({ appName: updated.appName, logoPath: updated.logoPath });
+      setAppName(updated.value);
+      setAppSettings({ appName: updated.value, logoPath });
       toast.success("Settings updated");
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : "Save failed");
@@ -109,7 +118,7 @@ export default function CustomizationPage() {
     );
   }
 
-  if (loadError || !settings) {
+  if (loadError || !nameSettingId) {
     return (
       <Card>
         <CardHeader>
@@ -136,10 +145,10 @@ export default function CustomizationPage() {
             <Label>Application Logo</Label>
             <div className="flex items-center gap-4">
               <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border-2 border-dashed bg-muted">
-                {settings.logoPath ? (
+                {logoPath ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={`${UPLOADS_ORIGIN}/uploads/${settings.logoPath}`}
+                    src={`${UPLOADS_ORIGIN}/uploads/${logoPath}`}
                     alt="Application logo"
                     className="size-full object-cover"
                   />
@@ -163,7 +172,7 @@ export default function CustomizationPage() {
                     onClick={() => logoInputRef.current?.click()}
                   >
                     {uploadingLogo && <LoaderCircle className="size-4 animate-spin" />}
-                    {settings.logoPath ? "Change logo" : "Upload logo"}
+                    {logoPath ? "Change logo" : "Upload logo"}
                   </Button>
                 </>
               )}

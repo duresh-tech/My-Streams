@@ -13,7 +13,7 @@ export interface AppSettings {
 }
 
 export async function fetchAppSettings(): Promise<AppSettings> {
-  const response = await fetch(`${API_URL}/system/settings`, {
+  const response = await fetch(`${API_URL}/system/app-settings/public/branding`, {
     headers: { "x-device-type": "website" },
   });
   if (!response.ok) throw new Error("Failed to load app settings");
