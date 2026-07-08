@@ -10,6 +10,7 @@ import {
   Menu,
   Settings,
   User,
+  Users,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -38,6 +39,7 @@ import { TenantSessionProvider, useTenantSession } from "@/hooks/use-tenant-sess
 
 const TENANT_NAV_ITEMS: NavItem[] = [
   { href: "/tenant/dashboard", label: "Dashboard", icon: LayoutDashboard, permission: "tenant-dashboard:view" },
+  { href: "/tenant/users", label: "Users", icon: Users, permission: "tenant-users:read" },
   { href: "/tenant/settings/user-account", label: "Settings", icon: Settings, permission: "tenant-account:view" },
 ];
 
