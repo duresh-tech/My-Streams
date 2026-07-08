@@ -25,10 +25,19 @@ interface NominatimResult {
   lon: string;
 }
 
+interface ContextLocation {
+  lat: number;
+  lng: number;
+  radiusMeters: number;
+}
+
 interface LocationPickerPanelProps {
   initialLat: number | null;
   initialLng: number | null;
-  initialRadiusMeters: number;
+  initialRadiusMeters?: number;
+  showRadius?: boolean;
+  /** A related location (e.g. the parent place) to frame in view and show as a reference circle. */
+  contextLocation?: ContextLocation | null;
   onCancel: () => void;
   onConfirm: (lat: number, lng: number, radiusMeters: number) => void;
 }
@@ -37,14 +46,17 @@ export function LocationPickerPanel({
   initialLat,
   initialLng,
   initialRadiusMeters,
+  showRadius = true,
+  contextLocation,
   onCancel,
   onConfirm,
 }: LocationPickerPanelProps) {
   const hasInitial = initialLat != null && initialLng != null;
+  const fitToContext = !hasInitial && !!contextLocation;
 
   const [position, setPosition] = React.useState({
-    lat: hasInitial ? initialLat! : DEFAULT_CENTER.lat,
-    lng: hasInitial ? initialLng! : DEFAULT_CENTER.lng,
+    lat: hasInitial ? initialLat! : contextLocation ? contextLocation.lat : DEFAULT_CENTER.lat,
+    lng: hasInitial ? initialLng! : contextLocation ? contextLocation.lng : DEFAULT_CENTER.lng,
   });
   const [radius, setRadius] = React.useState(initialRadiusMeters || 100);
   const [search, setSearch] = React.useState("");
@@ -112,18 +124,26 @@ export function LocationPickerPanel({
         )}
       </form>
 
+      {contextLocation && (
+        <p className="text-muted-foreground text-xs">
+          The dashed circle shows the selected place&apos;s location and radius.
+        </p>
+      )}
+
       <div className="h-96 w-full overflow-hidden rounded-md border">
         <LeafletMap
           lat={position.lat}
           lng={position.lng}
-          radiusMeters={radius}
-          zoom={hasInitial ? PICKED_ZOOM : DEFAULT_ZOOM}
+          radiusMeters={showRadius ? radius : undefined}
+          zoom={hasInitial || contextLocation ? PICKED_ZOOM : DEFAULT_ZOOM}
           flyTo={flyTo}
+          contextCircle={contextLocation}
+          fitToContext={fitToContext}
           onPick={(lat, lng) => setPosition({ lat, lng })}
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className={`grid grid-cols-1 gap-4 ${showRadius ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
         <div className="grid gap-2">
           <Label>Latitude</Label>
           <Input value={position.lat.toFixed(6)} readOnly disabled />
@@ -132,17 +152,19 @@ export function LocationPickerPanel({
           <Label>Longitude</Label>
           <Input value={position.lng.toFixed(6)} readOnly disabled />
         </div>
-        <div className="grid gap-2">
-          <Label htmlFor="picker-radius">Radius (m)</Label>
-          <Input
-            id="picker-radius"
-            type="number"
-            min={1}
-            step="1"
-            value={radius}
-            onChange={(e) => setRadius(Number(e.target.value) || 0)}
-          />
-        </div>
+        {showRadius && (
+          <div className="grid gap-2">
+            <Label htmlFor="picker-radius">Radius (m)</Label>
+            <Input
+              id="picker-radius"
+              type="number"
+              min={1}
+              step="1"
+              value={radius}
+              onChange={(e) => setRadius(Number(e.target.value) || 0)}
+            />
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">

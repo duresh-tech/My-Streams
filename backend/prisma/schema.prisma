@@ -170,6 +170,7 @@ model TenantBusiness {
   networkProviders  TenantNetworkProvider[]
   mailConfigs       TenantMailConfig[]
   places            TenantPlace[]
+  streets           TenantStreet[]
 
   @@index([status])
   @@index([country])
@@ -460,8 +461,39 @@ model TenantPlace {
   deletedAt        BigInt?
 
   tenantBusiness TenantBusiness @relation(fields: [tenantBusinessId], references: [id])
+  streets        TenantStreet[]
 
   @@index([status])
   @@index([tenantBusinessId])
   @@map("tenant_places")
+}
+
+enum TenantStreetStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+  DELETED
+}
+
+model TenantStreet {
+  id               String             @id @db.Char(36) // UUIDv7
+  systemCode       String             @unique @db.VarChar(30)
+  tenantBusinessId String             @db.Char(36)
+  tenantPlaceId    String             @db.Char(36)
+  streetName       String             @db.VarChar(100)
+  latitude         Decimal?           @db.Decimal(10, 8)
+  longitude        Decimal?           @db.Decimal(11, 8)
+  remark           String?            @db.VarChar(255)
+  status           TenantStreetStatus @default(ACTIVE)
+  createdAt        BigInt
+  updatedAt        BigInt
+  deletedAt        BigInt?
+
+  tenantBusiness TenantBusiness @relation(fields: [tenantBusinessId], references: [id])
+  tenantPlace    TenantPlace    @relation(fields: [tenantPlaceId], references: [id])
+
+  @@index([status])
+  @@index([tenantBusinessId])
+  @@index([tenantPlaceId])
+  @@map("tenant_streets")
 }

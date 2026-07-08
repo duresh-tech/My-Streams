@@ -37,6 +37,7 @@ const MODULES: Array<{ module: string; label: string; actions: string[] }> = [
   { module: 'tenant-payment-modes', label: 'Tenant Payment Modes', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
   { module: 'tenant-in-ex-categories', label: 'Tenant Income & Expense Categories', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
   { module: 'tenant-places', label: 'Tenant Places', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
+  { module: 'tenant-streets', label: 'Tenant Streets', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
   { module: 'tenant-business-branches', label: 'Tenant Business Branches', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
   { module: 'tenant-network-providers', label: 'Tenant Network Providers', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
   { module: 'tenant-mail-config', label: 'Tenant Mail Config', actions: ['create', 'view', 'update', 'delete', 'list', 'test'] },
@@ -213,6 +214,11 @@ async function main() {
       'tenant-places:create',
       'tenant-places:update',
       'tenant-places:delete',
+      'tenant-streets:list',
+      'tenant-streets:view',
+      'tenant-streets:create',
+      'tenant-streets:update',
+      'tenant-streets:delete',
     ]
       .map((k) => keyToId.get(k)!)
       .filter(Boolean),

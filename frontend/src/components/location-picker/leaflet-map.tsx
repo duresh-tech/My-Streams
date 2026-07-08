@@ -20,12 +20,20 @@ const DEFAULT_ICON = L.icon({
 const OSM_TILE_URL =
   process.env.NEXT_PUBLIC_OSM_TILE_URL ?? "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 
-interface LeafletMapProps {
+interface ContextCircle {
   lat: number;
   lng: number;
   radiusMeters: number;
+}
+
+interface LeafletMapProps {
+  lat: number;
+  lng: number;
+  radiusMeters?: number;
   zoom: number;
   flyTo: { lat: number; lng: number; zoom: number; token: number } | null;
+  contextCircle?: ContextCircle | null;
+  fitToContext?: boolean;
   onPick: (lat: number, lng: number) => void;
 }
 
@@ -49,7 +57,32 @@ function FlyToHandler({ flyTo }: { flyTo: LeafletMapProps["flyTo"] }) {
   return null;
 }
 
-export default function LeafletMap({ lat, lng, radiusMeters, zoom, flyTo, onPick }: LeafletMapProps) {
+// Frames the whole context circle (e.g. the parent place's geofence) in view
+// once, on initial mount only - lets the user see where they're picking within.
+function FitToContextHandler({ contextCircle }: { contextCircle: ContextCircle | null | undefined }) {
+  const map = useMap();
+  React.useEffect(() => {
+    if (!contextCircle) return;
+    // toBounds() computes bounds from geo math alone (size = full box width/height
+    // in meters); a bare L.circle(...).getBounds() would throw here since that
+    // requires the circle to already be attached to a map for pixel projection.
+    const bounds = L.latLng(contextCircle.lat, contextCircle.lng).toBounds(contextCircle.radiusMeters * 2);
+    map.fitBounds(bounds, { padding: [40, 40] });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return null;
+}
+
+export default function LeafletMap({
+  lat,
+  lng,
+  radiusMeters,
+  zoom,
+  flyTo,
+  contextCircle,
+  fitToContext,
+  onPick,
+}: LeafletMapProps) {
   return (
     <MapContainer
       center={[lat, lng]}
@@ -73,9 +106,19 @@ export default function LeafletMap({ lat, lng, radiusMeters, zoom, flyTo, onPick
           },
         }}
       />
-      <Circle center={[lat, lng]} radius={radiusMeters} pathOptions={{ color: "#2563eb", fillOpacity: 0.1 }} />
+      {radiusMeters != null && (
+        <Circle center={[lat, lng]} radius={radiusMeters} pathOptions={{ color: "#2563eb", fillOpacity: 0.1 }} />
+      )}
+      {contextCircle && (
+        <Circle
+          center={[contextCircle.lat, contextCircle.lng]}
+          radius={contextCircle.radiusMeters}
+          pathOptions={{ color: "#9333ea", dashArray: "6 4", fillOpacity: 0.03 }}
+        />
+      )}
       <ClickHandler onPick={onPick} />
       <FlyToHandler flyTo={flyTo} />
+      {fitToContext && <FitToContextHandler contextCircle={contextCircle} />}
     </MapContainer>
   );
 }
