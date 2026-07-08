@@ -20,6 +20,7 @@ import { TenantInExCategoriesModule } from './tenant-in-ex-categories/tenant-in-
 import { TenantBusinessBranchesModule } from './tenant-business-branches/tenant-business-branches.module';
 import { TenantNetworkProvidersModule } from './tenant-network-providers/tenant-network-providers.module';
 import { TenantMailConfigModule } from './tenant-mail-config/tenant-mail-config.module';
+import { TenantPlacesModule } from './tenant-places/tenant-places.module';
 import { SystemSettingsModule } from './system-settings/system-settings.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { TenantDashboardModule } from './tenant-dashboard/tenant-dashboard.module';
@@ -59,6 +60,7 @@ import { DeviceHeaderGuard } from './common/guards/device-header.guard';
     TenantBusinessBranchesModule,
     TenantNetworkProvidersModule,
     TenantMailConfigModule,
+    TenantPlacesModule,
     SystemSettingsModule,
     DashboardModule,
     TenantDashboardModule,
