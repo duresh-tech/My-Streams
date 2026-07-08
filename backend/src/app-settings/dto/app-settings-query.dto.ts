@@ -7,7 +7,7 @@ const AppSettingListQuerySchema = z.object({
   search: z.string().max(100).optional(),
   status: z.enum(['ACTIVE', 'INACTIVE', 'BLOCKED', 'DELETED']).optional(),
   dataType: z
-    .enum(['STRING', 'TEXT', 'INTEGER', 'DECIMAL', 'BOOLEAN', 'JSON', 'DATE', 'DATETIME', 'TIME'])
+    .enum(['STRING', 'TEXT', 'INTEGER', 'DECIMAL', 'BOOLEAN', 'JSON', 'DATE', 'DATETIME', 'TIME', 'FILE'])
     .optional(),
   sortBy: z.enum(['key', 'createdAt', 'status']).default('createdAt'),
   sortOrder: z.enum(['asc', 'desc']).default('desc'),

@@ -55,7 +55,7 @@ export class AppSettingsController {
   @ApiResponse({
     status: 200,
     description: 'Current branding.',
-    schema: { example: { appName: 'FlowNet', logoPath: 'app-settings/019f357c-d489-74a9-8490-1f82e745b199.jpg' } },
+    schema: { example: { appName: 'FlowNet', logoPath: 'app_settings_uploads/019f357c-d489-74a9-8490-1f82e745b199.jpg' } },
   })
   getBranding() {
     return this.appSettingsService.getBrandingPublic();
@@ -82,11 +82,41 @@ export class AppSettingsController {
   @ApiResponse({
     status: 201,
     description: 'Logo stored; path returned.',
-    schema: { example: { path: 'app-settings/019f357c-d489-74a9-8490-1f82e745b199.jpg' } },
+    schema: { example: { path: 'app_settings_uploads/019f357c-d489-74a9-8490-1f82e745b199.jpg' } },
   })
   @ApiResponse({ status: 400, description: 'Missing, oversized, or non-image file.' })
   uploadLogo(@UploadedFile() file?: Express.Multer.File) {
     return this.appSettingsService.uploadLogoValue(file);
+  }
+
+  @Post('upload')
+  @ApiBearerAuth()
+  @RequirePermissions('app-settings:update')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { file: { type: 'string', format: 'binary' } },
+      required: ['file'],
+    },
+  })
+  @ApiOperation({
+    summary: 'Upload a file for a FILE-dataType setting',
+    description:
+      'Generic upload for any setting with dataType=FILE - stores the file ' +
+      '(max 5 MB) into the app_settings_uploads folder and returns its path. ' +
+      'Does not touch any setting row itself; use the returned path as the ' +
+      'value when creating/updating the setting.',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'File stored; path returned.',
+    schema: { example: { path: 'app_settings_uploads/019f357c-d489-74a9-8490-1f82e745b199.pdf' } },
+  })
+  @ApiResponse({ status: 400, description: 'Missing or oversized file.' })
+  uploadValueFile(@UploadedFile() file?: Express.Multer.File) {
+    return this.appSettingsService.uploadValueFile(file);
   }
 
   @Get('key/:key')

@@ -11,6 +11,7 @@ export const AppSettingDataTypeEnum = z.enum([
   'DATE',
   'DATETIME',
   'TIME',
+  'FILE',
 ]);
 const AppSettingStatusEnum = z.enum(['ACTIVE', 'INACTIVE', 'BLOCKED', 'DELETED']);
 
@@ -47,6 +48,7 @@ export function validateValueForDataType(
       return TIME_PATTERN.test(value) ? null : 'value must be a time in HH:mm or HH:mm:ss format';
     case 'STRING':
     case 'TEXT':
+    case 'FILE':
     default:
       return null;
   }

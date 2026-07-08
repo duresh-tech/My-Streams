@@ -163,6 +163,32 @@ export async function uploadAppLogo(file: File): Promise<{ path: string }> {
   return data as { path: string };
 }
 
+/** Uploads a file for a FILE-dataType app setting; returns its stored path (caller sets it as the setting's value). */
+export async function uploadAppSettingFile(file: File): Promise<{ path: string }> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const headers: Record<string, string> = { "x-device-type": "website" };
+  const token = getAccessToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const response = await fetch(`${API_URL}/system/app-settings/upload`, {
+    method: "POST",
+    headers,
+    credentials: "include",
+    body: formData,
+  });
+
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    const message =
+      (data && (Array.isArray(data.message) ? data.message[0] : data.message)) ||
+      `Upload failed (${response.status})`;
+    throw new ApiError(response.status, message, data);
+  }
+  return data as { path: string };
+}
+
 async function tryRefresh(): Promise<boolean> {
   try {
     const csrfToken = getCsrfToken();

@@ -9,7 +9,8 @@ import { AppSettingListQueryDto } from './dto/app-settings-query.dto';
 const APP_NAME_KEY = 'app.name';
 const APP_LOGO_KEY = 'app.logo_path';
 const DEFAULT_APP_NAME = 'System Console';
-const MAX_LOGO_SIZE = 5 * 1024 * 1024; // 5 MB
+const MAX_UPLOAD_SIZE = 5 * 1024 * 1024; // 5 MB
+const UPLOADS_FOLDER = 'app_settings_uploads';
 
 @Injectable()
 export class AppSettingsService {
@@ -116,11 +117,11 @@ export class AppSettingsService {
 
   async uploadLogoValue(file?: Express.Multer.File) {
     if (!file) throw new BadRequestException('No file provided');
-    if (file.size > MAX_LOGO_SIZE) throw new BadRequestException('File exceeds the 5 MB limit');
+    if (file.size > MAX_UPLOAD_SIZE) throw new BadRequestException('File exceeds the 5 MB limit');
     if (!file.mimetype.startsWith('image/')) throw new BadRequestException('File must be an image');
 
     const existing = await this.prisma.appSetting.findUnique({ where: { key: APP_LOGO_KEY } });
-    const path = await this.storage.upload(file, 'app-settings');
+    const path = await this.storage.upload(file, UPLOADS_FOLDER);
     if (existing?.value) {
       await this.storage.remove(existing.value).catch(() => undefined);
     }
@@ -144,6 +145,16 @@ export class AppSettingsService {
         },
       });
     }
+    return { path };
+  }
+
+  /** Generic upload for any FILE-dataType setting's value - just stores the
+   * file and returns its path; the caller decides which key it belongs to
+   * via the normal create/update body, same as the tenant-customers flow. */
+  async uploadValueFile(file?: Express.Multer.File) {
+    if (!file) throw new BadRequestException('No file provided');
+    if (file.size > MAX_UPLOAD_SIZE) throw new BadRequestException('File exceeds the 5 MB limit');
+    const path = await this.storage.upload(file, UPLOADS_FOLDER);
     return { path };
   }
 }

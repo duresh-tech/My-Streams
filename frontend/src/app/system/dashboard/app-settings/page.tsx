@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ArrowDownAZ, ArrowUpAZ, LoaderCircle, Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
+import { ArrowDownAZ, ArrowUpAZ, LoaderCircle, Pencil, Plus, RotateCcw, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -29,12 +29,23 @@ import { ResourceTable, StatusBadgeText, type Column } from "@/components/resour
 import { RowActionsMenu } from "@/components/row-actions-menu";
 import { useResourceList } from "@/hooks/use-resource-list";
 import { useSession } from "@/hooks/use-session";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, uploadAppSettingFile, UPLOADS_ORIGIN } from "@/lib/api";
 
-type DataType = "STRING" | "TEXT" | "INTEGER" | "DECIMAL" | "BOOLEAN" | "JSON" | "DATE" | "DATETIME" | "TIME";
+type DataType = "STRING" | "TEXT" | "INTEGER" | "DECIMAL" | "BOOLEAN" | "JSON" | "DATE" | "DATETIME" | "TIME" | "FILE";
 type SettingStatus = "ACTIVE" | "INACTIVE" | "BLOCKED" | "DELETED";
 
-const DATA_TYPES: DataType[] = ["STRING", "TEXT", "INTEGER", "DECIMAL", "BOOLEAN", "JSON", "DATE", "DATETIME", "TIME"];
+const DATA_TYPES: DataType[] = [
+  "STRING",
+  "TEXT",
+  "INTEGER",
+  "DECIMAL",
+  "BOOLEAN",
+  "JSON",
+  "DATE",
+  "DATETIME",
+  "TIME",
+  "FILE",
+];
 
 interface AppSettingRow {
   id: string;
@@ -456,8 +467,52 @@ function ValueInput({
       );
     case "TIME":
       return <Input id="value" required type="time" value={value} onChange={(e) => onChange(e.target.value)} />;
+    case "FILE":
+      return <FileValueInput value={value} onChange={onChange} />;
     case "STRING":
     default:
       return <Input id="value" required value={value} onChange={(e) => onChange(e.target.value)} />;
   }
+}
+
+function FileValueInput({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const [uploading, setUploading] = React.useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  async function onFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploading(true);
+    try {
+      const { path } = await uploadAppSettingFile(file);
+      onChange(path);
+      toast.success("File uploaded");
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-3">
+      <input ref={fileInputRef} type="file" className="hidden" onChange={onFileSelected} />
+      <Button type="button" variant="outline" size="sm" disabled={uploading} onClick={() => fileInputRef.current?.click()}>
+        {uploading ? <LoaderCircle className="size-4 animate-spin" /> : <Upload className="size-4" />}
+        {value ? "Replace file" : "Upload file"}
+      </Button>
+      {value && (
+        <a
+          href={`${UPLOADS_ORIGIN}/uploads/${value}`}
+          target="_blank"
+          rel="noreferrer"
+          className="truncate text-xs text-muted-foreground underline"
+          title={value}
+        >
+          {value}
+        </a>
+      )}
+    </div>
+  );
 }

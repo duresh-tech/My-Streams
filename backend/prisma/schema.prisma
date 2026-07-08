@@ -438,6 +438,7 @@ enum AppSettingDataType {
   DATE
   DATETIME
   TIME
+  FILE
 }
 
 enum AppSettingStatus {
