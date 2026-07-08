@@ -39,6 +39,7 @@ interface TenantStreetRow {
   systemCode: string;
   tenantBusinessId: string;
   tenantPlaceId: string;
+  streetCode: string;
   streetName: string;
   latitude: number | null;
   longitude: number | null;
@@ -64,6 +65,7 @@ interface PlaceOption {
 interface StreetFormValues {
   tenantBusinessId: string;
   tenantPlaceId: string;
+  streetCode: string;
   streetName: string;
   latitude: string;
   longitude: string;
@@ -74,12 +76,15 @@ interface StreetFormValues {
 const EMPTY_FORM: StreetFormValues = {
   tenantBusinessId: "",
   tenantPlaceId: "",
+  streetCode: "",
   streetName: "",
   latitude: "",
   longitude: "",
   remark: "",
   status: "ACTIVE",
 };
+
+const STREET_CODE_PATTERN = /^[A-Z]{3}$/;
 
 export default function TenantStreetsPage() {
   const { hasPermission } = useTenantSession();
@@ -145,6 +150,7 @@ export default function TenantStreetsPage() {
     setForm({
       tenantBusinessId: row.tenantBusinessId,
       tenantPlaceId: row.tenantPlaceId,
+      streetCode: row.streetCode,
       streetName: row.streetName,
       latitude: row.latitude != null ? String(row.latitude) : "",
       longitude: row.longitude != null ? String(row.longitude) : "",
@@ -168,6 +174,7 @@ export default function TenantStreetsPage() {
       const body = {
         tenantBusinessId: form.tenantBusinessId,
         tenantPlaceId: form.tenantPlaceId,
+        streetCode: form.streetCode,
         streetName: form.streetName,
         latitude: form.latitude === "" ? undefined : Number(form.latitude),
         longitude: form.longitude === "" ? undefined : Number(form.longitude),
@@ -206,6 +213,7 @@ export default function TenantStreetsPage() {
   }
 
   const columns: Column<TenantStreetRow>[] = [
+    { header: "Code", cell: (row) => <span className="font-mono">{row.streetCode}</span> },
     { header: "Street Name", cell: (row) => <span className="font-medium">{row.streetName}</span> },
     { header: "Place", cell: (row) => row.tenantPlace?.placeName ?? "—" },
     { header: "Remark", cell: (row) => row.remark ?? "—" },
@@ -327,14 +335,30 @@ export default function TenantStreetsPage() {
                   />
                 </div>
 
-                <div className="grid gap-2">
-                  <Label htmlFor="streetName">Street Name</Label>
-                  <Input
-                    id="streetName"
-                    required
-                    value={form.streetName}
-                    onChange={(e) => setForm((f) => ({ ...f, streetName: e.target.value }))}
-                  />
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <div className="grid gap-2">
+                    <Label htmlFor="streetCode">Code</Label>
+                    <Input
+                      id="streetCode"
+                      required
+                      maxLength={3}
+                      placeholder="ABC"
+                      className="font-mono uppercase"
+                      value={form.streetCode}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, streetCode: e.target.value.toUpperCase() }))
+                      }
+                    />
+                  </div>
+                  <div className="grid gap-2 sm:col-span-2">
+                    <Label htmlFor="streetName">Street Name</Label>
+                    <Input
+                      id="streetName"
+                      required
+                      value={form.streetName}
+                      onChange={(e) => setForm((f) => ({ ...f, streetName: e.target.value }))}
+                    />
+                  </div>
                 </div>
 
                 <div className="grid gap-2">
@@ -404,7 +428,15 @@ export default function TenantStreetsPage() {
                 <Button type="button" variant="outline" onClick={() => setFormOpen(false)} disabled={saving}>
                   Cancel
                 </Button>
-                <Button type="submit" disabled={saving || !form.tenantBusinessId || !form.tenantPlaceId}>
+                <Button
+                  type="submit"
+                  disabled={
+                    saving ||
+                    !form.tenantBusinessId ||
+                    !form.tenantPlaceId ||
+                    !STREET_CODE_PATTERN.test(form.streetCode)
+                  }
+                >
                   {saving && <LoaderCircle className="size-4 animate-spin" />}
                   Save
                 </Button>

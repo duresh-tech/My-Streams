@@ -26,6 +26,7 @@ const TENANT_STREET_EXAMPLE = {
   systemCode: 'STR-MR8NZ6OO-C0CB',
   tenantBusinessId: '019f357b-c211-71a0-9062-adc0f927a584',
   tenantPlaceId: '019f357b-d398-73aa-9062-adc0f927a584',
+  streetCode: 'MGR',
   streetName: 'MG Road',
   latitude: 28.61390000,
   longitude: 77.20900000,
@@ -118,14 +119,15 @@ export class TenantStreetsController {
   @RequirePermissions('tenant-streets:create')
   @ApiOperation({
     summary: 'Create a tenant street',
-    description: 'tenantPlaceId must belong to the given tenantBusinessId.',
+    description:
+      'tenantPlaceId must belong to the given tenantBusinessId. streetCode must be 3 uppercase letters and unique within the business.',
   })
   @ApiResponse({
     status: 201,
     description: 'Street created.',
     schema: { example: TENANT_STREET_EXAMPLE },
   })
-  @ApiResponse({ status: 400, description: 'Tenant business or place does not exist.' })
+  @ApiResponse({ status: 400, description: 'Tenant business or place does not exist, or streetCode is already used for this business.' })
   create(@Body() dto: CreateTenantStreetDto) {
     return this.tenantStreetsService.create(dto);
   }

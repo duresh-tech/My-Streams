@@ -68,6 +68,7 @@ export class TenantStreetsService {
   async create(dto: CreateTenantStreetDto) {
     await this.assertBusinessExists(dto.tenantBusinessId);
     await this.assertPlaceBelongsToBusiness(dto.tenantPlaceId, dto.tenantBusinessId);
+    await this.assertStreetCodeUnique(dto.tenantBusinessId, dto.streetCode);
 
     const timestamp = now();
     const street = await this.prisma.tenantStreet.create({
@@ -76,6 +77,7 @@ export class TenantStreetsService {
         systemCode: newSystemCode('STR'),
         tenantBusinessId: dto.tenantBusinessId,
         tenantPlaceId: dto.tenantPlaceId,
+        streetCode: dto.streetCode,
         streetName: dto.streetName,
         latitude: dto.latitude,
         longitude: dto.longitude,
@@ -98,6 +100,13 @@ export class TenantStreetsService {
       await this.assertPlaceBelongsToBusiness(
         dto.tenantPlaceId ?? street.tenantPlaceId,
         dto.tenantBusinessId ?? street.tenantBusinessId,
+      );
+    }
+    if (dto.streetCode || dto.tenantBusinessId) {
+      await this.assertStreetCodeUnique(
+        dto.tenantBusinessId ?? street.tenantBusinessId,
+        dto.streetCode ?? street.streetCode,
+        id,
       );
     }
 
@@ -166,6 +175,22 @@ export class TenantStreetsService {
     });
     if (!place) {
       throw new BadRequestException('Place does not exist for the given tenant business');
+    }
+  }
+
+  private async assertStreetCodeUnique(tenantBusinessId: string, streetCode: string, excludeId?: string) {
+    // Not scoped to status=DELETED: the (tenantBusinessId, streetCode) unique
+    // constraint applies to every row regardless of soft-delete state, so a
+    // code held by a deleted-but-restorable street can't be reissued either.
+    const existing = await this.prisma.tenantStreet.findFirst({
+      where: {
+        tenantBusinessId,
+        streetCode,
+        ...(excludeId ? { id: { not: excludeId } } : {}),
+      },
+    });
+    if (existing) {
+      throw new BadRequestException(`Street code "${streetCode}" is already used for this business`);
     }
   }
 

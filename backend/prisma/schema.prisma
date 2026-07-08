@@ -480,6 +480,7 @@ model TenantStreet {
   systemCode       String             @unique @db.VarChar(30)
   tenantBusinessId String             @db.Char(36)
   tenantPlaceId    String             @db.Char(36)
+  streetCode       String             @db.Char(3) // 3 uppercase letters (A-Z), unique per business
   streetName       String             @db.VarChar(100)
   latitude         Decimal?           @db.Decimal(10, 8)
   longitude        Decimal?           @db.Decimal(11, 8)
@@ -492,6 +493,7 @@ model TenantStreet {
   tenantBusiness TenantBusiness @relation(fields: [tenantBusinessId], references: [id])
   tenantPlace    TenantPlace    @relation(fields: [tenantPlaceId], references: [id])
 
+  @@unique([tenantBusinessId, streetCode])
   @@index([status])
   @@index([tenantBusinessId])
   @@index([tenantPlaceId])
