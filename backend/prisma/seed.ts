@@ -38,6 +38,7 @@ const MODULES: Array<{ module: string; label: string; actions: string[] }> = [
   { module: 'tenant-in-ex-categories', label: 'Tenant Income & Expense Categories', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
   { module: 'tenant-places', label: 'Tenant Places', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
   { module: 'tenant-streets', label: 'Tenant Streets', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
+  { module: 'tenant-customers', label: 'Tenant Customers', actions: ['create', 'view', 'update', 'delete', 'view_deleted', 'restore', 'export', 'import', 'change_status'] },
   { module: 'tenant-business-branches', label: 'Tenant Business Branches', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
   { module: 'tenant-network-providers', label: 'Tenant Network Providers', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
   { module: 'tenant-mail-config', label: 'Tenant Mail Config', actions: ['create', 'view', 'update', 'delete', 'list', 'test'] },
@@ -224,6 +225,15 @@ async function main() {
       'tenant-streets:create',
       'tenant-streets:update',
       'tenant-streets:delete',
+      'tenant-customers:create',
+      'tenant-customers:view',
+      'tenant-customers:update',
+      'tenant-customers:delete',
+      'tenant-customers:view_deleted',
+      'tenant-customers:restore',
+      'tenant-customers:export',
+      'tenant-customers:import',
+      'tenant-customers:change_status',
     ]
       .map((k) => keyToId.get(k)!)
       .filter(Boolean),

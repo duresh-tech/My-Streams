@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   Building2,
   ChevronDown,
+  Contact,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -40,6 +41,7 @@ import { TenantSessionProvider, useTenantSession } from "@/hooks/use-tenant-sess
 const TENANT_NAV_ITEMS: NavItem[] = [
   { href: "/tenant/dashboard", label: "Dashboard", icon: LayoutDashboard, permission: "tenant-dashboard:view" },
   { href: "/tenant/users", label: "Users", icon: Users, permission: "tenant-users:read" },
+  { href: "/tenant/customers", label: "Customers", icon: Contact, permission: "tenant-customers:view" },
   { href: "/tenant/settings/user-account", label: "Settings", icon: Settings, permission: "tenant-account:view" },
 ];
 

@@ -171,6 +171,7 @@ model TenantBusiness {
   mailConfigs       TenantMailConfig[]
   places            TenantPlace[]
   streets           TenantStreet[]
+  customers         TenantCustomer[]
 
   @@index([status])
   @@index([country])
@@ -460,8 +461,9 @@ model TenantPlace {
   updatedAt        BigInt
   deletedAt        BigInt?
 
-  tenantBusiness TenantBusiness @relation(fields: [tenantBusinessId], references: [id])
+  tenantBusiness TenantBusiness   @relation(fields: [tenantBusinessId], references: [id])
   streets        TenantStreet[]
+  customers      TenantCustomer[]
 
   @@index([status])
   @@index([tenantBusinessId])
@@ -490,12 +492,85 @@ model TenantStreet {
   updatedAt        BigInt
   deletedAt        BigInt?
 
-  tenantBusiness TenantBusiness @relation(fields: [tenantBusinessId], references: [id])
-  tenantPlace    TenantPlace    @relation(fields: [tenantPlaceId], references: [id])
+  tenantBusiness TenantBusiness   @relation(fields: [tenantBusinessId], references: [id])
+  tenantPlace    TenantPlace      @relation(fields: [tenantPlaceId], references: [id])
+  customers      TenantCustomer[]
 
   @@unique([tenantBusinessId, streetCode])
   @@index([status])
   @@index([tenantBusinessId])
   @@index([tenantPlaceId])
   @@map("tenant_streets")
+}
+
+enum TenantCustomerGender {
+  MALE
+  FEMALE
+  TRANSGENDER
+  NOT_TO_SAY
+  NONE
+}
+
+enum TenantCustomerType {
+  INDIVIDUAL
+  BUSINESS
+}
+
+enum TenantCustomerStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+  DELETED
+}
+
+model TenantCustomer {
+  id                String               @id @db.Char(36) // UUIDv7
+  systemCode        String               @unique @db.VarChar(30)
+  tenantBusinessId  String               @db.Char(36)
+  customerCode      String               @db.VarChar(30)
+  fName             String               @db.VarChar(100)
+  lName             String?              @db.VarChar(100)
+  fatherName        String?              @db.VarChar(150)
+  gender            TenantCustomerGender @default(NONE)
+  dateOfBirth       DateTime?            @db.Date
+  primaryMobile     String               @db.VarChar(20)
+  secondaryMobile   String?              @db.VarChar(20)
+  email             String?              @db.VarChar(255)
+  customerType      TenantCustomerType   @default(INDIVIDUAL)
+  tenantPlaceId     String?              @db.Char(36)
+  tenantStreetId    String?              @db.Char(36)
+  addressLine1      String               @db.VarChar(255)
+  addressLine2      String?              @db.VarChar(255)
+  city              String?              @db.VarChar(100)
+  state             String?              @db.VarChar(100)
+  country           String?              @db.VarChar(100)
+  pincode           String?              @db.VarChar(15)
+  latitude          Decimal?             @db.Decimal(10, 8)
+  longitude         Decimal?             @db.Decimal(11, 8)
+  customerPicture   String?              @db.VarChar(500)
+  idProofType       String?              @db.VarChar(50)
+  idProofNumber     String?              @db.VarChar(100)
+  idProofFile       String?              @db.VarChar(500)
+  taxType           String?              @db.VarChar(50)
+  taxNumber         String?              @db.VarChar(100)
+  notifyViaSMS      Boolean              @default(true)
+  notifyViaWhatsApp Boolean              @default(true)
+  notifyViaRCS      Boolean              @default(false)
+  allowPortalAccess Boolean              @default(true)
+  remark            String?              @db.Text
+  status            TenantCustomerStatus @default(ACTIVE)
+  createdAt         BigInt
+  updatedAt         BigInt
+  deletedAt         BigInt?
+
+  tenantBusiness TenantBusiness @relation(fields: [tenantBusinessId], references: [id])
+  tenantPlace    TenantPlace?   @relation(fields: [tenantPlaceId], references: [id])
+  tenantStreet   TenantStreet?  @relation(fields: [tenantStreetId], references: [id])
+
+  @@unique([tenantBusinessId, customerCode])
+  @@index([status])
+  @@index([tenantBusinessId])
+  @@index([tenantPlaceId])
+  @@index([tenantStreetId])
+  @@map("tenant_customers")
 }

@@ -22,10 +22,12 @@ import { TenantNetworkProvidersModule } from './tenant-network-providers/tenant-
 import { TenantMailConfigModule } from './tenant-mail-config/tenant-mail-config.module';
 import { TenantPlacesModule } from './tenant-places/tenant-places.module';
 import { TenantStreetsModule } from './tenant-streets/tenant-streets.module';
+import { TenantCustomersModule } from './tenant-customers/tenant-customers.module';
 import { SystemSettingsModule } from './system-settings/system-settings.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { TenantDashboardModule } from './tenant-dashboard/tenant-dashboard.module';
 import { UploadsModule } from './uploads/uploads.module';
+import { TenantUploadsModule } from './tenant-uploads/tenant-uploads.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { PermissionsGuard } from './common/guards/permissions.guard';
 import { DeviceHeaderGuard } from './common/guards/device-header.guard';
@@ -63,10 +65,12 @@ import { DeviceHeaderGuard } from './common/guards/device-header.guard';
     TenantMailConfigModule,
     TenantPlacesModule,
     TenantStreetsModule,
+    TenantCustomersModule,
     SystemSettingsModule,
     DashboardModule,
     TenantDashboardModule,
     UploadsModule,
+    TenantUploadsModule,
   ],
   providers: [
     // Order matters: throttle -> device header -> JWT -> RBAC

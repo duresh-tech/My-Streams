@@ -159,6 +159,32 @@ export async function uploadTenantBusinessLogo(file: File): Promise<{ path: stri
   return data as { path: string };
 }
 
+/** Generic file upload for any tenant self-service feature. Returns the stored path. */
+export async function uploadTenantFile(file: File): Promise<{ path: string; driver: string }> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const headers: Record<string, string> = { "x-device-type": "website" };
+  const token = getTenantAccessToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const response = await fetch(`${API_URL}/tenant/uploads`, {
+    method: "POST",
+    headers,
+    credentials: "include",
+    body: formData,
+  });
+
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    const message =
+      (data && (Array.isArray(data.message) ? data.message[0] : data.message)) ||
+      `Upload failed (${response.status})`;
+    throw new TenantApiError(response.status, message, data);
+  }
+  return data as { path: string; driver: string };
+}
+
 async function tryTenantRefresh(): Promise<boolean> {
   try {
     const csrfToken = getTenantCsrfToken();
