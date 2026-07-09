@@ -30,16 +30,17 @@ import { RowActionsMenu } from "@/components/row-actions-menu";
 import { QrDisplayPreview } from "@/components/qr-display-preview";
 import { useResourceList } from "@/hooks/use-resource-list";
 import { useTenantSession } from "@/hooks/use-tenant-session";
-import { isWebSerialSupported, useWebSerialDevice, type SerialExchangeResult } from "@/hooks/use-web-serial-device";
+import { isWebSerialSupported, useWebSerialDevice } from "@/hooks/use-web-serial-device";
+import { buildAudioCommand, DQ12_AUDIO_CLIP } from "@/lib/bonrix-dq12-commands";
 import {
-  buildAmountCommand,
-  buildPaymentCancelledCommands,
-  buildPaymentFailedCommands,
-  buildPaymentSuccessCommands,
-  buildShowQrCommand,
-  buildTestCommand,
-  buildWelcomeCommands,
-} from "@/lib/bonrix-dq12-commands";
+  canvasToRgb565,
+  renderCancelScreen,
+  renderFailScreen,
+  renderQrScreen,
+  renderSuccessScreen,
+  renderWelcomeScreen,
+} from "@/lib/dq12-display-image";
+import { fetchDq12Assets, type Dq12Assets } from "@/lib/app-settings";
 import { TenantApiError, tenantApi } from "@/lib/tenant-api";
 
 type DeviceStatus = "ACTIVE" | "INACTIVE" | "BLOCKED" | "DELETED";
@@ -144,6 +145,15 @@ export default function TenantQrDevicesPage() {
   const [connectedDeviceId, setConnectedDeviceId] = React.useState<string | null>(null);
   const webSerialSupported = isWebSerialSupported();
 
+  // Background art for the DQ12 screens, configured via App Settings
+  // (qr_device.dq12.* keys) - null entries fall back to a plain label screen.
+  const [dq12Assets, setDq12Assets] = React.useState<Dq12Assets | null>(null);
+  React.useEffect(() => {
+    fetchDq12Assets()
+      .then(setDq12Assets)
+      .catch(() => setDq12Assets({ welcome: null, success: null, pending: null, fail: null, cancel: null, qrBackground: null }));
+  }, []);
+
   // A Web Serial permission grant survives page reloads, but the *open port
   // object* does not - the browser closes it on navigation/refresh. On mount,
   // silently reopen whatever port this origin was already granted (no picker),
@@ -175,52 +185,45 @@ export default function TenantQrDevicesPage() {
     localStorage.removeItem(CONNECTED_DEVICE_STORAGE_KEY);
   }
 
-  /** Writes the AT command(s) for this result to the connected device, then
-   * reports the raw exchange back to the backend event log regardless of outcome.
-   * Most DQ12 commands (display/audio) are fire-and-forget per Bonrix's own
-   * reference code - only pass expectResponse for genuine query commands like
-   * AT+VER, otherwise a clean write is treated as success even with no reply. */
-  async function writeToHardwareAndLog(
+  /** Pushes a full-screen bitmap (RGB565, ~300KB) then triggers the matching
+   * audio clip - matches Bonrix's own reference flow (sendImage, then a short
+   * pause, then sendAtCommand). Both the image push and the audio command are
+   * fire-and-forget on this device; a clean write is treated as success even
+   * with no reply, and the exchange is logged to the backend either way. */
+  async function sendSceneToDevice(
     deviceId: string,
     eventType: "PUSH_REQUESTED" | "TEST_TRIGGERED",
-    commands: string[],
-    options: { expectResponse?: boolean; label?: string } = {},
+    label: string,
+    canvas: HTMLCanvasElement,
+    audioClip: number,
   ) {
     if (connectedDeviceId !== deviceId) return;
-    const { expectResponse = false, label } = options;
-    const exchanges: SerialExchangeResult[] = [];
-    let failed = false;
+    let success = true;
+    let message = `${label} sent`;
+    let atCommand = `<image push: ${canvas.width}x${canvas.height} RGB565>`;
+    let atResponse = "";
     try {
-      for (const command of commands) {
-        // eslint-disable-next-line no-await-in-loop
-        exchanges.push(await serial.sendCommand(command, { expectResponse }));
-      }
+      const bytes = canvasToRgb565(canvas);
+      await serial.sendRawBytes(bytes);
+      atCommand = `<image push: ${canvas.width}x${canvas.height} RGB565, ${bytes.length} bytes>`;
+      await new Promise((resolve) => setTimeout(resolve, 500)); // let the device finish rendering before the audio cue
+      const audioResult = await serial.sendCommand(buildAudioCommand(audioClip));
+      atCommand += `\n${audioResult.atCommand}`;
+      atResponse = audioResult.atResponse;
     } catch (error) {
-      failed = true;
-      exchanges.push({
-        atCommand: commands.join("\n"),
-        atResponse: error instanceof Error ? error.message : "unknown error",
-        success: false,
-      });
+      success = false;
+      message = error instanceof Error ? error.message : "Hardware write failed";
     }
-    const success = !failed && exchanges.every((e) => e.success);
     try {
       await tenantApi(`/tenant/qr-devices/${deviceId}/log-serial`, {
         method: "POST",
-        body: {
-          eventType: success ? eventType : "ERROR",
-          atCommand: exchanges.map((e) => e.atCommand).join("\n"),
-          atResponse: exchanges.map((e) => e.atResponse).join("\n"),
-          message: success
-            ? `${label ?? "Hardware write"} sent`
-            : `${label ?? "Hardware write"} failed - device did not respond`,
-        },
+        body: { eventType: success ? eventType : "ERROR", atCommand, atResponse, message },
       });
     } catch {
       // Logging failure shouldn't block the operator - the QR is already shown either way.
     }
-    if (success) toast.success(label ? `${label} sent to device` : "Sent to device");
-    else toast.error("Write failed - check the connection");
+    if (success) toast.success(`${label} sent to device`);
+    else toast.error(message);
   }
 
   function loadBusinessOptions(): Promise<OptionRow[]> {
@@ -374,14 +377,18 @@ export default function TenantQrDevicesPage() {
       setPreviewDevice(pushTarget);
       setPreviewResult(result);
       const deviceId = pushTarget.id;
+      const vpa = pushTarget.upiVpa;
       setPushTarget(null);
       list.refresh();
-      await writeToHardwareAndLog(
-        deviceId,
-        "PUSH_REQUESTED",
-        [buildShowQrCommand(result.upiLink), buildAmountCommand(result.amount)],
-        { label: "Payment QR" },
-      );
+      if (connectedDeviceId === deviceId) {
+        const canvas = await renderQrScreen({
+          backgroundUrl: dq12Assets?.qrBackground,
+          qrDataUrl: result.qrDataUrl,
+          amount: result.amount,
+          vpa,
+        });
+        await sendSceneToDevice(deviceId, "PUSH_REQUESTED", "Payment QR", canvas, DQ12_AUDIO_CLIP.QR_SCAN);
+      }
     } catch (error) {
       toast.error(error instanceof TenantApiError ? error.message : "Failed to generate QR");
     } finally {
@@ -396,22 +403,15 @@ export default function TenantQrDevicesPage() {
       setPreviewDevice(row);
       setPreviewResult(result);
       list.refresh();
-      await writeToHardwareAndLog(row.id, "TEST_TRIGGERED", [buildTestCommand()], {
-        expectResponse: true,
-        label: "Version check (AT+VER)",
-      });
+      if (connectedDeviceId === row.id) {
+        const canvas = await renderWelcomeScreen(dq12Assets?.welcome);
+        await sendSceneToDevice(row.id, "TEST_TRIGGERED", "Welcome", canvas, DQ12_AUDIO_CLIP.WELCOME);
+      }
     } catch (error) {
       toast.error(error instanceof TenantApiError ? error.message : "Test failed");
     } finally {
       setTestingId(null);
     }
-  }
-
-  /** Canned demo scenes for the Test dialog - fire-and-forget display/audio
-   * commands, confirmed visually/audibly on the physical device rather than
-   * via a serial reply (the DQ12 doesn't ack these per Bonrix's own reference code). */
-  async function onSendScene(deviceId: string, label: string, commands: string[]) {
-    await writeToHardwareAndLog(deviceId, "TEST_TRIGGERED", commands, { label });
   }
 
   const columns: Column<DeviceRow>[] = [
@@ -436,6 +436,19 @@ export default function TenantQrDevicesPage() {
 
   return (
     <>
+      {webSerialSupported && (
+        <div
+          className={`flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium text-white ${serial.connected ? "bg-emerald-600" : "bg-red-600"}`}
+        >
+          <span>{serial.connected ? "DQ12 device connected" : "DQ12 device not connected"}</span>
+          {serial.connected && connectedDeviceId && (
+            <span className="text-xs font-normal opacity-90">
+              {list.rows?.find((r) => r.id === connectedDeviceId)?.deviceName ?? connectedDeviceId}
+            </span>
+          )}
+        </div>
+      )}
+
       <ResourceTable<DeviceRow>
         title="QR Devices"
         description="Payment QR display devices at your counters."
@@ -656,7 +669,10 @@ export default function TenantQrDevicesPage() {
                   variant="outline"
                   size="sm"
                   disabled={connectedDeviceId !== previewDevice.id}
-                  onClick={() => onSendScene(previewDevice.id, "Welcome", buildWelcomeCommands())}
+                  onClick={async () => {
+                    const canvas = await renderWelcomeScreen(dq12Assets?.welcome);
+                    await sendSceneToDevice(previewDevice.id, "TEST_TRIGGERED", "Welcome", canvas, DQ12_AUDIO_CLIP.WELCOME);
+                  }}
                 >
                   Welcome
                 </Button>
@@ -665,13 +681,10 @@ export default function TenantQrDevicesPage() {
                   variant="outline"
                   size="sm"
                   disabled={connectedDeviceId !== previewDevice.id}
-                  onClick={() =>
-                    onSendScene(
-                      previewDevice.id,
-                      "Payment Success",
-                      buildPaymentSuccessCommands(previewResult.amount),
-                    )
-                  }
+                  onClick={async () => {
+                    const canvas = await renderSuccessScreen(dq12Assets?.success, previewResult.amount);
+                    await sendSceneToDevice(previewDevice.id, "TEST_TRIGGERED", "Payment Success", canvas, DQ12_AUDIO_CLIP.SUCCESS);
+                  }}
                 >
                   Payment Success
                 </Button>
@@ -680,7 +693,10 @@ export default function TenantQrDevicesPage() {
                   variant="outline"
                   size="sm"
                   disabled={connectedDeviceId !== previewDevice.id}
-                  onClick={() => onSendScene(previewDevice.id, "Payment Failed", buildPaymentFailedCommands())}
+                  onClick={async () => {
+                    const canvas = await renderFailScreen(dq12Assets?.fail);
+                    await sendSceneToDevice(previewDevice.id, "TEST_TRIGGERED", "Payment Failed", canvas, DQ12_AUDIO_CLIP.FAIL);
+                  }}
                 >
                   Payment Failed
                 </Button>
@@ -689,7 +705,10 @@ export default function TenantQrDevicesPage() {
                   variant="outline"
                   size="sm"
                   disabled={connectedDeviceId !== previewDevice.id}
-                  onClick={() => onSendScene(previewDevice.id, "Payment Cancelled", buildPaymentCancelledCommands())}
+                  onClick={async () => {
+                    const canvas = await renderCancelScreen(dq12Assets?.cancel);
+                    await sendSceneToDevice(previewDevice.id, "TEST_TRIGGERED", "Payment Cancelled", canvas, DQ12_AUDIO_CLIP.CANCEL);
+                  }}
                 >
                   Payment Cancelled
                 </Button>

@@ -1,13 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { DQ12_SERIAL_OPTIONS } from "@/lib/bonrix-dq12-commands";
+import { DQ12_SERIAL_OPTIONS, DQ12_USB_FILTER } from "@/lib/bonrix-dq12-commands";
 
 const RESPONSE_TIMEOUT_MS = 3000;
 // Fire-and-forget commands (display/audio) still get a brief listen window so
 // anything the device sends unsolicited ends up in the debug log, but absence
 // of a reply is expected for these and must not count as a failure.
 const IDLE_LISTEN_MS = 300;
+const LIVENESS_CHECK_MS = 2000;
 
 export interface SerialExchangeResult {
   atCommand: string;
@@ -51,13 +52,19 @@ export function useWebSerialDevice() {
 
   /** Re-opens a port this origin was already granted access to in an earlier
    * session - no picker/user-gesture required, so it's safe to call on mount
-   * or after navigating between pages. Resolves to null if nothing to reconnect to. */
+   * or after navigating between pages. Resolves to null if nothing to reconnect to.
+   * Prefers a port matching DQ12_USB_FILTER, but falls back to the first
+   * granted port if none match (that filter is a best guess, not confirmed). */
   const autoConnect = React.useCallback(async (): Promise<SerialPort | null> => {
     if (!isWebSerialSupported()) return null;
     const granted = await navigator.serial.getPorts();
     if (granted.length === 0) return null;
+    const matching = granted.find((candidate) => {
+      const info = candidate.getInfo();
+      return info.usbVendorId === DQ12_USB_FILTER.usbVendorId && info.usbProductId === DQ12_USB_FILTER.usbProductId;
+    });
     try {
-      return await openPort(granted[0]);
+      return await openPort(matching ?? granted[0]);
     } catch {
       return null;
     }
@@ -83,13 +90,33 @@ export function useWebSerialDevice() {
     return () => navigator.serial.removeEventListener("disconnect", onDisconnect);
   }, []);
 
+  // Periodic liveness check (mirrors Bonrix's own reference page): grabbing
+  // and immediately releasing a writer throws if the port has actually gone
+  // away, which the disconnect event doesn't always catch promptly.
+  React.useEffect(() => {
+    if (!port) return;
+    const interval = setInterval(() => {
+      if (!port.writable) {
+        setPort(null);
+        return;
+      }
+      try {
+        const writer = port.writable.getWriter();
+        writer.releaseLock();
+      } catch {
+        setPort(null);
+      }
+    }, LIVENESS_CHECK_MS);
+    return () => clearInterval(interval);
+  }, [port]);
+
   /**
    * Writes a command string, then listens for whatever the device sends back.
    * Bonrix's own reference pages never gate success on a reply for display/audio
-   * commands (AT+STR_DISPLAY, AT+CODEC_TEST, etc.) - those appear to be fire-and-
-   * forget on this device, only query-style commands like AT+VER produce output.
-   * Pass expectResponse: true only for genuine query commands; otherwise a
-   * successful write is treated as success even if the device stays silent.
+   * commands - those appear to be fire-and-forget on this device, only query-style
+   * commands like AT+VER produce output. Pass expectResponse: true only for
+   * genuine query commands; otherwise a successful write is treated as success
+   * even if the device stays silent.
    */
   const sendCommand = React.useCallback(
     async (command: string, options: { expectResponse?: boolean } = {}): Promise<SerialExchangeResult> => {
@@ -146,5 +173,23 @@ export function useWebSerialDevice() {
     [port],
   );
 
-  return { port, connected: !!port, connecting, connect, autoConnect, disconnect, sendCommand };
+  /** Writes a raw byte stream (the RGB565 framebuffer for a full-screen image)
+   * with no read-back at all - matches Bonrix's own reference sendImage(),
+   * which never waits for a reply after pushing a bitmap. */
+  const sendRawBytes = React.useCallback(
+    async (bytes: Uint8Array): Promise<void> => {
+      if (!port || !port.writable) {
+        throw new Error("Device not connected");
+      }
+      const writer = port.writable.getWriter();
+      try {
+        await writer.write(bytes);
+      } finally {
+        writer.releaseLock();
+      }
+    },
+    [port],
+  );
+
+  return { port, connected: !!port, connecting, connect, autoConnect, disconnect, sendCommand, sendRawBytes };
 }

@@ -61,6 +61,32 @@ export class AppSettingsController {
     return this.appSettingsService.getBrandingPublic();
   }
 
+  @Get('public/dq12-assets')
+  @Public()
+  @ApiOperation({
+    summary: 'Get the configured Bonrix DQ12 background images',
+    description:
+      'Public endpoint (no auth required) - reads the qr_device.dq12.* keys and returns their paths ' +
+      '(or null if not configured) so both the system and tenant QR device pages can render the same screens.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Configured DQ12 background image paths.',
+    schema: {
+      example: {
+        welcome: 'app_settings_uploads/019f357c-....jpg',
+        success: null,
+        pending: null,
+        fail: null,
+        cancel: null,
+        qrBackground: null,
+      },
+    },
+  })
+  getDq12Assets() {
+    return this.appSettingsService.getDq12AssetsPublic();
+  }
+
   @Post('logo')
   @ApiBearerAuth()
   @RequirePermissions('app-settings:update')
