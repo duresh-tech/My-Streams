@@ -174,7 +174,6 @@ model TenantBusiness {
   customers         TenantCustomer[]
   counters          TenantCounter[]
   qrDevices         TenantQrDevice[]
-  qrDisplayTemplates TenantQrDisplayTemplate[]
 
   @@index([status])
   @@index([country])
@@ -562,36 +561,6 @@ model TenantCounter {
   @@map("tenant_counters")
 }
 
-enum TenantQrDisplayTemplateStatus {
-  ACTIVE
-  INACTIVE
-  BLOCKED
-  DELETED
-}
-
-model TenantQrDisplayTemplate {
-  id                  String                         @id @db.Char(36) // UUIDv7
-  systemCode          String                         @unique @db.VarChar(30)
-  tenantBusinessId    String?                        @db.Char(36) // null = system-wide preset
-  templateName        String                         @db.VarChar(100)
-  backgroundImagePath String?                        @db.VarChar(255)
-  logoOverridePath    String?                        @db.VarChar(255)
-  primaryColor        String?                        @db.VarChar(20)
-  footerText          String?                        @db.VarChar(255)
-  isSystemDefault     Boolean                        @default(false)
-  status              TenantQrDisplayTemplateStatus  @default(ACTIVE)
-  createdAt           BigInt
-  updatedAt           BigInt
-  deletedAt           BigInt?
-
-  tenantBusiness TenantBusiness?  @relation(fields: [tenantBusinessId], references: [id])
-  devices        TenantQrDevice[]
-
-  @@index([status])
-  @@index([tenantBusinessId])
-  @@map("tenant_qr_display_templates")
-}
-
 enum TenantQrDeviceModel {
   BONRIX_DQ12
   GENERIC
@@ -615,7 +584,6 @@ model TenantQrDevice {
   tenantBusinessId  String                       @db.Char(36)
   tenantPlaceId     String?                      @db.Char(36)
   tenantCounterId   String?                      @db.Char(36)
-  displayTemplateId String?                      @db.Char(36)
   deviceCode        String                       @db.VarChar(30)
   deviceName        String                       @db.VarChar(100)
   deviceModel       TenantQrDeviceModel          @default(BONRIX_DQ12)
@@ -632,7 +600,6 @@ model TenantQrDevice {
   tenantBusiness  TenantBusiness           @relation(fields: [tenantBusinessId], references: [id])
   tenantPlace     TenantPlace?             @relation(fields: [tenantPlaceId], references: [id])
   tenantCounter   TenantCounter?           @relation(fields: [tenantCounterId], references: [id])
-  displayTemplate TenantQrDisplayTemplate? @relation(fields: [displayTemplateId], references: [id])
   events          TenantQrDeviceEvent[]
 
   @@unique([tenantBusinessId, deviceCode])
@@ -640,7 +607,6 @@ model TenantQrDevice {
   @@index([tenantBusinessId])
   @@index([tenantPlaceId])
   @@index([tenantCounterId])
-  @@index([displayTemplateId])
   @@map("tenant_qr_devices")
 }
 

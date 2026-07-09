@@ -4,6 +4,10 @@ import * as React from "react";
 import { DQ12_SERIAL_OPTIONS } from "@/lib/bonrix-dq12-commands";
 
 const RESPONSE_TIMEOUT_MS = 3000;
+// Fire-and-forget commands (display/audio) still get a brief listen window so
+// anything the device sends unsolicited ends up in the debug log, but absence
+// of a reply is expected for these and must not count as a failure.
+const IDLE_LISTEN_MS = 300;
 
 export interface SerialExchangeResult {
   atCommand: string;
@@ -79,12 +83,18 @@ export function useWebSerialDevice() {
     return () => navigator.serial.removeEventListener("disconnect", onDisconnect);
   }, []);
 
-  /** Writes a command string, then reads back whatever the device sends within
-   * the timeout window. A DQ12 command exchange is presumed request/response
-   * (typical for AT-style protocols); adjust if the real device behaves differently. */
+  /**
+   * Writes a command string, then listens for whatever the device sends back.
+   * Bonrix's own reference pages never gate success on a reply for display/audio
+   * commands (AT+STR_DISPLAY, AT+CODEC_TEST, etc.) - those appear to be fire-and-
+   * forget on this device, only query-style commands like AT+VER produce output.
+   * Pass expectResponse: true only for genuine query commands; otherwise a
+   * successful write is treated as success even if the device stays silent.
+   */
   const sendCommand = React.useCallback(
-    async (command: string): Promise<SerialExchangeResult> => {
-      if (!port || !port.writable || !port.readable) {
+    async (command: string, options: { expectResponse?: boolean } = {}): Promise<SerialExchangeResult> => {
+      const { expectResponse = false } = options;
+      if (!port || !port.writable) {
         throw new Error("Device not connected");
       }
 
@@ -95,40 +105,43 @@ export function useWebSerialDevice() {
         writer.releaseLock();
       }
 
-      const reader = port.readable.getReader();
-      const decoder = new TextDecoder();
       let response = "";
-      const deadline = Date.now() + RESPONSE_TIMEOUT_MS;
-      try {
-        // Loop rather than a single read(): a reply can arrive in more than one
-        // chunk, or slightly after the first read() call resolves with nothing yet.
-        while (Date.now() < deadline) {
-          const remaining = deadline - Date.now();
-          const timedOut = Symbol("timeout");
-          const timeout = new Promise<typeof timedOut>((resolve) => setTimeout(() => resolve(timedOut), remaining));
-          const outcome = await Promise.race([reader.read(), timeout]);
-          if (outcome === timedOut) break;
-          const { value, done } = outcome;
-          if (done) break;
-          if (value) response += decoder.decode(value, { stream: true });
-          // Stop as soon as a line terminator shows up rather than waiting out the full timeout.
-          if (/[\r\n]/.test(response)) break;
-        }
-      } catch {
-        // Read error - report whatever was captured (possibly empty).
-      } finally {
-        // Cancel before releasing: releasing the lock while a read() is still
-        // outstanding throws inside that pending promise (unhandled rejection).
+      if (port.readable) {
+        const reader = port.readable.getReader();
+        const decoder = new TextDecoder();
+        const deadline = Date.now() + (expectResponse ? RESPONSE_TIMEOUT_MS : IDLE_LISTEN_MS);
         try {
-          await reader.cancel();
+          // Loop rather than a single read(): a reply can arrive in more than one
+          // chunk, or slightly after the first read() call resolves with nothing yet.
+          while (Date.now() < deadline) {
+            const remaining = deadline - Date.now();
+            const timedOut = Symbol("timeout");
+            const timeout = new Promise<typeof timedOut>((resolve) => setTimeout(() => resolve(timedOut), remaining));
+            const outcome = await Promise.race([reader.read(), timeout]);
+            if (outcome === timedOut) break;
+            const { value, done } = outcome;
+            if (done) break;
+            if (value) response += decoder.decode(value, { stream: true });
+            // Stop as soon as a line terminator shows up rather than waiting out the full window.
+            if (/[\r\n]/.test(response)) break;
+          }
         } catch {
-          // Port may already be closing - safe to ignore.
+          // Read error - report whatever was captured (possibly empty).
+        } finally {
+          // Cancel before releasing: releasing the lock while a read() is still
+          // outstanding throws inside that pending promise (unhandled rejection).
+          try {
+            await reader.cancel();
+          } catch {
+            // Port may already be closing - safe to ignore.
+          }
+          reader.releaseLock();
         }
-        reader.releaseLock();
       }
 
       const trimmed = response.trim();
-      return { atCommand: command, atResponse: trimmed, success: trimmed.length > 0 };
+      const success = expectResponse ? trimmed.length > 0 : true;
+      return { atCommand: command, atResponse: trimmed, success };
     },
     [port],
   );

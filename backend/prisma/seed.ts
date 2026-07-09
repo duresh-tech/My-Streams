@@ -39,7 +39,6 @@ const MODULES: Array<{ module: string; label: string; actions: string[] }> = [
   { module: 'tenant-places', label: 'Tenant Places', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
   { module: 'tenant-streets', label: 'Tenant Streets', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
   { module: 'tenant-counters', label: 'Tenant Counters', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
-  { module: 'qr-display-templates', label: 'QR Display Templates', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
   { module: 'tenant-qr-devices', label: 'Tenant QR Devices', actions: ['create', 'view', 'update', 'delete', 'list', 'restore', 'push', 'test', 'manage_payment_config', 'view_events'] },
   { module: 'tenant-customers', label: 'Tenant Customers', actions: ['create', 'view', 'update', 'delete', 'view_deleted', 'restore', 'export', 'import', 'change_status'] },
   { module: 'tenant-business-branches', label: 'Tenant Business Branches', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
@@ -64,11 +63,17 @@ const PERMISSIONS: PermissionSeed[] = MODULES.flatMap(({ module, label, actions 
  * grants cascade) so stale keys don't linger in the Roles UI. No-op once run.
  */
 async function cleanupLegacyPermissions() {
-  const { count } = await prisma.permission.deleteMany({
-    where: { moduleName: 'tenant-expense-categories' },
-  });
-  if (count > 0) {
-    console.log(`  - removed ${count} legacy tenant-expense-categories permission(s)`);
+  const removedModules = ['tenant-expense-categories', 'qr-display-templates'];
+  for (const moduleName of removedModules) {
+    const stale = await prisma.permission.findMany({ where: { moduleName }, select: { id: true } });
+    if (stale.length === 0) continue;
+    // Delete role_permissions explicitly rather than relying on the DB-level
+    // cascade - `prisma db push` doesn't reliably (re)apply ON DELETE CASCADE
+    // to an existing foreign key, so orphaned rows can otherwise survive and
+    // break any query that joins role -> role_permissions -> permission.
+    await prisma.rolePermission.deleteMany({ where: { permissionId: { in: stale.map((p) => p.id) } } });
+    const { count } = await prisma.permission.deleteMany({ where: { moduleName } });
+    console.log(`  - removed ${count} legacy ${moduleName} permission(s)`);
   }
 }
 
@@ -269,11 +274,6 @@ async function main() {
       'tenant-counters:create',
       'tenant-counters:update',
       'tenant-counters:delete',
-      'qr-display-templates:list',
-      'qr-display-templates:view',
-      'qr-display-templates:create',
-      'qr-display-templates:update',
-      'qr-display-templates:delete',
       'tenant-qr-devices:list',
       'tenant-qr-devices:view',
       'tenant-qr-devices:create',

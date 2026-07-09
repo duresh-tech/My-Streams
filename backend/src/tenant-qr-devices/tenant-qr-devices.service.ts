@@ -19,16 +19,6 @@ const DEVICE_INCLUDE = {
   tenantBusiness: { select: { id: true, systemCode: true, name: true } },
   tenantPlace: { select: { id: true, systemCode: true, placeName: true } },
   tenantCounter: { select: { id: true, systemCode: true, counterName: true } },
-  displayTemplate: {
-    select: {
-      id: true,
-      templateName: true,
-      backgroundImagePath: true,
-      logoOverridePath: true,
-      primaryColor: true,
-      footerText: true,
-    },
-  },
 };
 
 const TEST_AMOUNT = 1;
@@ -81,7 +71,6 @@ export class TenantQrDevicesService {
     await this.assertBusinessExists(dto.tenantBusinessId);
     if (dto.tenantPlaceId) await this.assertPlaceBelongsToBusiness(dto.tenantPlaceId, dto.tenantBusinessId);
     if (dto.tenantCounterId) await this.assertCounterBelongsToBusiness(dto.tenantCounterId, dto.tenantBusinessId);
-    if (dto.displayTemplateId) await this.assertTemplateUsable(dto.displayTemplateId, dto.tenantBusinessId);
     await this.assertDeviceCodeUnique(dto.tenantBusinessId, dto.deviceCode);
 
     const timestamp = now();
@@ -92,7 +81,6 @@ export class TenantQrDevicesService {
         tenantBusinessId: dto.tenantBusinessId,
         tenantPlaceId: dto.tenantPlaceId,
         tenantCounterId: dto.tenantCounterId,
-        displayTemplateId: dto.displayTemplateId,
         deviceCode: dto.deviceCode,
         deviceName: dto.deviceName,
         deviceModel: dto.deviceModel,
@@ -115,7 +103,6 @@ export class TenantQrDevicesService {
     if (dto.tenantBusinessId) await this.assertBusinessExists(dto.tenantBusinessId);
     if (dto.tenantPlaceId) await this.assertPlaceBelongsToBusiness(dto.tenantPlaceId, effectiveBusinessId);
     if (dto.tenantCounterId) await this.assertCounterBelongsToBusiness(dto.tenantCounterId, effectiveBusinessId);
-    if (dto.displayTemplateId) await this.assertTemplateUsable(dto.displayTemplateId, effectiveBusinessId);
     if (dto.deviceCode || dto.tenantBusinessId) {
       await this.assertDeviceCodeUnique(effectiveBusinessId, dto.deviceCode ?? device.deviceCode, id);
     }
@@ -324,17 +311,6 @@ export class TenantQrDevicesService {
       where: { id: tenantCounterId, tenantBusinessId, status: { not: 'DELETED' } },
     });
     if (!counter) throw new BadRequestException('Counter does not exist for the given tenant business');
-  }
-
-  private async assertTemplateUsable(displayTemplateId: string, tenantBusinessId: string) {
-    const template = await this.prisma.tenantQrDisplayTemplate.findFirst({
-      where: {
-        id: displayTemplateId,
-        status: { not: 'DELETED' },
-        OR: [{ tenantBusinessId: null }, { tenantBusinessId }],
-      },
-    });
-    if (!template) throw new BadRequestException('Display template is not available for this business');
   }
 
   private async assertDeviceCodeUnique(tenantBusinessId: string, deviceCode: string, excludeId?: string) {

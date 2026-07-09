@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { ArrowLeftRight, Building, Building2, CreditCard, Image, Mail, MapPin, Percent, QrCode, Route, Store, User, Wifi } from "lucide-react";
+import { ArrowLeftRight, Building, Building2, CreditCard, Mail, MapPin, Percent, QrCode, Route, Store, User, Wifi } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import {
@@ -26,7 +26,6 @@ const SETTINGS_NAV_ITEMS = [
   { href: "/tenant/settings/places", label: "Places", icon: MapPin, permission: "tenant-places:list" },
   { href: "/tenant/settings/streets", label: "Streets", icon: Route, permission: "tenant-streets:list" },
   { href: "/tenant/settings/counters", label: "Counters", icon: Store, permission: "tenant-counters:list" },
-  { href: "/tenant/settings/qr-display-templates", label: "QR Display Templates", icon: Image, permission: "qr-display-templates:list" },
   { href: "/tenant/settings/qr-devices", label: "QR Devices", icon: QrCode, permission: "tenant-qr-devices:list" },
 ];
 

@@ -35,7 +35,6 @@ const DEVICE_EXAMPLE = {
   tenantBusinessId: '019f357b-c211-71a0-9062-adc0f927a584',
   tenantPlaceId: '019f357b-d398-73aa-9062-adc0f927a584',
   tenantCounterId: '019f357b-f012-73aa-9062-adc0f927a584',
-  displayTemplateId: null,
   deviceCode: 'DQ12-01',
   deviceName: 'Front Counter Display',
   deviceModel: 'BONRIX_DQ12',
@@ -51,7 +50,6 @@ const DEVICE_EXAMPLE = {
   tenantBusiness: { id: '019f357b-c211-71a0-9062-adc0f927a584', systemCode: 'TNB-MR8NZ6OO-C0CB', name: 'Acme Retail Pvt Ltd' },
   tenantPlace: { id: '019f357b-d398-73aa-9062-adc0f927a584', systemCode: 'PLC-MR8NZ6OO-C0CB', placeName: 'Warehouse - Sector 12' },
   tenantCounter: { id: '019f357b-f012-73aa-9062-adc0f927a584', systemCode: 'CTR-MR8NZ6OO-C0CB', counterName: 'Counter 1' },
-  displayTemplate: null,
 };
 
 const PUSH_EXAMPLE = {

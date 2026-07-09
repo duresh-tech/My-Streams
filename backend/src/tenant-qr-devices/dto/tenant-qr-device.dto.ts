@@ -8,7 +8,6 @@ const CreateTenantQrDeviceSchema = z.object({
   tenantBusinessId: z.string().uuid(),
   tenantPlaceId: z.string().uuid().optional(),
   tenantCounterId: z.string().uuid().optional(),
-  displayTemplateId: z.string().uuid().optional(),
   deviceCode: z.string().min(1).max(30),
   deviceName: z.string().min(1).max(100),
   deviceModel: DeviceModelEnum.optional().default('BONRIX_DQ12'),

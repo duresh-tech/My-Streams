@@ -27,11 +27,19 @@ import {
 } from "@/components/ui/select";
 import { ResourceTable, StatusBadgeText, type Column } from "@/components/resource-table";
 import { RowActionsMenu } from "@/components/row-actions-menu";
-import { QrDisplayPreview, type QrDisplayTemplateInfo } from "@/components/qr-display-preview";
+import { QrDisplayPreview } from "@/components/qr-display-preview";
 import { useResourceList } from "@/hooks/use-resource-list";
 import { useTenantSession } from "@/hooks/use-tenant-session";
 import { isWebSerialSupported, useWebSerialDevice, type SerialExchangeResult } from "@/hooks/use-web-serial-device";
-import { buildAmountCommand, buildShowQrCommand, buildTestCommand } from "@/lib/bonrix-dq12-commands";
+import {
+  buildAmountCommand,
+  buildPaymentCancelledCommands,
+  buildPaymentFailedCommands,
+  buildPaymentSuccessCommands,
+  buildShowQrCommand,
+  buildTestCommand,
+  buildWelcomeCommands,
+} from "@/lib/bonrix-dq12-commands";
 import { TenantApiError, tenantApi } from "@/lib/tenant-api";
 
 type DeviceStatus = "ACTIVE" | "INACTIVE" | "BLOCKED" | "DELETED";
@@ -43,7 +51,6 @@ interface DeviceRow {
   tenantBusinessId: string;
   tenantPlaceId: string | null;
   tenantCounterId: string | null;
-  displayTemplateId: string | null;
   deviceCode: string;
   deviceName: string;
   deviceModel: "BONRIX_DQ12" | "GENERIC";
@@ -55,7 +62,6 @@ interface DeviceRow {
   tenantBusiness?: { id: string; systemCode: string; name: string };
   tenantPlace?: { id: string; systemCode: string; placeName: string } | null;
   tenantCounter?: { id: string; systemCode: string; counterName: string } | null;
-  displayTemplate?: QrDisplayTemplateInfo | null;
 }
 
 interface OptionRow {
@@ -63,14 +69,12 @@ interface OptionRow {
   name?: string;
   placeName?: string;
   counterName?: string;
-  templateName?: string;
 }
 
 interface DeviceFormValues {
   tenantBusinessId: string;
   tenantPlaceId: string;
   tenantCounterId: string;
-  displayTemplateId: string;
   deviceCode: string;
   deviceName: string;
   deviceModel: "BONRIX_DQ12" | "GENERIC";
@@ -81,7 +85,6 @@ const EMPTY_FORM: DeviceFormValues = {
   tenantBusinessId: "",
   tenantPlaceId: "",
   tenantCounterId: "",
-  displayTemplateId: "",
   deviceCode: "",
   deviceName: "",
   deviceModel: "BONRIX_DQ12",
@@ -113,7 +116,6 @@ export default function TenantQrDevicesPage() {
   const [businessOptions, setBusinessOptions] = React.useState<OptionRow[] | null>(null);
   const [placeOptions, setPlaceOptions] = React.useState<OptionRow[] | null>(null);
   const [counterOptions, setCounterOptions] = React.useState<OptionRow[] | null>(null);
-  const [templateOptions, setTemplateOptions] = React.useState<OptionRow[] | null>(null);
 
   const [formOpen, setFormOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<DeviceRow | null>(null);
@@ -174,19 +176,24 @@ export default function TenantQrDevicesPage() {
   }
 
   /** Writes the AT command(s) for this result to the connected device, then
-   * reports the raw exchange back to the backend event log regardless of outcome. */
+   * reports the raw exchange back to the backend event log regardless of outcome.
+   * Most DQ12 commands (display/audio) are fire-and-forget per Bonrix's own
+   * reference code - only pass expectResponse for genuine query commands like
+   * AT+VER, otherwise a clean write is treated as success even with no reply. */
   async function writeToHardwareAndLog(
     deviceId: string,
     eventType: "PUSH_REQUESTED" | "TEST_TRIGGERED",
     commands: string[],
+    options: { expectResponse?: boolean; label?: string } = {},
   ) {
     if (connectedDeviceId !== deviceId) return;
+    const { expectResponse = false, label } = options;
     const exchanges: SerialExchangeResult[] = [];
     let failed = false;
     try {
       for (const command of commands) {
         // eslint-disable-next-line no-await-in-loop
-        exchanges.push(await serial.sendCommand(command));
+        exchanges.push(await serial.sendCommand(command, { expectResponse }));
       }
     } catch (error) {
       failed = true;
@@ -204,14 +211,16 @@ export default function TenantQrDevicesPage() {
           eventType: success ? eventType : "ERROR",
           atCommand: exchanges.map((e) => e.atCommand).join("\n"),
           atResponse: exchanges.map((e) => e.atResponse).join("\n"),
-          message: success ? "Hardware write succeeded" : "Hardware write failed or device did not respond",
+          message: success
+            ? `${label ?? "Hardware write"} sent`
+            : `${label ?? "Hardware write"} failed - device did not respond`,
         },
       });
     } catch {
       // Logging failure shouldn't block the operator - the QR is already shown either way.
     }
-    if (success) toast.success("Sent to device");
-    else toast.error("Device did not confirm the write - check the connection");
+    if (success) toast.success(label ? `${label} sent to device` : "Sent to device");
+    else toast.error("Write failed - check the connection");
   }
 
   function loadBusinessOptions(): Promise<OptionRow[]> {
@@ -241,15 +250,7 @@ export default function TenantQrDevicesPage() {
       .catch(() => toast.error("Failed to load counter list"));
   }
 
-  function ensureTemplateOptions() {
-    if (templateOptions) return;
-    tenantApi<{ items: OptionRow[] }>("/tenant/qr-display-templates?limit=100&page=1")
-      .then((data) => setTemplateOptions(data.items))
-      .catch(() => toast.error("Failed to load template list"));
-  }
-
   function openCreate() {
-    ensureTemplateOptions();
     setEditing(null);
     setForm(EMPTY_FORM);
     setPlaceOptions(null);
@@ -266,13 +267,11 @@ export default function TenantQrDevicesPage() {
 
   function openEdit(row: DeviceRow) {
     loadBusinessOptions();
-    ensureTemplateOptions();
     setEditing(row);
     setForm({
       tenantBusinessId: row.tenantBusinessId,
       tenantPlaceId: row.tenantPlaceId ?? "",
       tenantCounterId: row.tenantCounterId ?? "",
-      displayTemplateId: row.displayTemplateId ?? "",
       deviceCode: row.deviceCode,
       deviceName: row.deviceName,
       deviceModel: row.deviceModel,
@@ -297,7 +296,6 @@ export default function TenantQrDevicesPage() {
         tenantBusinessId: form.tenantBusinessId,
         tenantPlaceId: form.tenantPlaceId || undefined,
         tenantCounterId: form.tenantCounterId || undefined,
-        displayTemplateId: form.displayTemplateId || undefined,
         deviceCode: form.deviceCode,
         deviceName: form.deviceName,
         deviceModel: form.deviceModel,
@@ -378,10 +376,12 @@ export default function TenantQrDevicesPage() {
       const deviceId = pushTarget.id;
       setPushTarget(null);
       list.refresh();
-      await writeToHardwareAndLog(deviceId, "PUSH_REQUESTED", [
-        buildShowQrCommand(result.upiLink),
-        buildAmountCommand(result.amount),
-      ]);
+      await writeToHardwareAndLog(
+        deviceId,
+        "PUSH_REQUESTED",
+        [buildShowQrCommand(result.upiLink), buildAmountCommand(result.amount)],
+        { label: "Payment QR" },
+      );
     } catch (error) {
       toast.error(error instanceof TenantApiError ? error.message : "Failed to generate QR");
     } finally {
@@ -396,12 +396,22 @@ export default function TenantQrDevicesPage() {
       setPreviewDevice(row);
       setPreviewResult(result);
       list.refresh();
-      await writeToHardwareAndLog(row.id, "TEST_TRIGGERED", [buildTestCommand()]);
+      await writeToHardwareAndLog(row.id, "TEST_TRIGGERED", [buildTestCommand()], {
+        expectResponse: true,
+        label: "Version check (AT+VER)",
+      });
     } catch (error) {
       toast.error(error instanceof TenantApiError ? error.message : "Test failed");
     } finally {
       setTestingId(null);
     }
+  }
+
+  /** Canned demo scenes for the Test dialog - fire-and-forget display/audio
+   * commands, confirmed visually/audibly on the physical device rather than
+   * via a serial reply (the DQ12 doesn't ack these per Bonrix's own reference code). */
+  async function onSendScene(deviceId: string, label: string, commands: string[]) {
+    await writeToHardwareAndLog(deviceId, "TEST_TRIGGERED", commands, { label });
   }
 
   const columns: Column<DeviceRow>[] = [
@@ -516,29 +526,15 @@ export default function TenantQrDevicesPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="grid gap-2">
-                  <Label>Model</Label>
-                  <Select value={form.deviceModel} onValueChange={(v) => setForm((f) => ({ ...f, deviceModel: v as DeviceFormValues["deviceModel"] }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="BONRIX_DQ12">Bonrix DQ12</SelectItem>
-                      <SelectItem value="GENERIC">Generic</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-2">
-                  <Label>Display Template</Label>
-                  <Combobox
-                    options={templateOptions?.map((t) => ({ value: t.id, label: t.templateName ?? "" })) ?? null}
-                    value={form.displayTemplateId}
-                    onValueChange={(v) => setForm((f) => ({ ...f, displayTemplateId: v }))}
-                    onOpenChange={(open) => open && ensureTemplateOptions()}
-                    placeholder="Use system default"
-                    searchPlaceholder="Search templates..."
-                    emptyText="No templates found."
-                  />
-                </div>
+              <div className="grid gap-2">
+                <Label>Model</Label>
+                <Select value={form.deviceModel} onValueChange={(v) => setForm((f) => ({ ...f, deviceModel: v as DeviceFormValues["deviceModel"] }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="BONRIX_DQ12">Bonrix DQ12</SelectItem>
+                    <SelectItem value="GENERIC">Generic</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               {editing && (
@@ -644,9 +640,63 @@ export default function TenantQrDevicesPage() {
               note={previewResult.note}
               isTest={previewResult.isTest}
               deviceName={previewDevice.deviceName}
-              template={previewDevice.displayTemplate}
             />
           )}
+
+          {previewResult?.isTest && previewDevice && canTest && (
+            <div className="grid gap-2">
+              <Label className="text-xs text-muted-foreground">
+                {connectedDeviceId === previewDevice.id
+                  ? "Send a demo scene to the connected device"
+                  : "Connect the device to send a demo scene"}
+              </Label>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={connectedDeviceId !== previewDevice.id}
+                  onClick={() => onSendScene(previewDevice.id, "Welcome", buildWelcomeCommands())}
+                >
+                  Welcome
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={connectedDeviceId !== previewDevice.id}
+                  onClick={() =>
+                    onSendScene(
+                      previewDevice.id,
+                      "Payment Success",
+                      buildPaymentSuccessCommands(previewResult.amount),
+                    )
+                  }
+                >
+                  Payment Success
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={connectedDeviceId !== previewDevice.id}
+                  onClick={() => onSendScene(previewDevice.id, "Payment Failed", buildPaymentFailedCommands())}
+                >
+                  Payment Failed
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={connectedDeviceId !== previewDevice.id}
+                  onClick={() => onSendScene(previewDevice.id, "Payment Cancelled", buildPaymentCancelledCommands())}
+                >
+                  Payment Cancelled
+                </Button>
+              </div>
+            </div>
+          )}
+
           <DialogFooter>
             <Button type="button" onClick={() => setPreviewResult(null)}>Close</Button>
           </DialogFooter>
