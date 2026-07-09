@@ -720,7 +720,7 @@ export default function TenantCustomersPage() {
               />
             </>
           ) : (
-            <form onSubmit={onSubmit} className="max-h-[75vh] overflow-y-auto pr-1">
+            <form onSubmit={onSubmit}>
               <DialogHeader>
                 <DialogTitle>{editing ? "Edit Customer" : "Add Customer"}</DialogTitle>
                 <DialogDescription>A customer belonging to a tenant business.</DialogDescription>
