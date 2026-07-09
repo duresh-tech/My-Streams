@@ -173,6 +173,8 @@ model TenantBusiness {
   streets           TenantStreet[]
   customers         TenantCustomer[]
   counters          TenantCounter[]
+  qrDevices         TenantQrDevice[]
+  qrDisplayTemplates TenantQrDisplayTemplate[]
 
   @@index([status])
   @@index([country])
@@ -489,6 +491,7 @@ model TenantPlace {
   streets        TenantStreet[]
   customers      TenantCustomer[]
   counters       TenantCounter[]
+  qrDevices      TenantQrDevice[]
 
   @@index([status])
   @@index([tenantBusinessId])
@@ -548,14 +551,125 @@ model TenantCounter {
   updatedAt        BigInt
   deletedAt        BigInt?
 
-  tenantBusiness TenantBusiness @relation(fields: [tenantBusinessId], references: [id])
-  tenantPlace    TenantPlace?   @relation(fields: [tenantPlaceId], references: [id])
+  tenantBusiness TenantBusiness   @relation(fields: [tenantBusinessId], references: [id])
+  tenantPlace    TenantPlace?     @relation(fields: [tenantPlaceId], references: [id])
+  qrDevices      TenantQrDevice[]
 
   @@unique([tenantBusinessId, counterCode])
   @@index([status])
   @@index([tenantBusinessId])
   @@index([tenantPlaceId])
   @@map("tenant_counters")
+}
+
+enum TenantQrDisplayTemplateStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+  DELETED
+}
+
+model TenantQrDisplayTemplate {
+  id                  String                         @id @db.Char(36) // UUIDv7
+  systemCode          String                         @unique @db.VarChar(30)
+  tenantBusinessId    String?                        @db.Char(36) // null = system-wide preset
+  templateName        String                         @db.VarChar(100)
+  backgroundImagePath String?                        @db.VarChar(255)
+  logoOverridePath    String?                        @db.VarChar(255)
+  primaryColor        String?                        @db.VarChar(20)
+  footerText          String?                        @db.VarChar(255)
+  isSystemDefault     Boolean                        @default(false)
+  status              TenantQrDisplayTemplateStatus  @default(ACTIVE)
+  createdAt           BigInt
+  updatedAt           BigInt
+  deletedAt           BigInt?
+
+  tenantBusiness TenantBusiness?  @relation(fields: [tenantBusinessId], references: [id])
+  devices        TenantQrDevice[]
+
+  @@index([status])
+  @@index([tenantBusinessId])
+  @@map("tenant_qr_display_templates")
+}
+
+enum TenantQrDeviceModel {
+  BONRIX_DQ12
+  GENERIC
+}
+
+enum TenantQrDeviceCollectionMode {
+  MANUAL
+  AUTOMATIC
+}
+
+enum TenantQrDeviceStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+  DELETED
+}
+
+model TenantQrDevice {
+  id                String                       @id @db.Char(36) // UUIDv7
+  systemCode        String                       @unique @db.VarChar(30)
+  tenantBusinessId  String                       @db.Char(36)
+  tenantPlaceId     String?                      @db.Char(36)
+  tenantCounterId   String?                      @db.Char(36)
+  displayTemplateId String?                      @db.Char(36)
+  deviceCode        String                       @db.VarChar(30)
+  deviceName        String                       @db.VarChar(100)
+  deviceModel       TenantQrDeviceModel          @default(BONRIX_DQ12)
+  collectionMode    TenantQrDeviceCollectionMode @default(MANUAL)
+  upiVpa            String?                      @db.VarChar(150)
+  lastPushAt        BigInt?
+  lastTestAt        BigInt?
+  lastPaymentAt     BigInt?
+  status            TenantQrDeviceStatus         @default(ACTIVE)
+  createdAt         BigInt
+  updatedAt         BigInt
+  deletedAt         BigInt?
+
+  tenantBusiness  TenantBusiness           @relation(fields: [tenantBusinessId], references: [id])
+  tenantPlace     TenantPlace?             @relation(fields: [tenantPlaceId], references: [id])
+  tenantCounter   TenantCounter?           @relation(fields: [tenantCounterId], references: [id])
+  displayTemplate TenantQrDisplayTemplate? @relation(fields: [displayTemplateId], references: [id])
+  events          TenantQrDeviceEvent[]
+
+  @@unique([tenantBusinessId, deviceCode])
+  @@index([status])
+  @@index([tenantBusinessId])
+  @@index([tenantPlaceId])
+  @@index([tenantCounterId])
+  @@index([displayTemplateId])
+  @@map("tenant_qr_devices")
+}
+
+enum TenantQrDeviceEventType {
+  CREATED
+  CONFIG_UPDATED
+  PUSH_REQUESTED
+  TEST_TRIGGERED
+  PAYMENT_CONFIRMED
+  ERROR
+}
+
+model TenantQrDeviceEvent {
+  id               String                  @id @db.Char(36) // UUIDv7
+  tenantQrDeviceId String                  @db.Char(36)
+  eventType        TenantQrDeviceEventType
+  amount           Decimal?                @db.Decimal(12, 2)
+  message          String?                 @db.VarChar(255)
+  atCommand        String?                 @db.Text
+  atResponse       String?                 @db.Text
+  payload          String?                 @db.LongText
+  createdAt        BigInt
+
+  device TenantQrDevice @relation(fields: [tenantQrDeviceId], references: [id], onDelete: Cascade)
+
+  @@index([tenantQrDeviceId])
+  @@index([eventType])
+  @@index([createdAt])
+  @@map("tenant_qr_device_events")
 }
 
 enum TenantCustomerGender {
