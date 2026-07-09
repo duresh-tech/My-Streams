@@ -113,6 +113,10 @@ export default function TenantQrDevicesPage() {
   const canTest = hasPermission("tenant-qr-devices:test");
 
   const list = useResourceList<DeviceRow>("/tenant/qr-devices", {}, tenantApi);
+  // Only one QR device is allowed per account (backend-enforced too) - hide
+  // the Add button once one already exists rather than letting the create
+  // call fail.
+  const canAddMore = canCreate && (list.rows?.length ?? 0) === 0;
 
   const [businessOptions, setBusinessOptions] = React.useState<OptionRow[] | null>(null);
   const [placeOptions, setPlaceOptions] = React.useState<OptionRow[] | null>(null);
@@ -155,15 +159,17 @@ export default function TenantQrDevicesPage() {
   }, []);
 
   // A Web Serial permission grant survives page reloads, but the *open port
-  // object* does not - the browser closes it on navigation/refresh. On mount,
-  // silently reopen whatever port this origin was already granted (no picker),
-  // and restore which device row it belongs to from the last session.
+  // object* does not - the browser closes it on navigation/refresh. Only
+  // auto-reopen it if the user has manually connected before (tracked via
+  // CONNECTED_DEVICE_STORAGE_KEY, which onDisconnectDevice clears) - a fresh
+  // visitor or someone who explicitly disconnected should not get silently
+  // reconnected on their next visit.
   React.useEffect(() => {
     if (!webSerialSupported) return;
+    const savedDeviceId = localStorage.getItem(CONNECTED_DEVICE_STORAGE_KEY);
+    if (!savedDeviceId) return;
     serial.autoConnect().then((reopened) => {
-      if (!reopened) return;
-      const savedDeviceId = localStorage.getItem(CONNECTED_DEVICE_STORAGE_KEY);
-      if (savedDeviceId) setConnectedDeviceId(savedDeviceId);
+      if (reopened) setConnectedDeviceId(savedDeviceId);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -461,7 +467,7 @@ export default function TenantQrDevicesPage() {
         search={list.search}
         onSearchChange={list.setSearch}
         onSearchSubmit={list.applySearch}
-        toolbarAction={canCreate ? <Button onClick={openCreate}><Plus className="size-4" /> Add Device</Button> : undefined}
+        toolbarAction={canAddMore ? <Button onClick={openCreate}><Plus className="size-4" /> Add Device</Button> : undefined}
         renderActions={(row) => (
           <RowActionsMenu
             actions={[

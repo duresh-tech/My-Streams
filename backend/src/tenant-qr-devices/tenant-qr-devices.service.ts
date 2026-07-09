@@ -394,6 +394,13 @@ export class TenantQrDevicesService {
 
   async createForTenantUser(tenantUserId: string, dto: CreateTenantQrDeviceDto) {
     await this.assertBusinessOwned(tenantUserId, dto.tenantBusinessId);
+    const businessIds = await this.getMappedBusinessIds(tenantUserId);
+    const existing = await this.prisma.tenantQrDevice.count({
+      where: { tenantBusinessId: { in: businessIds }, status: { not: 'DELETED' } },
+    });
+    if (existing > 0) {
+      throw new BadRequestException('Only one QR device is allowed per account. Delete the existing device before adding a new one.');
+    }
     return this.create(dto);
   }
 

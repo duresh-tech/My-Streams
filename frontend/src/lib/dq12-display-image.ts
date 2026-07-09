@@ -8,10 +8,20 @@
  * uploads branded art.
  */
 
+import { UPLOADS_ORIGIN } from "@/lib/api";
+
 export const DQ12_SCREEN_WIDTH = 320;
 export const DQ12_SCREEN_HEIGHT = 480;
 
 const imageCache = new Map<string, HTMLImageElement>();
+
+/** App Settings returns bare storage paths (e.g. "app_settings_uploads/xyz.png"),
+ * not full URLs - resolve those against the uploads origin; data:/http(s): URLs
+ * (the QR code itself, or a future absolute URL) pass through unchanged. */
+function toAssetUrl(path: string): string {
+  if (/^(https?:|data:)/.test(path)) return path;
+  return `${UPLOADS_ORIGIN}/uploads/${path}`;
+}
 
 function loadImage(url: string): Promise<HTMLImageElement> {
   const cached = imageCache.get(url);
@@ -58,7 +68,7 @@ async function renderScreen(
 
   let textColor = "#000000";
   if (backgroundUrl) {
-    const image = await loadImage(backgroundUrl);
+    const image = await loadImage(toAssetUrl(backgroundUrl));
     ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
   } else {
     textColor = "#ffffff";
