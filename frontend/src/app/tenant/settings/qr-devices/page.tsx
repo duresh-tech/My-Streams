@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { FlaskConical, LoaderCircle, Pencil, Plus, QrCode, RefreshCw, Trash2, Unplug, Usb, Wallet } from "lucide-react";
+import { FlaskConical, LoaderCircle, Pencil, Plus, RefreshCw, Trash2, Unplug, Usb, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -43,6 +43,7 @@ import {
   renderWelcomeScreen,
 } from "@/lib/dq12-display-image";
 import { fetchDq12Assets, type Dq12Assets } from "@/lib/app-settings";
+import { buildUpiUri, generateQrDataUrl } from "@/lib/upi-uri";
 import { TenantApiError, tenantApi } from "@/lib/tenant-api";
 
 type DeviceStatus = "ACTIVE" | "INACTIVE" | "BLOCKED" | "DELETED";
@@ -116,7 +117,6 @@ export default function TenantQrDevicesPage() {
   const canUpdate = hasPermission("tenant-qr-devices:update");
   const canDelete = hasPermission("tenant-qr-devices:delete");
   const canManagePayment = hasPermission("tenant-qr-devices:manage_payment_config");
-  const canPush = hasPermission("tenant-qr-devices:push");
   const canTest = hasPermission("tenant-qr-devices:test");
 
   const list = useResourceList<DeviceRow>("/tenant/qr-devices", {}, tenantApi);
@@ -141,10 +141,6 @@ export default function TenantQrDevicesPage() {
   const [paymentForm, setPaymentForm] = React.useState({ upiVpa: "", collectionMode: "MANUAL" as CollectionMode });
   const [savingPayment, setSavingPayment] = React.useState(false);
 
-  const [pushTarget, setPushTarget] = React.useState<DeviceRow | null>(null);
-  const [pushAmount, setPushAmount] = React.useState("");
-  const [pushNote, setPushNote] = React.useState("");
-  const [pushing, setPushing] = React.useState(false);
   const [testingId, setTestingId] = React.useState<string | null>(null);
 
   const [previewDevice, setPreviewDevice] = React.useState<DeviceRow | null>(null);
@@ -159,6 +155,18 @@ export default function TenantQrDevicesPage() {
   // AT+CODEC_TEST audio cue is sent alongside any scene - both independently toggleable.
   const [showAmountFlag, setShowAmountFlag] = React.useState(true);
   const [playVoiceFlag, setPlayVoiceFlag] = React.useState(true);
+
+  // Custom UPI QR composer (Test dialog only) - lets the operator build an
+  // arbitrary UPI deep link (pa/pn/am/cu + optional tr/tn/tid/url) rather than
+  // being limited to the device's own configured VPA, for testing how the
+  // DQ12 renders different QR content. Only pa/am (+ cu=INR, always sent) are
+  // required; pn defaults to the business name if left blank.
+  const [qrUpiId, setQrUpiId] = React.useState("");
+  const [qrReceiverName, setQrReceiverName] = React.useState("");
+  const [qrTransactionNo, setQrTransactionNo] = React.useState("");
+  const [qrDescription, setQrDescription] = React.useState("");
+  const [qrGatewayTxnId, setQrGatewayTxnId] = React.useState("");
+  const [qrRedirectUrl, setQrRedirectUrl] = React.useState("");
 
   // Web Serial: the backend has no network path to a merchant's counter PC, so
   // hardware connect/write happens here in the browser, one COM port per tab.
@@ -227,7 +235,7 @@ export default function TenantQrDevicesPage() {
    * logged to the backend either way. */
   async function sendSceneToDevice(
     deviceId: string,
-    eventType: "PUSH_REQUESTED" | "TEST_TRIGGERED",
+    eventType: "TEST_TRIGGERED",
     label: string,
     canvas: HTMLCanvasElement,
     audioClip: number,
@@ -271,7 +279,7 @@ export default function TenantQrDevicesPage() {
    * connected, also pushes it to the physical screen. */
   async function showScene(
     deviceId: string,
-    eventType: "PUSH_REQUESTED" | "TEST_TRIGGERED",
+    eventType: "TEST_TRIGGERED",
     label: string,
     canvas: HTMLCanvasElement,
     audioClip: number,
@@ -416,43 +424,6 @@ export default function TenantQrDevicesPage() {
     }
   }
 
-  function openPush(row: DeviceRow) {
-    setPushTarget(row);
-    setPushAmount("");
-    setPushNote("");
-  }
-
-  async function onSubmitPush(e: React.FormEvent) {
-    e.preventDefault();
-    if (!pushTarget) return;
-    setPushing(true);
-    try {
-      const result = await tenantApi<PushResult>(`/tenant/qr-devices/${pushTarget.id}/push`, {
-        method: "POST",
-        body: { amount: Number(pushAmount), note: pushNote || undefined },
-      });
-      setPreviewDevice(pushTarget);
-      setPreviewResult(result);
-      setPreviewImageUrl(null);
-      setSceneAmount(String(result.amount));
-      const deviceId = pushTarget.id;
-      const vpa = pushTarget.upiVpa;
-      setPushTarget(null);
-      list.refresh();
-      const canvas = await renderQrScreen({
-        backgroundUrl: dq12Assets?.qrBackground,
-        qrDataUrl: result.qrDataUrl,
-        amount: result.amount,
-        vpa,
-      });
-      await showScene(deviceId, "PUSH_REQUESTED", "Payment QR", canvas, DQ12_AUDIO_CLIP.QR_SCAN, playVoiceFlag);
-    } catch (error) {
-      toast.error(error instanceof TenantApiError ? error.message : "Failed to generate QR");
-    } finally {
-      setPushing(false);
-    }
-  }
-
   async function onTest(row: DeviceRow) {
     setTestingId(row.id);
     try {
@@ -461,6 +432,12 @@ export default function TenantQrDevicesPage() {
       setPreviewResult(result);
       setPreviewImageUrl(null);
       setSceneAmount(String(result.amount));
+      setQrUpiId(row.upiVpa ?? "");
+      setQrReceiverName(row.tenantBusiness?.name ?? "");
+      setQrTransactionNo("");
+      setQrDescription("");
+      setQrGatewayTxnId("");
+      setQrRedirectUrl("");
       list.refresh();
       const canvas = await renderWelcomeScreen(dq12Assets?.welcome);
       await showScene(row.id, "TEST_TRIGGERED", "Welcome", canvas, DQ12_AUDIO_CLIP.WELCOME, playVoiceFlag);
@@ -493,19 +470,6 @@ export default function TenantQrDevicesPage() {
 
   return (
     <>
-      {webSerialSupported && (
-        <div
-          className={`flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium text-white ${serial.connected ? "bg-emerald-600" : "bg-red-600"}`}
-        >
-          <span>{serial.connected ? "DQ12 device connected" : "DQ12 device not connected"}</span>
-          {serial.connected && connectedDeviceId && (
-            <span className="text-xs font-normal opacity-90">
-              {list.rows?.find((r) => r.id === connectedDeviceId)?.deviceName ?? connectedDeviceId}
-            </span>
-          )}
-        </div>
-      )}
-
       <ResourceTable<DeviceRow>
         title="QR Devices"
         description="Payment QR display devices at your counters."
@@ -524,7 +488,6 @@ export default function TenantQrDevicesPage() {
             actions={[
               ...(canUpdate ? [{ label: "Edit", icon: Pencil, onClick: () => openEdit(row) }] : []),
               ...(canManagePayment ? [{ label: "Payment Config", icon: Wallet, onClick: () => openPaymentConfig(row) }] : []),
-              ...(canPush ? [{ label: "Collect Payment", icon: QrCode, onClick: () => openPush(row) }] : []),
               ...(canTest ? [{ label: "Test", icon: FlaskConical, onClick: () => onTest(row), loading: testingId === row.id, disabled: testingId === row.id }] : []),
               ...(webSerialSupported && row.deviceModel === "BONRIX_DQ12"
                 ? connectedDeviceId === row.id
@@ -673,36 +636,7 @@ export default function TenantQrDevicesPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Collect payment (push) - amount entry */}
-      <Dialog open={!!pushTarget} onOpenChange={(open) => !open && setPushTarget(null)}>
-        <DialogContent>
-          <form onSubmit={onSubmitPush}>
-            <DialogHeader>
-              <DialogTitle>Collect Payment</DialogTitle>
-              <DialogDescription>{pushTarget?.deviceName}</DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="pushAmount">Amount (₹)</Label>
-                <Input id="pushAmount" type="number" step="0.01" min="0.01" required value={pushAmount} onChange={(e) => setPushAmount(e.target.value)} />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="pushNote">Note (optional)</Label>
-                <Input id="pushNote" maxLength={100} value={pushNote} onChange={(e) => setPushNote(e.target.value)} />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setPushTarget(null)} disabled={pushing}>Cancel</Button>
-              <Button type="submit" disabled={pushing || !pushAmount}>
-                {pushing && <LoaderCircle className="size-4 animate-spin" />}
-                Generate QR
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Preview (push result / test result) - what the physical screen would show */}
+      {/* Preview (test result) - what the physical screen would show */}
       <Dialog
         open={!!previewResult}
         onOpenChange={(open) => {
@@ -714,7 +648,7 @@ export default function TenantQrDevicesPage() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{previewResult?.isTest ? "Test Preview" : "Payment QR"}</DialogTitle>
+            <DialogTitle>Test Preview</DialogTitle>
             <DialogDescription>{previewDevice?.deviceName}</DialogDescription>
           </DialogHeader>
           {previewImageUrl ? (
@@ -832,6 +766,66 @@ export default function TenantQrDevicesPage() {
                   }}
                 >
                   Payment Cancelled
+                </Button>
+              </div>
+
+              <div className="grid gap-2 border-t pt-3">
+                <Label className="text-xs text-muted-foreground">
+                  Custom UPI QR - build an arbitrary payment link to test how the device renders it
+                </Label>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="qrUpiId">UPI ID (pa) *</Label>
+                    <Input id="qrUpiId" required placeholder="merchant@upi" value={qrUpiId} onChange={(e) => setQrUpiId(e.target.value)} />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="qrReceiverName">Receiver Name (pn)</Label>
+                    <Input id="qrReceiverName" placeholder="Merchant" value={qrReceiverName} onChange={(e) => setQrReceiverName(e.target.value)} />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="qrTransactionNo">Transaction No. (tr)</Label>
+                    <Input id="qrTransactionNo" value={qrTransactionNo} onChange={(e) => setQrTransactionNo(e.target.value)} />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="qrGatewayTxnId">Gateway Transaction ID (tid)</Label>
+                    <Input id="qrGatewayTxnId" value={qrGatewayTxnId} onChange={(e) => setQrGatewayTxnId(e.target.value)} />
+                  </div>
+                  <div className="grid gap-1.5 sm:col-span-2">
+                    <Label htmlFor="qrDescription">Description (tn)</Label>
+                    <Input id="qrDescription" value={qrDescription} onChange={(e) => setQrDescription(e.target.value)} />
+                  </div>
+                  <div className="grid gap-1.5 sm:col-span-2">
+                    <Label htmlFor="qrRedirectUrl">Redirect URL (url)</Label>
+                    <Input id="qrRedirectUrl" type="url" placeholder="https://..." value={qrRedirectUrl} onChange={(e) => setQrRedirectUrl(e.target.value)} />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">Amount and cu=INR are taken from the amount field above and always included.</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={!qrUpiId || !sceneAmount || Number(sceneAmount) <= 0}
+                  onClick={async () => {
+                    const upiLink = buildUpiUri({
+                      pa: qrUpiId,
+                      pn: qrReceiverName,
+                      am: sceneAmount,
+                      tr: qrTransactionNo || undefined,
+                      tn: qrDescription || undefined,
+                      tid: qrGatewayTxnId || undefined,
+                      url: qrRedirectUrl || undefined,
+                    });
+                    const qrDataUrl = await generateQrDataUrl(upiLink);
+                    const canvas = await renderQrScreen({
+                      backgroundUrl: dq12Assets?.qrBackground,
+                      qrDataUrl,
+                      amount: Number(sceneAmount),
+                      vpa: qrUpiId,
+                    });
+                    await showScene(previewDevice.id, "TEST_TRIGGERED", "Custom QR", canvas, DQ12_AUDIO_CLIP.QR_SCAN, playVoiceFlag);
+                  }}
+                >
+                  Show QR
                 </Button>
               </div>
             </div>

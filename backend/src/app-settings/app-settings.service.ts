@@ -21,7 +21,7 @@ const DQ12_IMAGE_KEYS = {
   pending: 'qr_device.dq12.pending_image',
   fail: 'qr_device.dq12.fail_image',
   cancel: 'qr_device.dq12.cancel_image',
-  qrBackground: 'qr_device.dq12.qr_background_image',
+  qrBackground: 'qr_device.dq12.to_pay_qr_bg_image',
 } as const;
 
 @Injectable()
