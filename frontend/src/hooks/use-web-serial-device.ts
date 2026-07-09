@@ -90,20 +90,17 @@ export function useWebSerialDevice() {
     return () => navigator.serial.removeEventListener("disconnect", onDisconnect);
   }, []);
 
-  // Periodic liveness check (mirrors Bonrix's own reference page): grabbing
-  // and immediately releasing a writer throws if the port has actually gone
-  // away, which the disconnect event doesn't always catch promptly.
+  // Periodic liveness check: a passive read of port.writable/readable, not an
+  // attempt to lock a writer. A ~300KB RGB565 image push can legitimately hold
+  // the writer locked for 20-30s at 115200 baud - grabbing a second writer
+  // here (as Bonrix's own reference page does) throws "already locked" while
+  // that's in flight, which was being misread as a real disconnect and killing
+  // the transfer mid-way. Chrome nulls out writable/readable when the port
+  // actually goes away, so checking those is enough without contending for the lock.
   React.useEffect(() => {
     if (!port) return;
     const interval = setInterval(() => {
-      if (!port.writable) {
-        setPort(null);
-        return;
-      }
-      try {
-        const writer = port.writable.getWriter();
-        writer.releaseLock();
-      } catch {
+      if (!port.writable || !port.readable) {
         setPort(null);
       }
     }, LIVENESS_CHECK_MS);

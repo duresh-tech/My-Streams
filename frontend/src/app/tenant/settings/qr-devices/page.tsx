@@ -1,11 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { FlaskConical, LoaderCircle, Pencil, Plus, QrCode, Trash2, Unplug, Usb, Wallet } from "lucide-react";
+import { FlaskConical, LoaderCircle, Pencil, Plus, QrCode, RefreshCw, Trash2, Unplug, Usb, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Combobox } from "@/components/ui/combobox";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import {
@@ -36,6 +37,7 @@ import {
   canvasToRgb565,
   renderCancelScreen,
   renderFailScreen,
+  renderPendingScreen,
   renderQrScreen,
   renderSuccessScreen,
   renderWelcomeScreen,
@@ -93,6 +95,11 @@ const EMPTY_FORM: DeviceFormValues = {
 };
 
 const CONNECTED_DEVICE_STORAGE_KEY = "qrDeviceSerial.connectedDeviceId";
+// Separate from CONNECTED_DEVICE_STORAGE_KEY (which is cleared on disconnect
+// to stop auto-reconnect-on-mount): this one is set once on the first ever
+// manual connect and never cleared, so a "Reconnect" option becomes available
+// after a disconnect instead of forcing a fresh device picker every time.
+const HAS_CONNECTED_BEFORE_KEY = "qrDeviceSerial.hasConnectedBefore";
 
 interface PushResult {
   qrDataUrl: string;
@@ -142,12 +149,27 @@ export default function TenantQrDevicesPage() {
 
   const [previewDevice, setPreviewDevice] = React.useState<DeviceRow | null>(null);
   const [previewResult, setPreviewResult] = React.useState<PushResult | null>(null);
+  // The actual rendered screen (data URL) for whatever was last sent/previewed -
+  // shows exactly what the physical device would display, not just an abstract card.
+  const [previewImageUrl, setPreviewImageUrl] = React.useState<string | null>(null);
+  // Amount typed in for the Payment Success / Payment Pending demo scenes -
+  // prefilled from the test/push amount but independently editable.
+  const [sceneAmount, setSceneAmount] = React.useState("");
+  // Whether the amount overlay is drawn on Success/Pending, and whether the
+  // AT+CODEC_TEST audio cue is sent alongside any scene - both independently toggleable.
+  const [showAmountFlag, setShowAmountFlag] = React.useState(true);
+  const [playVoiceFlag, setPlayVoiceFlag] = React.useState(true);
 
   // Web Serial: the backend has no network path to a merchant's counter PC, so
   // hardware connect/write happens here in the browser, one COM port per tab.
   const serial = useWebSerialDevice();
   const [connectedDeviceId, setConnectedDeviceId] = React.useState<string | null>(null);
+  const [hasConnectedBefore, setHasConnectedBefore] = React.useState(false);
   const webSerialSupported = isWebSerialSupported();
+
+  React.useEffect(() => {
+    if (localStorage.getItem(HAS_CONNECTED_BEFORE_KEY)) setHasConnectedBefore(true);
+  }, []);
 
   // Background art for the DQ12 screens, configured via App Settings
   // (qr_device.dq12.* keys) - null entries fall back to a plain label screen.
@@ -174,11 +196,17 @@ export default function TenantQrDevicesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /** Once a device has been manually connected before, try the silent
+   * reconnect (reuses the earlier permission grant, no picker) first and only
+   * fall back to the full "choose a port" picker if that grant is gone. */
   async function onConnectDevice(row: DeviceRow) {
     try {
-      await serial.connect();
+      const opened = (hasConnectedBefore ? await serial.autoConnect() : null) ?? (await serial.connect());
+      if (!opened) return;
       setConnectedDeviceId(row.id);
       localStorage.setItem(CONNECTED_DEVICE_STORAGE_KEY, row.id);
+      localStorage.setItem(HAS_CONNECTED_BEFORE_KEY, "true");
+      setHasConnectedBefore(true);
       toast.success(`Connected to ${row.deviceName}`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to connect to device");
@@ -191,17 +219,19 @@ export default function TenantQrDevicesPage() {
     localStorage.removeItem(CONNECTED_DEVICE_STORAGE_KEY);
   }
 
-  /** Pushes a full-screen bitmap (RGB565, ~300KB) then triggers the matching
-   * audio clip - matches Bonrix's own reference flow (sendImage, then a short
-   * pause, then sendAtCommand). Both the image push and the audio command are
-   * fire-and-forget on this device; a clean write is treated as success even
-   * with no reply, and the exchange is logged to the backend either way. */
+  /** Pushes a full-screen bitmap (RGB565, ~300KB) then, unless playVoice is
+   * false, triggers the matching audio clip - matches Bonrix's own reference
+   * flow (sendImage, then a short pause, then sendAtCommand). Both the image
+   * push and the audio command are fire-and-forget on this device; a clean
+   * write is treated as success even with no reply, and the exchange is
+   * logged to the backend either way. */
   async function sendSceneToDevice(
     deviceId: string,
     eventType: "PUSH_REQUESTED" | "TEST_TRIGGERED",
     label: string,
     canvas: HTMLCanvasElement,
     audioClip: number,
+    playVoice = true,
   ) {
     if (connectedDeviceId !== deviceId) return;
     let success = true;
@@ -212,10 +242,14 @@ export default function TenantQrDevicesPage() {
       const bytes = canvasToRgb565(canvas);
       await serial.sendRawBytes(bytes);
       atCommand = `<image push: ${canvas.width}x${canvas.height} RGB565, ${bytes.length} bytes>`;
-      await new Promise((resolve) => setTimeout(resolve, 500)); // let the device finish rendering before the audio cue
-      const audioResult = await serial.sendCommand(buildAudioCommand(audioClip));
-      atCommand += `\n${audioResult.atCommand}`;
-      atResponse = audioResult.atResponse;
+      if (playVoice) {
+        await new Promise((resolve) => setTimeout(resolve, 500)); // let the device finish rendering before the audio cue
+        const audioResult = await serial.sendCommand(buildAudioCommand(audioClip));
+        atCommand += `\n${audioResult.atCommand}`;
+        atResponse = audioResult.atResponse;
+      } else {
+        atCommand += `\n<voice skipped>`;
+      }
     } catch (error) {
       success = false;
       message = error instanceof Error ? error.message : "Hardware write failed";
@@ -230,6 +264,23 @@ export default function TenantQrDevicesPage() {
     }
     if (success) toast.success(`${label} sent to device`);
     else toast.error(message);
+  }
+
+  /** Renders the scene into the preview (always, regardless of connection state
+   * - useful even before connecting) and, if this device is currently
+   * connected, also pushes it to the physical screen. */
+  async function showScene(
+    deviceId: string,
+    eventType: "PUSH_REQUESTED" | "TEST_TRIGGERED",
+    label: string,
+    canvas: HTMLCanvasElement,
+    audioClip: number,
+    playVoice = true,
+  ) {
+    setPreviewImageUrl(canvas.toDataURL());
+    if (connectedDeviceId === deviceId) {
+      await sendSceneToDevice(deviceId, eventType, label, canvas, audioClip, playVoice);
+    }
   }
 
   function loadBusinessOptions(): Promise<OptionRow[]> {
@@ -382,19 +433,19 @@ export default function TenantQrDevicesPage() {
       });
       setPreviewDevice(pushTarget);
       setPreviewResult(result);
+      setPreviewImageUrl(null);
+      setSceneAmount(String(result.amount));
       const deviceId = pushTarget.id;
       const vpa = pushTarget.upiVpa;
       setPushTarget(null);
       list.refresh();
-      if (connectedDeviceId === deviceId) {
-        const canvas = await renderQrScreen({
-          backgroundUrl: dq12Assets?.qrBackground,
-          qrDataUrl: result.qrDataUrl,
-          amount: result.amount,
-          vpa,
-        });
-        await sendSceneToDevice(deviceId, "PUSH_REQUESTED", "Payment QR", canvas, DQ12_AUDIO_CLIP.QR_SCAN);
-      }
+      const canvas = await renderQrScreen({
+        backgroundUrl: dq12Assets?.qrBackground,
+        qrDataUrl: result.qrDataUrl,
+        amount: result.amount,
+        vpa,
+      });
+      await showScene(deviceId, "PUSH_REQUESTED", "Payment QR", canvas, DQ12_AUDIO_CLIP.QR_SCAN, playVoiceFlag);
     } catch (error) {
       toast.error(error instanceof TenantApiError ? error.message : "Failed to generate QR");
     } finally {
@@ -408,11 +459,11 @@ export default function TenantQrDevicesPage() {
       const result = await tenantApi<PushResult>(`/tenant/qr-devices/${row.id}/test`, { method: "POST" });
       setPreviewDevice(row);
       setPreviewResult(result);
+      setPreviewImageUrl(null);
+      setSceneAmount(String(result.amount));
       list.refresh();
-      if (connectedDeviceId === row.id) {
-        const canvas = await renderWelcomeScreen(dq12Assets?.welcome);
-        await sendSceneToDevice(row.id, "TEST_TRIGGERED", "Welcome", canvas, DQ12_AUDIO_CLIP.WELCOME);
-      }
+      const canvas = await renderWelcomeScreen(dq12Assets?.welcome);
+      await showScene(row.id, "TEST_TRIGGERED", "Welcome", canvas, DQ12_AUDIO_CLIP.WELCOME, playVoiceFlag);
     } catch (error) {
       toast.error(error instanceof TenantApiError ? error.message : "Test failed");
     } finally {
@@ -478,7 +529,13 @@ export default function TenantQrDevicesPage() {
               ...(webSerialSupported && row.deviceModel === "BONRIX_DQ12"
                 ? connectedDeviceId === row.id
                   ? [{ label: "Disconnect Device", icon: Unplug, onClick: onDisconnectDevice }]
-                  : [{ label: "Connect Device", icon: Usb, onClick: () => onConnectDevice(row), loading: serial.connecting, disabled: serial.connecting }]
+                  : [{
+                      label: hasConnectedBefore ? "Reconnect Device" : "Connect Device",
+                      icon: hasConnectedBefore ? RefreshCw : Usb,
+                      onClick: () => onConnectDevice(row),
+                      loading: serial.connecting,
+                      disabled: serial.connecting,
+                    }]
                 : []),
               ...(canDelete ? [{ label: "Delete", icon: Trash2, onClick: () => setDeleteTarget(row), destructive: true }] : []),
             ]}
@@ -646,38 +703,86 @@ export default function TenantQrDevicesPage() {
       </Dialog>
 
       {/* Preview (push result / test result) - what the physical screen would show */}
-      <Dialog open={!!previewResult} onOpenChange={(open) => !open && setPreviewResult(null)}>
+      <Dialog
+        open={!!previewResult}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPreviewResult(null);
+            setPreviewImageUrl(null);
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{previewResult?.isTest ? "Test Preview" : "Payment QR"}</DialogTitle>
             <DialogDescription>{previewDevice?.deviceName}</DialogDescription>
           </DialogHeader>
-          {previewResult && previewDevice && (
-            <QrDisplayPreview
-              qrDataUrl={previewResult.qrDataUrl}
-              amount={previewResult.amount}
-              note={previewResult.note}
-              isTest={previewResult.isTest}
-              deviceName={previewDevice.deviceName}
+          {previewImageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={previewImageUrl}
+              alt="Device screen preview"
+              className="mx-auto w-full max-w-[240px] rounded-2xl border shadow-lg"
             />
+          ) : (
+            previewResult && previewDevice && (
+              <QrDisplayPreview
+                qrDataUrl={previewResult.qrDataUrl}
+                amount={previewResult.amount}
+                note={previewResult.note}
+                isTest={previewResult.isTest}
+                deviceName={previewDevice.deviceName}
+              />
+            )
           )}
 
           {previewResult?.isTest && previewDevice && canTest && (
-            <div className="grid gap-2">
+            <div className="grid gap-3">
               <Label className="text-xs text-muted-foreground">
                 {connectedDeviceId === previewDevice.id
-                  ? "Send a demo scene to the connected device"
-                  : "Connect the device to send a demo scene"}
+                  ? "Preview a scene, or send it to the connected device"
+                  : "Preview a scene (connect the device to also send it)"}
               </Label>
+
+              <div className="grid gap-2">
+                <Label htmlFor="sceneAmount">Amount for Success / Pending (₹)</Label>
+                <Input
+                  id="sceneAmount"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  value={sceneAmount}
+                  onChange={(e) => setSceneAmount(e.target.value)}
+                />
+              </div>
+
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="showAmountFlag"
+                    checked={showAmountFlag}
+                    onCheckedChange={(v) => setShowAmountFlag(v === true)}
+                  />
+                  <Label htmlFor="showAmountFlag" className="font-normal">Show amount on screen</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="playVoiceFlag"
+                    checked={playVoiceFlag}
+                    onCheckedChange={(v) => setPlayVoiceFlag(v === true)}
+                  />
+                  <Label htmlFor="playVoiceFlag" className="font-normal">Play voice</Label>
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-2">
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  disabled={connectedDeviceId !== previewDevice.id}
                   onClick={async () => {
                     const canvas = await renderWelcomeScreen(dq12Assets?.welcome);
-                    await sendSceneToDevice(previewDevice.id, "TEST_TRIGGERED", "Welcome", canvas, DQ12_AUDIO_CLIP.WELCOME);
+                    await showScene(previewDevice.id, "TEST_TRIGGERED", "Welcome", canvas, DQ12_AUDIO_CLIP.WELCOME, playVoiceFlag);
                   }}
                 >
                   Welcome
@@ -686,10 +791,10 @@ export default function TenantQrDevicesPage() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  disabled={connectedDeviceId !== previewDevice.id}
+                  disabled={!sceneAmount || Number(sceneAmount) <= 0}
                   onClick={async () => {
-                    const canvas = await renderSuccessScreen(dq12Assets?.success, previewResult.amount);
-                    await sendSceneToDevice(previewDevice.id, "TEST_TRIGGERED", "Payment Success", canvas, DQ12_AUDIO_CLIP.SUCCESS);
+                    const canvas = await renderSuccessScreen(dq12Assets?.success, Number(sceneAmount), showAmountFlag);
+                    await showScene(previewDevice.id, "TEST_TRIGGERED", "Payment Success", canvas, DQ12_AUDIO_CLIP.SUCCESS, playVoiceFlag);
                   }}
                 >
                   Payment Success
@@ -698,10 +803,21 @@ export default function TenantQrDevicesPage() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  disabled={connectedDeviceId !== previewDevice.id}
+                  disabled={!sceneAmount || Number(sceneAmount) <= 0}
+                  onClick={async () => {
+                    const canvas = await renderPendingScreen(dq12Assets?.pending, Number(sceneAmount), showAmountFlag);
+                    await showScene(previewDevice.id, "TEST_TRIGGERED", "Payment Pending", canvas, DQ12_AUDIO_CLIP.PENDING, playVoiceFlag);
+                  }}
+                >
+                  Payment Pending
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={async () => {
                     const canvas = await renderFailScreen(dq12Assets?.fail);
-                    await sendSceneToDevice(previewDevice.id, "TEST_TRIGGERED", "Payment Failed", canvas, DQ12_AUDIO_CLIP.FAIL);
+                    await showScene(previewDevice.id, "TEST_TRIGGERED", "Payment Failed", canvas, DQ12_AUDIO_CLIP.FAIL, playVoiceFlag);
                   }}
                 >
                   Payment Failed
@@ -710,10 +826,9 @@ export default function TenantQrDevicesPage() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  disabled={connectedDeviceId !== previewDevice.id}
                   onClick={async () => {
                     const canvas = await renderCancelScreen(dq12Assets?.cancel);
-                    await sendSceneToDevice(previewDevice.id, "TEST_TRIGGERED", "Payment Cancelled", canvas, DQ12_AUDIO_CLIP.CANCEL);
+                    await showScene(previewDevice.id, "TEST_TRIGGERED", "Payment Cancelled", canvas, DQ12_AUDIO_CLIP.CANCEL, playVoiceFlag);
                   }}
                 >
                   Payment Cancelled

@@ -85,16 +85,24 @@ export function renderWelcomeScreen(backgroundUrl?: string | null): Promise<HTML
   return renderScreen(backgroundUrl, "WELCOME");
 }
 
-export function renderSuccessScreen(backgroundUrl: string | null | undefined, amount: number): Promise<HTMLCanvasElement> {
-  return renderScreen(backgroundUrl, "PAYMENT SUCCESS", (ctx, canvas, textColor) => {
-    drawCenteredText(ctx, canvas.width, `₹ ${amount.toFixed(2)}`, canvas.height / 2 + 40, "20px Arial", textColor);
-  });
+export function renderSuccessScreen(
+  backgroundUrl: string | null | undefined,
+  amount: number,
+  showAmount = true,
+): Promise<HTMLCanvasElement> {
+  return renderScreen(backgroundUrl, "PAYMENT SUCCESS", showAmount
+    ? (ctx, canvas, textColor) => drawCenteredText(ctx, canvas.width, `₹ ${amount.toFixed(2)}`, canvas.height / 2 + 40, "20px Arial", textColor)
+    : undefined);
 }
 
-export function renderPendingScreen(backgroundUrl: string | null | undefined, amount: number): Promise<HTMLCanvasElement> {
-  return renderScreen(backgroundUrl, "PENDING", (ctx, canvas, textColor) => {
-    drawCenteredText(ctx, canvas.width, `₹ ${amount.toFixed(2)}`, canvas.height / 2 + 40, "20px Arial", textColor);
-  });
+export function renderPendingScreen(
+  backgroundUrl: string | null | undefined,
+  amount: number,
+  showAmount = true,
+): Promise<HTMLCanvasElement> {
+  return renderScreen(backgroundUrl, "PENDING", showAmount
+    ? (ctx, canvas, textColor) => drawCenteredText(ctx, canvas.width, `₹ ${amount.toFixed(2)}`, canvas.height / 2 + 40, "20px Arial", textColor)
+    : undefined);
 }
 
 export function renderFailScreen(backgroundUrl: string | null | undefined, reason?: string): Promise<HTMLCanvasElement> {
