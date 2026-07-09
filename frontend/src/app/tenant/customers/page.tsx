@@ -43,7 +43,7 @@ import { ResourceTable, StatusBadgeText, type Column } from "@/components/resour
 import { RowActionsMenu } from "@/components/row-actions-menu";
 import { useResourceList } from "@/hooks/use-resource-list";
 import { useTenantSession } from "@/hooks/use-tenant-session";
-import { UPLOADS_ORIGIN, type ListResponse } from "@/lib/api";
+import { UPLOADS_ORIGIN } from "@/lib/api";
 import {
   TenantApiError,
   getTenantAccessToken,
@@ -52,6 +52,7 @@ import {
 } from "@/lib/tenant-api";
 import { COUNTRY_OPTIONS, DEFAULT_COUNTRY } from "@/lib/countries";
 import { ID_PROOF_TYPES } from "@/lib/id-proof-types";
+import { TAX_TYPES } from "@/lib/tax-types";
 
 type CustomerStatus = "ACTIVE" | "INACTIVE" | "BLOCKED" | "DELETED";
 type Gender = "MALE" | "FEMALE" | "TRANSGENDER" | "NOT_TO_SAY" | "NONE";
@@ -222,7 +223,6 @@ export default function TenantCustomersPage() {
   const [businessOptions, setBusinessOptions] = React.useState<BusinessOption[] | null>(null);
   const [placeOptions, setPlaceOptions] = React.useState<PlaceOption[] | null>(null);
   const [streetOptions, setStreetOptions] = React.useState<StreetOption[] | null>(null);
-  const [taxTypeOptions, setTaxTypeOptions] = React.useState<string[] | null>(null);
 
   const [formOpen, setFormOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<TenantCustomerRow | null>(null);
@@ -287,31 +287,17 @@ export default function TenantCustomersPage() {
       .catch(() => toast.error("Failed to load street list"));
   }
 
-  function loadTaxTypeOptions(tenantBusinessId: string) {
-    if (!tenantBusinessId) {
-      setTaxTypeOptions([]);
-      return;
-    }
-    tenantApi<ListResponse<{ taxName: string }>>(
-      `/tenant/tax-types?tenantBusinessId=${tenantBusinessId}&status=ACTIVE&limit=100&page=1`,
-    )
-      .then((data) => setTaxTypeOptions(data.items.map((t) => t.taxName)))
-      .catch(() => toast.error("Failed to load tax type list"));
-  }
-
   function openCreate() {
     setEditing(null);
     setForm(EMPTY_FORM);
     setPlaceOptions(null);
     setStreetOptions(null);
-    setTaxTypeOptions(null);
     setMapPickerOpen(false);
     setFormOpen(true);
     loadBusinessOptions().then((options) => {
       if (options.length === 1) {
         setForm((f) => ({ ...f, tenantBusinessId: options[0].id }));
         loadPlaceOptions(options[0].id);
-        loadTaxTypeOptions(options[0].id);
       }
     });
   }
@@ -356,7 +342,6 @@ export default function TenantCustomersPage() {
     });
     loadPlaceOptions(row.tenantBusinessId);
     if (row.tenantPlaceId) loadStreetOptions(row.tenantBusinessId, row.tenantPlaceId);
-    loadTaxTypeOptions(row.tenantBusinessId);
     setMapPickerOpen(false);
     setFormOpen(true);
   }
@@ -364,7 +349,6 @@ export default function TenantCustomersPage() {
   function onBusinessChange(tenantBusinessId: string) {
     setForm((f) => ({ ...f, tenantBusinessId, tenantPlaceId: "", tenantStreetId: "" }));
     loadPlaceOptions(tenantBusinessId);
-    loadTaxTypeOptions(tenantBusinessId);
     setStreetOptions([]);
   }
 
@@ -1036,14 +1020,21 @@ export default function TenantCustomersPage() {
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="grid gap-2">
                       <Label>Tax Type</Label>
-                      <Combobox
-                        options={taxTypeOptions?.map((t) => ({ value: t, label: t })) ?? null}
+                      <Select
                         value={form.taxType}
                         onValueChange={(v) => setForm((f) => ({ ...f, taxType: v }))}
-                        placeholder={form.tenantBusinessId ? "Select a tax type" : "Select a business first"}
-                        searchPlaceholder="Search tax types..."
-                        emptyText="No tax types configured."
-                      />
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a tax type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {TAX_TYPES.map((type) => (
+                            <SelectItem key={type} value={type}>
+                              {type}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="taxNumber">Tax Number</Label>
