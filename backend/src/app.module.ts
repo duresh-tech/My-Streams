@@ -22,6 +22,7 @@ import { TenantNetworkProvidersModule } from './tenant-network-providers/tenant-
 import { TenantMailConfigModule } from './tenant-mail-config/tenant-mail-config.module';
 import { TenantPlacesModule } from './tenant-places/tenant-places.module';
 import { TenantStreetsModule } from './tenant-streets/tenant-streets.module';
+import { TenantCountersModule } from './tenant-counters/tenant-counters.module';
 import { TenantCustomersModule } from './tenant-customers/tenant-customers.module';
 import { AppSettingsModule } from './app-settings/app-settings.module';
 import { DashboardModule } from './dashboard/dashboard.module';
@@ -65,6 +66,7 @@ import { DeviceHeaderGuard } from './common/guards/device-header.guard';
     TenantMailConfigModule,
     TenantPlacesModule,
     TenantStreetsModule,
+    TenantCountersModule,
     TenantCustomersModule,
     AppSettingsModule,
     DashboardModule,
