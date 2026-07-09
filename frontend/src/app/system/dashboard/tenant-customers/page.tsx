@@ -46,6 +46,8 @@ import { RowActionsMenu } from "@/components/row-actions-menu";
 import { useResourceList } from "@/hooks/use-resource-list";
 import { useSession } from "@/hooks/use-session";
 import { api, ApiError, getAccessToken, uploadFile, UPLOADS_ORIGIN, type ListResponse } from "@/lib/api";
+import { COUNTRY_OPTIONS, DEFAULT_COUNTRY } from "@/lib/countries";
+import { ID_PROOF_TYPES } from "@/lib/id-proof-types";
 
 type CustomerStatus = "ACTIVE" | "INACTIVE" | "BLOCKED" | "DELETED";
 type Gender = "MALE" | "FEMALE" | "TRANSGENDER" | "NOT_TO_SAY" | "NONE";
@@ -174,7 +176,7 @@ const EMPTY_FORM: CustomerFormValues = {
   addressLine2: "",
   city: "",
   state: "",
-  country: "",
+  country: DEFAULT_COUNTRY,
   pincode: "",
   latitude: "",
   longitude: "",
@@ -224,6 +226,7 @@ export default function TenantCustomersPage() {
   const [businessOptions, setBusinessOptions] = React.useState<BusinessOption[] | null>(null);
   const [placeOptions, setPlaceOptions] = React.useState<PlaceOption[] | null>(null);
   const [streetOptions, setStreetOptions] = React.useState<StreetOption[] | null>(null);
+  const [taxTypeOptions, setTaxTypeOptions] = React.useState<string[] | null>(null);
 
   const [formOpen, setFormOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<TenantCustomerRow | null>(null);
@@ -282,12 +285,25 @@ export default function TenantCustomersPage() {
       .catch(() => toast.error("Failed to load street list"));
   }
 
+  function loadTaxTypeOptions(tenantBusinessId: string) {
+    if (!tenantBusinessId) {
+      setTaxTypeOptions([]);
+      return;
+    }
+    api<ListResponse<{ taxName: string }>>(
+      `/system/tenant-tax-types?tenantBusinessId=${tenantBusinessId}&status=ACTIVE&limit=100&page=1`,
+    )
+      .then((data) => setTaxTypeOptions(data.items.map((t) => t.taxName)))
+      .catch(() => toast.error("Failed to load tax type list"));
+  }
+
   function openCreate() {
     ensureBusinessOptions();
     setEditing(null);
     setForm(EMPTY_FORM);
     setPlaceOptions(null);
     setStreetOptions(null);
+    setTaxTypeOptions(null);
     setMapPickerOpen(false);
     setFormOpen(true);
   }
@@ -332,6 +348,7 @@ export default function TenantCustomersPage() {
     });
     loadPlaceOptions(row.tenantBusinessId);
     if (row.tenantPlaceId) loadStreetOptions(row.tenantBusinessId, row.tenantPlaceId);
+    loadTaxTypeOptions(row.tenantBusinessId);
     setMapPickerOpen(false);
     setFormOpen(true);
   }
@@ -339,6 +356,7 @@ export default function TenantCustomersPage() {
   function onBusinessChange(tenantBusinessId: string) {
     setForm((f) => ({ ...f, tenantBusinessId, tenantPlaceId: "", tenantStreetId: "" }));
     loadPlaceOptions(tenantBusinessId);
+    loadTaxTypeOptions(tenantBusinessId);
     setStreetOptions([]);
   }
 
@@ -920,11 +938,14 @@ export default function TenantCustomersPage() {
                       />
                     </div>
                     <div className="grid gap-2">
-                      <Label htmlFor="country">Country</Label>
-                      <Input
-                        id="country"
+                      <Label>Country</Label>
+                      <Combobox
+                        options={COUNTRY_OPTIONS}
                         value={form.country}
-                        onChange={(e) => setForm((f) => ({ ...f, country: e.target.value }))}
+                        onValueChange={(v) => setForm((f) => ({ ...f, country: v }))}
+                        placeholder="Select a country"
+                        searchPlaceholder="Search countries..."
+                        emptyText="No countries found."
                       />
                     </div>
                     <div className="grid gap-2">
@@ -984,13 +1005,22 @@ export default function TenantCustomersPage() {
                   </div>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="grid gap-2">
-                      <Label htmlFor="idProofType">ID Proof Type</Label>
-                      <Input
-                        id="idProofType"
+                      <Label>ID Proof Type</Label>
+                      <Select
                         value={form.idProofType}
-                        placeholder="Aadhaar, PAN, Passport..."
-                        onChange={(e) => setForm((f) => ({ ...f, idProofType: e.target.value }))}
-                      />
+                        onValueChange={(v) => setForm((f) => ({ ...f, idProofType: v }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select ID proof type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ID_PROOF_TYPES.map((type) => (
+                            <SelectItem key={type} value={type}>
+                              {type}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="idProofNumber">ID Proof Number</Label>
@@ -1031,12 +1061,14 @@ export default function TenantCustomersPage() {
                   </div>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="grid gap-2">
-                      <Label htmlFor="taxType">Tax Type</Label>
-                      <Input
-                        id="taxType"
+                      <Label>Tax Type</Label>
+                      <Combobox
+                        options={taxTypeOptions?.map((t) => ({ value: t, label: t })) ?? null}
                         value={form.taxType}
-                        placeholder="GSTIN..."
-                        onChange={(e) => setForm((f) => ({ ...f, taxType: e.target.value }))}
+                        onValueChange={(v) => setForm((f) => ({ ...f, taxType: v }))}
+                        placeholder={form.tenantBusinessId ? "Select a tax type" : "Select a business first"}
+                        searchPlaceholder="Search tax types..."
+                        emptyText="No tax types configured."
                       />
                     </div>
                     <div className="grid gap-2">
