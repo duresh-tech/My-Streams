@@ -87,6 +87,7 @@ export default function TenantMailConfigPage() {
   const canTest = hasPermission("tenant-mail-config:test");
 
   const list = useResourceList<TenantMailConfigRow>("/tenant/mail-config", {}, tenantApi);
+  const canAddMore = canCreate && (list.rows?.length ?? 0) === 0;
 
   const [businessOptions, setBusinessOptions] = React.useState<BusinessOption[] | null>(null);
 
@@ -244,7 +245,7 @@ export default function TenantMailConfigPage() {
         onSearchChange={list.setSearch}
         onSearchSubmit={list.applySearch}
         toolbarAction={
-          canCreate ? (
+          canAddMore ? (
             <Button onClick={openCreate}>
               <Plus className="size-4" /> Add Mail Config
             </Button>

@@ -1,7 +1,7 @@
 # Project 5 — System Console
 
-[![Backend](https://img.shields.io/badge/backend-v1.5.0-blue)](./backend/CHANGELOG.md)
-[![Frontend](https://img.shields.io/badge/frontend-v1.4.0-blue)](./frontend/CHANGELOG.md)
+[![Backend](https://img.shields.io/badge/backend-v1.6.0-blue)](./backend/CHANGELOG.md)
+[![Frontend](https://img.shields.io/badge/frontend-v1.5.0-blue)](./frontend/CHANGELOG.md)
 
 Full-stack system administration console with RBAC-driven CRUD for system
 users, roles, and permissions, plus a parallel **tenant portal**: tenant
@@ -9,8 +9,10 @@ users log in separately and manage their own business — team members,
 customers, branches, network providers, tax types, payment modes, income &
 expense categories, mail config, places, and streets — mirroring the
 system-admin CRUD for each resource, scoped to their own mapped business.
-A generic typed key-value **App Settings** store backs app-wide config
-(branding and beyond).
+Tenants can also pair a DQ12 receipt-printer **QR display device** and
+push a live payment/collection screen to it over Web Serial. A generic
+typed key-value **App Settings** store backs app-wide config (branding
+and beyond).
 
 | Layer    | Stack                                                             |
 | -------- | ----------------------------------------------------------------- |

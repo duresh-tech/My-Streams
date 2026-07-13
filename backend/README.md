@@ -1,6 +1,6 @@
 # Backend — System API
 
-[![Version](https://img.shields.io/badge/version-1.5.0-blue)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.6.0-blue)](./CHANGELOG.md)
 
 NestJS + Prisma REST API for the system console. See [`CHANGELOG.md`](./CHANGELOG.md)
 for release history and [`../README.md`](../README.md) for the project overview.
@@ -62,8 +62,9 @@ controllers (see `CHANGELOG.md` for the full per-resource list).
 | Tenant business | `GET/POST /system/tenant-business`, `GET/PATCH/DELETE /system/tenant-business/:id`, `PATCH .../restore`; tenant self-service twin at `/tenant/business` (own profile only) |
 | Tenant mapped business | `GET/POST /system/tenant-mapped-business`, `GET/PUT/PATCH/DELETE /system/tenant-mapped-business/:id`, `PATCH .../restore` |
 | Tenant account | `GET/PATCH /tenant/account`, `POST /tenant/account/avatar` |
-| Tenant tax types, payment modes, income & expense categories, business branches, network providers, mail config, places, streets | Each: `GET/POST /system/tenant-<resource>`, `GET/PATCH/DELETE /system/tenant-<resource>/:id` (+ `restore` where applicable); tenant self-service twin at `/tenant/<resource>` scoped to the caller's mapped business. Mail config additionally has `POST .../:id/test-email`. |
+| Tenant tax types, payment modes, income & expense categories, business branches, network providers, mail config, places, streets | Each: `GET/POST /system/tenant-<resource>`, `GET/PATCH/DELETE /system/tenant-<resource>/:id` (+ `restore` where applicable); tenant self-service twin at `/tenant/<resource>` scoped to the caller's mapped business. Mail config additionally has `POST .../:id/test-email`, and tenant self-service create is capped at one config per account (system-admin create is not). |
 | Tenant customers | `GET/POST /system/tenant-customers`, `GET/PATCH/DELETE /system/tenant-customers/:id`, `PATCH .../restore`, `PATCH .../:id/status`, `GET .../deleted`, `GET .../export` (CSV), `POST .../import` (CSV); tenant self-service twin at `/tenant/customers`, scoped to the caller's mapped business |
+| Tenant QR devices | `GET/POST /system/tenant-qr-devices`, `GET/PATCH/DELETE /system/tenant-qr-devices/:id`, `PATCH .../restore`, `PATCH .../:id/payment-config`, `POST .../:id/push`, `POST .../:id/test`, `POST .../:id/log-serial`, plus `GET .../places`, `.../counters`, `.../events`; tenant self-service twin at `/tenant/qr-devices` (+ `GET .../businesses`), capped at one device per tenant account |
 | App settings | `GET /system/app-settings/public/branding` (public), `GET/POST /system/app-settings`, `GET/PATCH/DELETE /system/app-settings/:id`, `PATCH .../restore`, `GET .../key/:key`, `POST .../logo` |
 | Dashboard | `GET /system/dashboard` |
 | Uploads | `POST /system/uploads`; tenant self-service twin at `POST /tenant/uploads` |
@@ -104,6 +105,7 @@ Seeded permission keys (module: actions):
 | `tenant-network-providers` | `create`, `view`, `update`, `delete`, `list`, `restore` |
 | `tenant-mail-config` | `create`, `view`, `update`, `delete`, `list`, `test` |
 | `tenant-customers` | `create`, `view`, `update`, `delete`, `view_deleted`, `restore`, `export`, `import`, `change_status` |
+| `tenant-qr-devices` | `create`, `view`, `update`, `delete`, `list`, `restore`, `push`, `test`, `manage_payment_config`, `view_events` |
 | `app-settings` | `create`, `view`, `update`, `delete`, `list`, `restore` |
 | `uploads` | `create` |
 
@@ -111,7 +113,9 @@ Seeded permission keys (module: actions):
 non-`restore` actions of every tenant-scoped module, plus `tenant-users:*`
 minus `login-as`. `tenant-customers` is the one exception — `TENANT_ADMIN`
 gets all 9 actions including `restore`/`view_deleted`/`export`/`import`/
-`change_status`. `app-settings` is system-admin-only and not granted to
+`change_status`. `tenant-qr-devices` also withholds `view_events` (in
+addition to `restore`) from `TENANT_ADMIN` — the cross-device event log is
+system-admin-only. `app-settings` is system-admin-only and not granted to
 `TENANT_ADMIN` at all.
 
 ## Security

@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-07-13
+
+### Fixed
+
+- **Tenant Mail Config**: tenant self-service `POST /tenant/mail-config`
+  now rejects a second config with a 400 (`Only one mail config is
+  allowed per account...`) if the caller's business already has a
+  non-deleted one — previously nothing stopped a tenant from creating
+  several, even though only one was ever actually used to send mail.
+  System-admin creation (`POST /system/tenant-mail-config`) is
+  unaffected and still allows multiple.
+
 ## [1.5.0] - 2026-07-09
 
 ### Added
@@ -226,7 +238,8 @@ caller's own mapped business), sharing one permission-key namespace.
 - Seed script for system permissions, `SUPER_ADMIN`/`SYSTEM_USER` roles,
   and a default super admin account.
 
-[Unreleased]: ../../compare/backend-v1.5.0...HEAD
+[Unreleased]: ../../compare/backend-v1.6.0...HEAD
+[1.6.0]: ../../compare/backend-v1.5.0...backend-v1.6.0
 [1.5.0]: ../../compare/backend-v1.4.0...backend-v1.5.0
 [1.4.0]: ../../compare/backend-v1.3.0...backend-v1.4.0
 [1.3.0]: ../../compare/backend-v1.2.0...backend-v1.3.0

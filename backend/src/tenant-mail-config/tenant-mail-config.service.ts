@@ -241,6 +241,13 @@ export class TenantMailConfigService {
 
   async createForTenantUser(tenantUserId: string, dto: CreateTenantMailConfigDto) {
     await this.assertBusinessOwned(tenantUserId, dto.tenantBusinessId);
+    const businessIds = await this.getMappedBusinessIds(tenantUserId);
+    const existing = await this.prisma.tenantMailConfig.count({
+      where: { tenantBusinessId: { in: businessIds }, deletedAt: null },
+    });
+    if (existing > 0) {
+      throw new BadRequestException('Only one mail config is allowed per account. Delete the existing config before adding a new one.');
+    }
     return this.create(dto);
   }
 

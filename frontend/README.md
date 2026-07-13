@@ -1,6 +1,6 @@
 # Frontend — System Console
 
-[![Version](https://img.shields.io/badge/version-1.4.0-blue)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.5.0-blue)](./CHANGELOG.md)
 
 Next.js system administration console. See [`CHANGELOG.md`](./CHANGELOG.md)
 for release history and [`../README.md`](../README.md) for the project overview.
@@ -54,6 +54,8 @@ Requires the backend to be running (see `../backend/README.md`).
 | `/system/dashboard/tenant-places` | Places — list, create, edit, delete, restore, map picker |
 | `/system/dashboard/tenant-streets` | Streets — list, create, edit, delete, restore, map picker |
 | `/system/dashboard/tenant-customers` | Customers — list, create, edit, delete, restore, view, change status, CSV export/import, deleted-records view, map picker |
+| `/system/dashboard/tenant-qr-devices` | QR Devices — registry across all tenants: list, create, edit, delete, restore, manage payment config, push/test a display screen |
+| `/system/dashboard/tenant-qr-devices/events` | QR Device Events — cross-device connection/serial event log |
 | `/system/dashboard/roles` | Roles — list, create, edit, delete, assign permissions (grouped, searchable) |
 | `/system/dashboard/permissions` | Permissions — list, create, edit, delete |
 | `/system/dashboard/settings/customization` | SaaS branding — app name, logo |
@@ -67,6 +69,7 @@ Requires the backend to be running (see `../backend/README.md`).
 | `/tenant/dashboard` | Tenant stats overview |
 | `/tenant/users` | Team members mapped to the caller's business — list, create, edit, delete, view |
 | `/tenant/customers` | Customers belonging to the caller's business — list, create, edit, delete, restore, view, change status, CSV export/import, deleted-records view, map picker |
+| `/tenant/settings/qr-devices` | DQ12 receipt-printer QR device (capped at one per account) — pair over Web Serial, push/test a custom UPI-QR "Collect Payment" screen (amount, UPI ID, receiver name), manage payment config |
 | `/tenant/settings/user-account` | Own profile — name, username, email, phone, password, avatar |
 | `/tenant/settings/business-information` | Own business profile (view/update, per permission) |
 | `/tenant/settings/business-branches`, `/network-providers`, `/tax-types`, `/payment-modes`, `/in-ex-categories`, `/mail-config`, `/places`, `/streets` | Self-service CRUD twins of the matching system-admin pages, scoped to the caller's own business |

@@ -63,7 +63,7 @@ const PERMISSIONS: PermissionSeed[] = MODULES.flatMap(({ module, label, actions 
  * grants cascade) so stale keys don't linger in the Roles UI. No-op once run.
  */
 async function cleanupLegacyPermissions() {
-  const removedModules = ['tenant-expense-categories', 'qr-display-templates'];
+  const removedModules = ['tenant-expense-categories', 'qr-display-templates', 'tenant-sms'];
   for (const moduleName of removedModules) {
     const stale = await prisma.permission.findMany({ where: { moduleName }, select: { id: true } });
     if (stale.length === 0) continue;

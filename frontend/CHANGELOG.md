@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-07-13
+
+### Added
+
+- **DQ12 custom QR test screen** (`/tenant/settings/qr-devices`): the
+  composer now also passes the receiver name through to
+  `renderQrScreen()`, drawn on the generated preview/test canvas beneath
+  the amount — previously only the amount and UPI ID were shown.
+
+### Fixed
+
+- **Mail Config** (`/tenant/settings/mail-config`): the "Add Mail Config"
+  button now hides once the tenant already has one config, instead of
+  just being permission-gated — mirrors the backend's new one-config-
+  per-account limit so the button no longer opens a create dialog that's
+  guaranteed to fail with a 400.
+
 ## [1.4.0] - 2026-07-09
 
 ### Added
@@ -194,7 +211,8 @@ counterparts.
 - Client-side auth guard (`useSession`) that loads `/system/me` and
   redirects unauthenticated visitors to the login page.
 
-[Unreleased]: ../../compare/frontend-v1.4.0...HEAD
+[Unreleased]: ../../compare/frontend-v1.5.0...HEAD
+[1.5.0]: ../../compare/frontend-v1.4.0...frontend-v1.5.0
 [1.4.0]: ../../compare/frontend-v1.3.0...frontend-v1.4.0
 [1.3.0]: ../../compare/frontend-v1.2.0...frontend-v1.3.0
 [1.2.0]: ../../compare/frontend-v1.1.0...frontend-v1.2.0

@@ -115,13 +115,16 @@ export class TenantMailConfigSelfController {
   @RequireTenantPermissions('tenant-mail-config:create')
   @ApiOperation({
     summary: "Create a mail config for one of the caller's own businesses",
-    description: 'tenantBusinessId must be one of the businesses the caller is actively mapped to.',
+    description:
+      'tenantBusinessId must be one of the businesses the caller is actively mapped to. ' +
+      'Only one mail config is allowed per tenant account - delete the existing one first to replace it.',
   })
   @ApiResponse({
     status: 201,
     description: 'Mail config created.',
     schema: { example: TENANT_MAIL_CONFIG_EXAMPLE },
   })
+  @ApiResponse({ status: 400, description: 'The caller already has a mail config.' })
   @ApiResponse({ status: 403, description: 'Not mapped to that business.' })
   create(@CurrentTenantUser() user: TenantAuthUser, @Body() dto: CreateTenantMailConfigDto) {
     return this.tenantMailConfigService.createForTenantUser(user.id, dto);

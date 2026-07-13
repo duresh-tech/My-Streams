@@ -821,6 +821,7 @@ export default function TenantQrDevicesPage() {
                       qrDataUrl,
                       amount: Number(sceneAmount),
                       vpa: qrUpiId,
+                      receiverName: qrReceiverName,
                     });
                     await showScene(previewDevice.id, "TEST_TRIGGERED", "Custom QR", canvas, DQ12_AUDIO_CLIP.QR_SCAN, playVoiceFlag);
                   }}

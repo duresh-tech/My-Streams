@@ -121,8 +121,9 @@ export async function renderQrScreen(options: {
   qrDataUrl: string;
   amount: number;
   vpa?: string | null;
+  receiverName?: string | null;
 }): Promise<HTMLCanvasElement> {
-  const { backgroundUrl, qrDataUrl, amount, vpa } = options;
+  const { backgroundUrl, qrDataUrl, amount, vpa, receiverName } = options;
   const qrImage = await loadImage(qrDataUrl);
   const qrSize = 280;
 
@@ -131,6 +132,9 @@ export async function renderQrScreen(options: {
     const startY = (canvas.height - qrSize) / 2;
     ctx.drawImage(qrImage, startX, startY, qrSize, qrSize);
     drawCenteredText(ctx, canvas.width, `₹ ${amount.toFixed(2)}`, 100, "20px Arial", textColor);
+    if (receiverName) {
+      drawCenteredText(ctx, canvas.width, receiverName, 380, "16px Arial", textColor);
+    }
     if (vpa) {
       drawCenteredText(ctx, canvas.width, `UPI ID: ${vpa}`, 400, "15px Arial", textColor);
     }
