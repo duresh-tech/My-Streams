@@ -83,7 +83,7 @@ export default function TenantCountersPage() {
   const canRestore = hasPermission("tenant-counters:restore");
 
   const [statusFilter, setStatusFilter] = React.useState<string>("");
-  const [businessFilter, setBusinessFilter] = React.useState<string>("");
+  const [businessFilter] = React.useState<string>("");
   const [sortBy, setSortBy] = React.useState("createdAt");
   const [sortOrder, setSortOrder] = React.useState<"asc" | "desc">("desc");
 

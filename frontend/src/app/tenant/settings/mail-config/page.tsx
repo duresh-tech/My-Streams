@@ -425,7 +425,7 @@ export default function TenantMailConfigPage() {
             <DialogHeader>
               <DialogTitle>Send Test Email</DialogTitle>
               <DialogDescription>
-                Sends a real test email using this mail config's stored SMTP settings.
+                Sends a real test email using this mail config&apos;s stored SMTP settings.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
