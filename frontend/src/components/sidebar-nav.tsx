@@ -40,25 +40,25 @@ export interface NavItem {
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { href: "/system/dashboard", label: "Dashboard", icon: LayoutDashboard, permission: "dashboard:view" },
-  { href: "/system/dashboard/users", label: "System Users", icon: Users, permission: "system-users:read" },
-  { href: "/system/dashboard/tenant-users", label: "Tenant Users", icon: UserCog, permission: "tenant-users:read" },
-  { href: "/system/dashboard/tenant-business", label: "Tenant Business", icon: Building2, permission: "tenant-business:list" },
-  { href: "/system/dashboard/tenant-mapped-business", label: "Tenant Mapped Business", icon: Network, permission: "tenant-mapped-business:list" },
-  { href: "/system/dashboard/tenant-business-branches", label: "Business Branches", icon: Building, permission: "tenant-business-branches:list" },
-  { href: "/system/dashboard/tenant-network-providers", label: "Network Providers", icon: Wifi, permission: "tenant-network-providers:list" },
-  { href: "/system/dashboard/tenant-tax-types", label: "Tax Types", icon: Percent, permission: "tenant-tax-types:list" },
-  { href: "/system/dashboard/tenant-payment-modes", label: "Payment Modes", icon: CreditCard, permission: "tenant-payment-modes:list" },
-  { href: "/system/dashboard/tenant-in-ex-categories", label: "Income & Expense Categories", icon: ArrowLeftRight, permission: "tenant-in-ex-categories:list" },
-  { href: "/system/dashboard/tenant-mail-config", label: "Mail Config", icon: Mail, permission: "tenant-mail-config:list" },
-  { href: "/system/dashboard/tenant-places", label: "Places", icon: MapPin, permission: "tenant-places:list" },
-  { href: "/system/dashboard/tenant-streets", label: "Streets", icon: Route, permission: "tenant-streets:list" },
-  { href: "/system/dashboard/tenant-counters", label: "Counters", icon: Store, permission: "tenant-counters:list" },
-  { href: "/system/dashboard/tenant-qr-devices", label: "QR Devices", icon: QrCode, permission: "tenant-qr-devices:list" },
-  { href: "/system/dashboard/tenant-qr-devices/events", label: "QR Device Events", icon: ScrollText, permission: "tenant-qr-devices:view_events" },
-  { href: "/system/dashboard/tenant-customers", label: "Customers", icon: Contact, permission: "tenant-customers:view" },
-  { href: "/system/dashboard/roles", label: "Roles", icon: ShieldCheck, permission: "roles:read" },
-  { href: "/system/dashboard/permissions", label: "Permissions", icon: KeyRound, permission: "permissions:read" },
+  { href: "/system/dashboard", label: "Dashboard", icon: LayoutDashboard, permission: "dashboard:view", section: "Main" },
+  { href: "/system/dashboard/users", label: "System Users", icon: Users, permission: "system-users:read", section: "Management" },
+  { href: "/system/dashboard/tenant-users", label: "Tenant Users", icon: UserCog, permission: "tenant-users:read", section: "Management" },
+  { href: "/system/dashboard/tenant-business", label: "Tenant Business", icon: Building2, permission: "tenant-business:list", section: "Management" },
+  { href: "/system/dashboard/tenant-mapped-business", label: "Tenant Mapped Business", icon: Network, permission: "tenant-mapped-business:list", section: "Management" },
+  { href: "/system/dashboard/tenant-business-branches", label: "Business Branches", icon: Building, permission: "tenant-business-branches:list", section: "Management" },
+  { href: "/system/dashboard/tenant-network-providers", label: "Network Providers", icon: Wifi, permission: "tenant-network-providers:list", section: "Management" },
+  { href: "/system/dashboard/tenant-tax-types", label: "Tax Types", icon: Percent, permission: "tenant-tax-types:list", section: "Management" },
+  { href: "/system/dashboard/tenant-payment-modes", label: "Payment Modes", icon: CreditCard, permission: "tenant-payment-modes:list", section: "Management" },
+  { href: "/system/dashboard/tenant-in-ex-categories", label: "Income & Expense Categories", icon: ArrowLeftRight, permission: "tenant-in-ex-categories:list", section: "Management" },
+  { href: "/system/dashboard/tenant-mail-config", label: "Mail Config", icon: Mail, permission: "tenant-mail-config:list", section: "Management" },
+  { href: "/system/dashboard/tenant-places", label: "Places", icon: MapPin, permission: "tenant-places:list", section: "Management" },
+  { href: "/system/dashboard/tenant-streets", label: "Streets", icon: Route, permission: "tenant-streets:list", section: "Management" },
+  { href: "/system/dashboard/tenant-counters", label: "Counters", icon: Store, permission: "tenant-counters:list", section: "Management" },
+  { href: "/system/dashboard/tenant-qr-devices", label: "QR Devices", icon: QrCode, permission: "tenant-qr-devices:list", section: "Management" },
+  { href: "/system/dashboard/tenant-qr-devices/events", label: "QR Device Events", icon: ScrollText, permission: "tenant-qr-devices:view_events", section: "Management" },
+  { href: "/system/dashboard/tenant-customers", label: "Customers", icon: Contact, permission: "tenant-customers:view", section: "Management" },
+  { href: "/system/dashboard/roles", label: "Roles", icon: ShieldCheck, permission: "roles:read", section: "Management" },
+  { href: "/system/dashboard/permissions", label: "Permissions", icon: KeyRound, permission: "permissions:read", section: "Management" },
   { href: "/system/dashboard/settings/customization", label: "Customization", icon: Palette, permission: "app-settings:view", section: "Settings" },
   { href: "/system/dashboard/app-settings", label: "App Settings", icon: SlidersHorizontal, permission: "app-settings:view", section: "Settings" },
 ];
@@ -94,7 +94,7 @@ export function SidebarNav({
         return (
           <React.Fragment key={item.href}>
             {showSectionHeader && (
-              <div className="mt-4 mb-1 px-3 text-xs font-semibold tracking-wide text-muted-foreground/80 uppercase">
+              <div className="mt-4 mb-1 px-3 text-xs font-semibold tracking-wide text-white/40 uppercase">
                 {item.section}
               </div>
             )}
@@ -102,16 +102,16 @@ export function SidebarNav({
               href={item.href}
               onClick={onNavigate}
               className={cn(
-                "relative flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                "relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                 active
-                  ? "text-primary-foreground"
-                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                  ? "text-white"
+                  : "text-white/70 hover:bg-white/5 hover:text-white",
               )}
             >
               {active && (
                 <motion.span
                   layoutId={`active-nav-pill-${instanceId}`}
-                  className="absolute inset-0 rounded-md bg-primary"
+                  className="absolute inset-0 rounded-lg border-l-2 border-[var(--sidebar-active-border)] bg-[var(--sidebar-active-bg)]"
                   transition={{ type: "spring", stiffness: 380, damping: 30 }}
                 />
               )}

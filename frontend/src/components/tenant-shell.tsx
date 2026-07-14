@@ -3,12 +3,14 @@
 import * as React from "react";
 import Link from "next/link";
 import {
+  Bell,
   Building2,
   ChevronDown,
   Contact,
   LayoutDashboard,
   LogOut,
   Menu,
+  Search,
   Settings,
   User,
   Users,
@@ -34,15 +36,17 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { SidebarNav, type NavItem } from "@/components/sidebar-nav";
+import { NavBreadcrumb } from "@/components/nav-breadcrumb";
+import { CommandPalette } from "@/components/command-palette";
 import { PageTransition } from "@/components/motion/page-transition";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { TenantSessionProvider, useTenantSession } from "@/hooks/use-tenant-session";
 
 const TENANT_NAV_ITEMS: NavItem[] = [
-  { href: "/tenant/dashboard", label: "Dashboard", icon: LayoutDashboard, permission: "tenant-dashboard:view" },
-  { href: "/tenant/users", label: "Users", icon: Users, permission: "tenant-users:read" },
-  { href: "/tenant/customers", label: "Customers", icon: Contact, permission: "tenant-customers:view" },
-  { href: "/tenant/settings/user-account", label: "Settings", icon: Settings, permission: "tenant-account:view" },
+  { href: "/tenant/dashboard", label: "Dashboard", icon: LayoutDashboard, permission: "tenant-dashboard:view", section: "Main" },
+  { href: "/tenant/users", label: "Users", icon: Users, permission: "tenant-users:read", section: "Management" },
+  { href: "/tenant/customers", label: "Customers", icon: Contact, permission: "tenant-customers:view", section: "Management" },
+  { href: "/tenant/settings/user-account", label: "Settings", icon: Settings, permission: "tenant-account:view", section: "Settings" },
 ];
 
 function Brand() {
@@ -70,18 +74,19 @@ export function TenantShell({ children }: { children: React.ReactNode }) {
 function TenantShellInner({ children }: { children: React.ReactNode }) {
   const { user, loading, logout, hasPermission } = useTenantSession();
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  const [paletteOpen, setPaletteOpen] = React.useState(false);
 
   if (loading || !user) {
     return (
       <div className="flex min-h-dvh">
-        <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r bg-sidebar md:flex">
-          <div className="flex h-14 items-center gap-2 border-b px-4">
+        <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col bg-[image:var(--gradient-sidebar)] shadow-[var(--shadow-sidebar)] md:flex">
+          <div className="flex h-14 items-center gap-2 border-b border-white/10 px-4">
             <Skeleton className="size-8 rounded-lg" />
             <Skeleton className="h-4 w-28" />
           </div>
           <div className="flex-1 space-y-2 p-4">
             {Array.from({ length: 2 }).map((_, i) => (
-              <Skeleton key={i} className="h-9 w-full rounded-md" />
+              <Skeleton key={i} className="h-9 w-full rounded-lg" />
             ))}
           </div>
         </aside>
@@ -112,8 +117,8 @@ function TenantShellInner({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-dvh">
       {/* Desktop sidebar */}
-      <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground md:flex">
-        <div className="flex h-14 items-center border-b">
+      <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col bg-[image:var(--gradient-sidebar)] text-sidebar-foreground shadow-[var(--shadow-sidebar)] md:flex">
+        <div className="flex h-14 items-center border-b border-white/10">
           <Brand />
         </div>
         <div className="flex-1 overflow-y-auto py-4">
@@ -124,10 +129,10 @@ function TenantShellInner({ children }: { children: React.ReactNode }) {
             rootHref="/tenant/dashboard"
           />
         </div>
-        <div className="border-t p-4 text-xs text-muted-foreground">
-          Signed in as <span className="font-medium">{user.username}</span>
+        <div className="border-t border-white/10 p-4 text-xs text-white/50">
+          Signed in as <span className="font-medium text-white/80">{user.username}</span>
           <br />
-          Role: <span className="font-medium">{user.roleKey}</span>
+          Role: <span className="font-medium text-white/80">{user.roleKey}</span>
         </div>
       </aside>
 
@@ -146,9 +151,12 @@ function TenantShellInner({ children }: { children: React.ReactNode }) {
                 <Menu className="size-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-72 p-0">
-              <SheetHeader className="h-14 justify-center border-b">
-                <SheetTitle asChild>
+            <SheetContent
+              side="left"
+              className="w-72 border-white/10 bg-[image:var(--gradient-sidebar)] p-0 text-sidebar-foreground"
+            >
+              <SheetHeader className="h-14 justify-center border-b border-white/10">
+                <SheetTitle asChild className="text-sidebar-foreground">
                   <Brand />
                 </SheetTitle>
               </SheetHeader>
@@ -164,9 +172,49 @@ function TenantShellInner({ children }: { children: React.ReactNode }) {
             </SheetContent>
           </Sheet>
 
-          <div className="min-w-0 flex-1 truncate text-sm font-medium md:text-base">
-            Welcome, {user.fName ?? user.username}
-          </div>
+          <NavBreadcrumb rootLabel="Tenant Portal" navItems={TENANT_NAV_ITEMS} />
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="hidden gap-2 text-muted-foreground sm:flex"
+            onClick={() => setPaletteOpen(true)}
+          >
+            <Search className="size-4" />
+            Search
+            <kbd className="ml-2 rounded border bg-muted px-1.5 py-0.5 text-[10px] font-medium">
+              ⌘K
+            </kbd>
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="sm:hidden"
+            aria-label="Search"
+            onClick={() => setPaletteOpen(true)}
+          >
+            <Search className="size-4" />
+          </Button>
+          <CommandPalette
+            navItems={TENANT_NAV_ITEMS}
+            hasPermission={hasPermission}
+            open={paletteOpen}
+            onOpenChange={setPaletteOpen}
+          />
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="relative" aria-label="Notifications">
+                <Bell className="size-4" />
+                <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-destructive" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-64">
+              <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem disabled>No new notifications</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <ThemeToggle />
           <Separator orientation="vertical" className="mx-1 h-6" />

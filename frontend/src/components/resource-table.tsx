@@ -71,7 +71,7 @@ export function ResourceTable<T extends { id: string }>({
           <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
           <p className="text-sm text-muted-foreground">{description}</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-card p-2 shadow-[var(--shadow-card)]">
           <form
             className="relative"
             onSubmit={(e) => {
@@ -84,14 +84,14 @@ export function ResourceTable<T extends { id: string }>({
               value={search}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder="Search…"
-              className="w-full pl-9 sm:w-64"
+              className="w-full border-none shadow-none pl-9 sm:w-64"
             />
           </form>
           {toolbarAction}
         </div>
       </div>
 
-      <Card className="py-0">
+      <Card className="py-0 shadow-[var(--shadow-card)] transition-shadow hover:shadow-[var(--shadow-card-hover)]">
         <CardContent className="px-0">
           <AnimatePresence mode="wait">
             {error ? (
@@ -141,7 +141,7 @@ export function ResourceTable<T extends { id: string }>({
                 {/* Tablet/desktop: table skeleton */}
                 <div className="hidden sm:block">
                   <Table>
-                    <TableHeader>
+                    <TableHeader className="sticky top-14 z-10 bg-card shadow-sm">
                       <TableRow>
                         {columns.map((col) => (
                           <TableHead key={col.header} className={col.className}>
@@ -235,7 +235,7 @@ export function ResourceTable<T extends { id: string }>({
                 {/* Tablet/desktop: table */}
                 <div className="hidden sm:block">
                   <Table>
-                    <TableHeader>
+                    <TableHeader className="sticky top-14 z-10 bg-card shadow-sm">
                       <TableRow>
                         {columns.map((col) => (
                           <TableHead key={col.header} className={col.className}>
@@ -310,11 +310,15 @@ export function ResourceTable<T extends { id: string }>({
 }
 
 export function StatusBadgeText({ status }: { status: string }) {
-  const color =
+  const tint =
     status === "ACTIVE"
-      ? "text-emerald-600 dark:text-emerald-400"
+      ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400"
       : status === "BLOCKED"
-        ? "text-destructive"
-        : "text-muted-foreground";
-  return <span className={`text-xs font-semibold ${color}`}>{status}</span>;
+        ? "bg-red-100 text-red-600 dark:bg-red-500/15 dark:text-red-400"
+        : "bg-secondary text-secondary-foreground";
+  return (
+    <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold ${tint}`}>
+      {status}
+    </span>
+  );
 }

@@ -55,7 +55,7 @@ export default function SystemLoginPage() {
   }
 
   return (
-    <main className="flex min-h-dvh flex-col bg-muted/40">
+    <main className="flex min-h-dvh flex-col bg-background">
       <div className="flex justify-end p-4">
         <ThemeToggle />
       </div>

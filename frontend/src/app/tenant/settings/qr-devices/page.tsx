@@ -460,7 +460,7 @@ export default function TenantQrDevicesPage() {
         !webSerialSupported || row.deviceModel !== "BONRIX_DQ12" ? (
           "—"
         ) : connectedDeviceId === row.id ? (
-          <Badge variant="default">Connected</Badge>
+          <Badge variant="success">Connected</Badge>
         ) : (
           <Badge variant="outline">Not connected</Badge>
         ),

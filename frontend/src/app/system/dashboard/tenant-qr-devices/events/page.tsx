@@ -45,12 +45,12 @@ interface BusinessOption {
   name: string;
 }
 
-const EVENT_TYPE_VARIANT: Record<EventType, "default" | "secondary" | "destructive" | "outline"> = {
-  CREATED: "secondary",
+const EVENT_TYPE_VARIANT: Record<EventType, "secondary" | "destructive" | "outline" | "success" | "info"> = {
+  CREATED: "info",
   CONFIG_UPDATED: "outline",
-  PUSH_REQUESTED: "default",
+  PUSH_REQUESTED: "secondary",
   TEST_TRIGGERED: "outline",
-  PAYMENT_CONFIRMED: "default",
+  PAYMENT_CONFIRMED: "success",
   ERROR: "destructive",
 };
 
