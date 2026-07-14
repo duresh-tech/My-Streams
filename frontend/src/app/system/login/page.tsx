@@ -21,6 +21,7 @@ import { Label } from "@/components/ui/label";
 import { fadeUp, shake } from "@/components/motion/variants";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { api, setAccessToken, type LoginResponse } from "@/lib/api";
+import { APP_NAME } from "@/lib/app-name";
 
 export default function SystemLoginPage() {
   const router = useRouter();
@@ -71,9 +72,9 @@ export default function SystemLoginPage() {
               <div className="mx-auto mb-2 flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
                 <ShieldCheck className="size-6" />
               </div>
-              <CardTitle className="text-xl">System Console</CardTitle>
+              <CardTitle className="text-xl">{APP_NAME}</CardTitle>
               <CardDescription>
-                Sign in with your system account
+                Sign in to the System Console
               </CardDescription>
             </CardHeader>
             <CardContent>

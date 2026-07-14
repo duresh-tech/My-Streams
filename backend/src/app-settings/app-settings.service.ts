@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { newId, now } from '../common/utils/id.util';
@@ -6,9 +7,8 @@ import { listResponse, paginate } from '../common/dto/query.dto';
 import { CreateAppSettingDto, UpdateAppSettingDto, validateValueForDataType } from './dto/app-settings.dto';
 import { AppSettingListQueryDto } from './dto/app-settings-query.dto';
 
-const APP_NAME_KEY = 'app.name';
 const APP_LOGO_KEY = 'app.logo_path';
-const DEFAULT_APP_NAME = 'System Console';
+const DEFAULT_APP_NAME = 'Project5';
 const MAX_UPLOAD_SIZE = 5 * 1024 * 1024; // 5 MB
 const UPLOADS_FOLDER = 'app_settings_uploads';
 
@@ -29,6 +29,7 @@ export class AppSettingsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
+    private readonly config: ConfigService,
   ) {}
 
   async findAll(query: AppSettingListQueryDto) {
@@ -114,15 +115,14 @@ export class AppSettingsService {
     });
   }
 
-  /** The only place that hard-codes app.name/app.logo_path - keeps the public
-   * branding contract stable regardless of how the generic store evolves. */
+  /** The app name always comes from the APP_NAME env var (deployment-level
+   * branding), not the DB - the app.name row still exists for backward
+   * compatibility with the Customization page but no longer affects what's
+   * displayed. Logo stays DB-driven since there's no env equivalent for it. */
   async getBrandingPublic() {
-    const [nameRow, logoRow] = await Promise.all([
-      this.prisma.appSetting.findFirst({ where: { key: APP_NAME_KEY, status: 'ACTIVE' } }),
-      this.prisma.appSetting.findFirst({ where: { key: APP_LOGO_KEY, status: 'ACTIVE' } }),
-    ]);
+    const logoRow = await this.prisma.appSetting.findFirst({ where: { key: APP_LOGO_KEY, status: 'ACTIVE' } });
     return {
-      appName: nameRow?.value || DEFAULT_APP_NAME,
+      appName: this.config.get<string>('APP_NAME', DEFAULT_APP_NAME),
       logoPath: logoRow?.value || null,
     };
   }

@@ -37,6 +37,7 @@ import { CommandPalette } from "@/components/command-palette";
 import { PageTransition } from "@/components/motion/page-transition";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { SessionProvider, useSession } from "@/hooks/use-session";
+import { APP_NAME } from "@/lib/app-name";
 
 function Brand() {
   return (
@@ -47,7 +48,7 @@ function Brand() {
       <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
         <ShieldCheck className="size-4" />
       </span>
-      System Console
+      {APP_NAME}
     </Link>
   );
 }

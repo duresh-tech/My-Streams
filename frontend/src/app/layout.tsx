@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import { Toaster } from "sonner";
 import { MotionConfig } from "motion/react";
 import { ThemeProvider } from "@/components/theme-provider";
+import { APP_NAME } from "@/lib/app-name";
 import "./globals.css";
 
 const inter = Inter({
@@ -12,8 +13,8 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: "System Console",
-    template: "%s | System Console",
+    default: APP_NAME,
+    template: `%s | ${APP_NAME}`,
   },
   description: "System administration console",
 };

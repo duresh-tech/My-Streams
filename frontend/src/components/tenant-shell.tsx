@@ -41,6 +41,7 @@ import { CommandPalette } from "@/components/command-palette";
 import { PageTransition } from "@/components/motion/page-transition";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { TenantSessionProvider, useTenantSession } from "@/hooks/use-tenant-session";
+import { APP_NAME } from "@/lib/app-name";
 
 const TENANT_NAV_ITEMS: NavItem[] = [
   { href: "/tenant/dashboard", label: "Dashboard", icon: LayoutDashboard, permission: "tenant-dashboard:view", section: "Main" },
@@ -58,7 +59,7 @@ function Brand() {
       <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
         <Building2 className="size-4" />
       </span>
-      Tenant Portal
+      {APP_NAME}
     </Link>
   );
 }

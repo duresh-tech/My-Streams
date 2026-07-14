@@ -191,6 +191,10 @@ export default function CustomizationPage() {
               value={appName}
               onChange={(e) => setAppName(e.target.value)}
             />
+            <p className="text-xs text-muted-foreground">
+              Currently set via the APP_NAME environment variable and shown throughout the app;
+              this field is saved but has no effect on the displayed name.
+            </p>
           </div>
 
           {canUpdate && (

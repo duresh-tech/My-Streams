@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { fadeUp, shake } from "@/components/motion/variants";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { setTenantAccessToken, tenantApi, type TenantLoginResponse } from "@/lib/tenant-api";
+import { APP_NAME } from "@/lib/app-name";
 
 export default function TenantLoginPage() {
   const router = useRouter();
@@ -69,9 +70,9 @@ export default function TenantLoginPage() {
               <div className="mx-auto mb-2 flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
                 <Building2 className="size-6" />
               </div>
-              <CardTitle className="text-xl">Tenant Portal</CardTitle>
+              <CardTitle className="text-xl">{APP_NAME}</CardTitle>
               <CardDescription>
-                Sign in with your tenant account
+                Sign in to the Tenant Portal
               </CardDescription>
             </CardHeader>
             <CardContent>
