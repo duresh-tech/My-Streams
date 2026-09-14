@@ -1,4 +1,4 @@
-# Project 5 — System Console
+# My Streams
 
 [![Backend](https://img.shields.io/badge/backend-v1.6.0-blue)](./backend/CHANGELOG.md)
 [![Frontend](https://img.shields.io/badge/frontend-v1.5.0-blue)](./frontend/CHANGELOG.md)
@@ -30,7 +30,7 @@ Changes across the whole project are summarised in
 | Storage  | Driver-based: local public folder or cloud S3 (paths only in DB)  |
 
 ```
-project_5/
+my-streams/
 ├── backend/    NestJS REST API  → http://localhost:4000/api/v1  (Swagger: /docs)
 │               README.md · CHANGELOG.md · test/ (npm test)
 ├── frontend/   Next.js app      → http://localhost:3000
