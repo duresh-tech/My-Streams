@@ -1,3 +1,7 @@
+// First import on purpose: sets the process timezone before any other module
+// is evaluated. See timezone.bootstrap.ts.
+import './timezone.bootstrap';
+
 import { Logger, VersioningType } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
@@ -16,6 +20,8 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  // Streaming servers post events in batches, which outgrow the 100kb default.
+  app.useBodyParser('json', { limit: '5mb' });
   const config = app.get(ConfigService);
 
   // ---- Security headers ----

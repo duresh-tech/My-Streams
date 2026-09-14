@@ -4,6 +4,8 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import * as argon2 from 'argon2';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { newId, newSystemCode, now } from '../common/utils/id.util';
 import { listResponse, paginate } from '../common/dto/query.dto';
@@ -16,14 +18,13 @@ import { ImportTenantCustomerRowSchema } from './dto/import-tenant-customer-row.
 
 const TENANT_CUSTOMER_INCLUDE = {
   tenantBusiness: { select: { id: true, systemCode: true, name: true } },
-  tenantPlace: { select: { id: true, systemCode: true, placeName: true } },
-  tenantStreet: { select: { id: true, systemCode: true, streetName: true } },
 };
 
 const CSV_COLUMNS = [
   'systemCode',
   'tenantBusinessId',
   'customerCode',
+  'username',
   'fName',
   'lName',
   'fatherName',
@@ -33,8 +34,8 @@ const CSV_COLUMNS = [
   'secondaryMobile',
   'email',
   'customerType',
-  'tenantPlaceId',
-  'tenantStreetId',
+  'place',
+  'street',
   'addressLine1',
   'addressLine2',
   'city',
@@ -55,17 +56,18 @@ const CSV_COLUMNS = [
   'status',
 ] as const;
 
+/**
+ * Also drops the portal password hash. Every read path goes through here, CSV
+ * export included, so the hash cannot leave the service by accident - callers
+ * only learn whether a password is set.
+ */
 function serializeCustomer<
   T extends { latitude: unknown; longitude: unknown; dateOfBirth: unknown },
->(
-  customer: T,
-): Omit<T, 'latitude' | 'longitude' | 'dateOfBirth'> & {
-  latitude: number | null;
-  longitude: number | null;
-  dateOfBirth: string | null;
-} {
+>(customer: T) {
+  const { passwordHash, ...rest } = customer as T & { passwordHash?: string | null };
   return {
-    ...customer,
+    ...rest,
+    hasPassword: !!passwordHash,
     latitude: customer.latitude == null ? null : Number(customer.latitude),
     longitude: customer.longitude == null ? null : Number(customer.longitude),
     dateOfBirth:
@@ -83,7 +85,7 @@ export class TenantCustomersService {
     query: TenantCustomerListQueryDto,
     extra: { tenantBusinessId?: { in: string[] } } = {},
   ) {
-    const { search, status, tenantBusinessId, tenantPlaceId, tenantStreetId } = query;
+    const { search, status, tenantBusinessId } = query;
     return {
       status: status ? status : ({ not: 'DELETED' } as const),
       ...(extra.tenantBusinessId
@@ -91,8 +93,6 @@ export class TenantCustomersService {
         : tenantBusinessId
           ? { tenantBusinessId }
           : {}),
-      ...(tenantPlaceId ? { tenantPlaceId } : {}),
-      ...(tenantStreetId ? { tenantStreetId } : {}),
       ...(search
         ? {
             OR: [
@@ -101,6 +101,8 @@ export class TenantCustomersService {
               { customerCode: { contains: search } },
               { primaryMobile: { contains: search } },
               { systemCode: { contains: search } },
+              { place: { contains: search } },
+              { street: { contains: search } },
             ],
           }
         : {}),
@@ -148,27 +150,55 @@ export class TenantCustomersService {
 
   async create(dto: CreateTenantCustomerDto) {
     await this.assertBusinessExists(dto.tenantBusinessId);
-    if (dto.tenantPlaceId) await this.assertPlaceBelongsToBusiness(dto.tenantPlaceId, dto.tenantBusinessId);
-    if (dto.tenantStreetId) {
-      if (!dto.tenantPlaceId) {
-        throw new BadRequestException('tenantPlaceId is required when tenantStreetId is given');
-      }
-      await this.assertStreetBelongsToPlace(dto.tenantStreetId, dto.tenantPlaceId);
-    }
-    await this.assertCustomerCodeUnique(dto.tenantBusinessId, dto.customerCode);
+    if (dto.username) await this.assertUsernameUnique(dto.username);
 
+    const { password, ...fields } = dto;
     const timestamp = now();
-    const customer = await this.prisma.tenantCustomer.create({
-      data: {
-        id: newId(),
-        systemCode: newSystemCode('TNC'),
-        ...dto,
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      },
-      include: TENANT_CUSTOMER_INCLUDE,
+    // The code is derived from the current max, so two concurrent creates can
+    // pick the same one; the [tenantBusinessId, customerCode] unique index is
+    // the real guard and a collision just means re-deriving it.
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        const customer = await this.prisma.tenantCustomer.create({
+          data: {
+            id: newId(),
+            systemCode: newSystemCode('TNC'),
+            ...fields,
+            passwordHash: password
+              ? await argon2.hash(password, { type: argon2.argon2id })
+              : undefined,
+            customerCode: await this.nextCustomerCode(dto.tenantBusinessId),
+            createdAt: timestamp,
+            updatedAt: timestamp,
+          },
+          include: TENANT_CUSTOMER_INCLUDE,
+        });
+        return serializeCustomer(customer);
+      } catch (err) {
+        const isCodeCollision =
+          err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002';
+        if (!isCodeCollision || attempt >= 4) throw err;
+      }
+    }
+  }
+
+  /**
+   * Next sequential customer code for a business: CUS001, CUS002, ...
+   * Only codes matching CUS<digits> join the sequence, so legacy hand-entered
+   * codes (CUST-0001 and friends) never block or skew it. Soft-deleted rows
+   * still count - a code is never handed out twice.
+   */
+  private async nextCustomerCode(tenantBusinessId: string): Promise<string> {
+    const rows = await this.prisma.tenantCustomer.findMany({
+      where: { tenantBusinessId, customerCode: { startsWith: 'CUS' } },
+      select: { customerCode: true },
     });
-    return serializeCustomer(customer);
+    let max = 0;
+    for (const { customerCode } of rows) {
+      const match = /^CUS(\d+)$/.exec(customerCode);
+      if (match) max = Math.max(max, Number(match[1]));
+    }
+    return `CUS${String(max + 1).padStart(3, '0')}`;
   }
 
   async update(id: string, dto: UpdateTenantCustomerDto) {
@@ -180,32 +210,29 @@ export class TenantCustomersService {
     const tenantBusinessId = dto.tenantBusinessId ?? customer.tenantBusinessId;
     if (dto.tenantBusinessId) await this.assertBusinessExists(dto.tenantBusinessId);
 
-    const tenantPlaceId = dto.tenantPlaceId !== undefined ? dto.tenantPlaceId : customer.tenantPlaceId;
-    if (dto.tenantPlaceId || dto.tenantBusinessId) {
-      if (tenantPlaceId) await this.assertPlaceBelongsToBusiness(tenantPlaceId, tenantBusinessId);
+    // Codes are generated, never client-supplied - but moving a customer to
+    // another business can collide with a code already used there.
+    if (dto.tenantBusinessId && dto.tenantBusinessId !== customer.tenantBusinessId) {
+      await this.assertCustomerCodeUnique(tenantBusinessId, customer.customerCode, id);
     }
 
-    const tenantStreetId = dto.tenantStreetId !== undefined ? dto.tenantStreetId : customer.tenantStreetId;
-    if (tenantStreetId) {
-      if (!tenantPlaceId) {
-        throw new BadRequestException('tenantPlaceId is required when tenantStreetId is given');
-      }
-      if (dto.tenantStreetId || dto.tenantPlaceId) {
-        await this.assertStreetBelongsToPlace(tenantStreetId, tenantPlaceId);
-      }
-    }
+    if (dto.username) await this.assertUsernameUnique(dto.username, id);
 
-    if (dto.customerCode || dto.tenantBusinessId) {
-      await this.assertCustomerCodeUnique(
-        tenantBusinessId,
-        dto.customerCode ?? customer.customerCode,
-        id,
-      );
-    }
-
+    const { password, ...fields } = dto;
     const updated = await this.prisma.tenantCustomer.update({
       where: { id },
-      data: { ...dto, updatedAt: now() },
+      data: {
+        ...fields,
+        // Omitted = keep the stored password; empty string = clear it.
+        ...(password !== undefined
+          ? {
+              passwordHash: password
+                ? await argon2.hash(password, { type: argon2.argon2id })
+                : null,
+            }
+          : {}),
+        updatedAt: now(),
+      },
       include: TENANT_CUSTOMER_INCLUDE,
     });
     return serializeCustomer(updated);
@@ -314,47 +341,16 @@ export class TenantCustomersService {
     }
   }
 
-  async listPlaces(tenantBusinessId: string) {
-    const places = await this.prisma.tenantPlace.findMany({
-      where: { tenantBusinessId, status: { not: 'DELETED' } },
-      select: { id: true, placeName: true, latitude: true, longitude: true, radiusMeters: true },
-      orderBy: { placeName: 'asc' },
+  /**
+   * Portal usernames are unique across every tenant, so this checks globally
+   * rather than within the business the way customerCode does.
+   */
+  private async assertUsernameUnique(username: string, excludeId?: string) {
+    const existing = await this.prisma.tenantCustomer.findFirst({
+      where: { username, ...(excludeId ? { id: { not: excludeId } } : {}) },
     });
-    return places.map((place) => ({
-      ...place,
-      latitude: place.latitude == null ? null : Number(place.latitude),
-      longitude: place.longitude == null ? null : Number(place.longitude),
-    }));
-  }
-
-  async listStreets(tenantBusinessId: string, tenantPlaceId: string) {
-    const streets = await this.prisma.tenantStreet.findMany({
-      where: { tenantBusinessId, tenantPlaceId, status: { not: 'DELETED' } },
-      select: { id: true, streetName: true, latitude: true, longitude: true },
-      orderBy: { streetName: 'asc' },
-    });
-    return streets.map((street) => ({
-      ...street,
-      latitude: street.latitude == null ? null : Number(street.latitude),
-      longitude: street.longitude == null ? null : Number(street.longitude),
-    }));
-  }
-
-  private async assertPlaceBelongsToBusiness(tenantPlaceId: string, tenantBusinessId: string) {
-    const place = await this.prisma.tenantPlace.findFirst({
-      where: { id: tenantPlaceId, tenantBusinessId, status: { not: 'DELETED' } },
-    });
-    if (!place) {
-      throw new BadRequestException('Place does not exist for the given tenant business');
-    }
-  }
-
-  private async assertStreetBelongsToPlace(tenantStreetId: string, tenantPlaceId: string) {
-    const street = await this.prisma.tenantStreet.findFirst({
-      where: { id: tenantStreetId, tenantPlaceId, status: { not: 'DELETED' } },
-    });
-    if (!street) {
-      throw new BadRequestException('Street does not exist for the given place');
+    if (existing) {
+      throw new BadRequestException(`Username "${username}" is already taken`);
     }
   }
 
@@ -380,16 +376,6 @@ export class TenantCustomersService {
       select: { id: true, name: true },
       orderBy: { name: 'asc' },
     });
-  }
-
-  async listPlacesForTenantUser(tenantUserId: string, tenantBusinessId: string) {
-    await this.assertBusinessOwned(tenantUserId, tenantBusinessId);
-    return this.listPlaces(tenantBusinessId);
-  }
-
-  async listStreetsForTenantUser(tenantUserId: string, tenantBusinessId: string, tenantPlaceId: string) {
-    await this.assertBusinessOwned(tenantUserId, tenantBusinessId);
-    return this.listStreets(tenantBusinessId, tenantPlaceId);
   }
 
   async findAllForTenantUser(tenantUserId: string, query: TenantCustomerListQueryDto) {
@@ -511,6 +497,19 @@ export class TenantCustomersService {
       }
       return businessIds[0];
     });
+  }
+
+  /**
+   * The one business a tenant user belongs to. Exposed for the "Login as
+   * customer" route, which must scope impersonation to the caller's own tenant
+   * rather than trusting a business id from the request.
+   */
+  async getMappedBusinessIdFor(tenantUserId: string): Promise<string> {
+    const [tenantBusinessId] = await this.getMappedBusinessIds(tenantUserId);
+    if (!tenantBusinessId) {
+      throw new ForbiddenException('Your account is not mapped to a business');
+    }
+    return tenantBusinessId;
   }
 
   private async getMappedBusinessIds(tenantUserId: string): Promise<string[]> {

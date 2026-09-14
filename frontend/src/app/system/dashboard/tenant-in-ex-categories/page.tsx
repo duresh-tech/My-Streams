@@ -76,6 +76,7 @@ export default function TenantInExCategoriesPage() {
   const canCreate = hasPermission("tenant-in-ex-categories:create");
   const canUpdate = hasPermission("tenant-in-ex-categories:update");
   const canDelete = hasPermission("tenant-in-ex-categories:delete");
+  const canDeleteSystem = hasPermission("tenant-in-ex-categories:delete_system");
   const canRestore = hasPermission("tenant-in-ex-categories:restore");
 
   const [statusFilter, setStatusFilter] = React.useState<string>("");
@@ -294,7 +295,7 @@ export default function TenantInExCategoriesPage() {
                           ...(canUpdate && !row.isSystem
                             ? [{ label: "Edit", icon: Pencil, onClick: () => openEdit(row) }]
                             : []),
-                          ...(canDelete && !row.isSystem
+                          ...(canDelete && (!row.isSystem || canDeleteSystem)
                             ? [
                                 {
                                   label: "Delete",

@@ -70,6 +70,7 @@ export default function TenantPaymentModesPage() {
   const canCreate = hasPermission("tenant-payment-modes:create");
   const canUpdate = hasPermission("tenant-payment-modes:update");
   const canDelete = hasPermission("tenant-payment-modes:delete");
+  const canDeleteSystem = hasPermission("tenant-payment-modes:delete_system");
   const canRestore = hasPermission("tenant-payment-modes:restore");
 
   const [statusFilter, setStatusFilter] = React.useState<string>("");
@@ -281,7 +282,7 @@ export default function TenantPaymentModesPage() {
                           ...(canUpdate && !row.isSystem
                             ? [{ label: "Edit", icon: Pencil, onClick: () => openEdit(row) }]
                             : []),
-                          ...(canDelete && !row.isSystem
+                          ...(canDelete && (!row.isSystem || canDeleteSystem)
                             ? [
                                 {
                                   label: "Delete",

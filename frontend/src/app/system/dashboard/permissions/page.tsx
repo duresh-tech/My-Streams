@@ -65,6 +65,7 @@ export default function PermissionsPage() {
   const canCreate = hasPermission("permissions:create");
   const canUpdate = hasPermission("permissions:update");
   const canDelete = hasPermission("permissions:delete");
+  const canDeleteSystem = hasPermission("permissions:delete_system");
 
   const [formOpen, setFormOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<PermissionRow | null>(null);
@@ -190,7 +191,7 @@ export default function PermissionsPage() {
                             label: "Delete",
                             icon: Trash2,
                             onClick: () => setDeleteTarget(row),
-                            disabled: row.isSystem,
+                            disabled: row.isSystem && !canDeleteSystem,
                             destructive: true,
                           },
                         ]

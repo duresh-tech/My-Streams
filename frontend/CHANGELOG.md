@@ -7,6 +7,98 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Dashboards with charts** (Recharts): `/tenant/dashboard` and
+  `/system/dashboard` have a 30 days / 90 days / 12 months range, KPI tiles,
+  column and line charts (each with a Table view), labelled bar lists and
+  attention lists. The tenant dashboard shows only the sections the role may
+  list (billing, streams and servers, customers, stream events, income and
+  expense); the system dashboard covers growth, infrastructure, billing per
+  currency and access. Chart colors are the `--viz-1..3`, `--viz-grid` and
+  `--viz-axis` tokens, with separate light and dark steps.
+- **Stream events**: the streaming server form has a "Receive stream events"
+  section with Source / Stream / Viewer event checkboxes (viewer events off by
+  default, with a traffic warning), the server-side setup status and a Retry.
+- **Event Alerts** (Settings → Event Alerts, `tenant-event-alerts:list`):
+  email rules picking any number of events, optional server / stream /
+  customer scope, recipients, customer recipients (none, the stream owner, or
+  the owner plus every customer assigned to the stream's server - Bcc'd), a
+  per-stream cooldown, and Send test. The rule dialog is wide (5xl) with
+  aligned, taller scope lists. Warns when no mail config exists or when no server
+  in scope sends a chosen event.
+- **Stream Events** log (`/tenant/stream-events`, `tenant-stream-events:list`):
+  filters by server, event, alert result and date, with the raw event payload.
+  Auto refreshes every 30 seconds (toggleable) without clearing the table,
+  paused while a payload is open or the tab is hidden
+  (`useResourceList().refreshSilently`).
+- **Stream page** (`/tenant/streams/[id]`): Refresh also reloads the HLS
+  preview player.
+
+### Removed
+
+- **Places and Streets** settings pages (tenant portal and System Console)
+  and their navigation entries. Customer forms and the customer portal
+  profile take place and street as plain text inputs.
+
+### Added
+
+- **Cron Jobs** (`/tenant/settings/cron-jobs`, "Cron Jobs" in the Settings
+  menu, `tenant-billing-settings:view`): choose how often the billing
+  job runs for your business (every minute to every 24 hours), pause
+  scheduled runs, run it now, and see when it last ran, what it did, and when
+  it runs next (refreshed every 30 seconds). Changing it needs
+  `tenant-billing-settings:update`.
+
+- **Billing-blocked streams in the customer portal**: My Streams and the
+  stream page show "Blocked · no active bill" or "Grace until …", and edit,
+  enable, reload and delete explain the block instead of calling the API.
+- **Service periods with time**: invoice periods, subscription periods, the
+  new-invoice summary and "Paid until" badges show date and time. The
+  new-invoice start date cannot be in the past and explains that today starts
+  when the invoice activates.
+
+- **New invoice**: a "Periods to bill" field for advance invoices, and a
+  "5. Payment" step (with `tenant-payments:create`) to record a full or
+  part payment while issuing; the summary shows what is paid now and the
+  balance after.
+- **Cancel invoice**: replaces Void on the invoice page and is offered in
+  the invoice list's row actions. Paid invoices can be cancelled with
+  `tenant-payments:void`; their payments are voided too. "Void" now reads
+  "Cancelled" everywhere.
+- **Income & Expenses** (`/tenant/billing/income-expenses`, Billing
+  sidebar, `tenant-income-expenses:list`): ledger with type and date
+  filters, income/expense/net totals, and add/edit/delete gated by
+  permission. Entries booked from invoice payments link to their invoice
+  and cannot be edited.
+- **Customer portal**: **My Bills** (`/customer/billing`) with the invoice
+  history, total due and a read-only invoice view; bill-status badges
+  (paid until, expired, awaiting payment, amount due) on My Servers and My
+  Streams.
+
+- **Billing settings** (`/tenant/settings/billing`, "Billing" in the
+  Settings sidebar, gated by `tenant-billing-settings:view`): currency
+  (searchable ISO 4217 picker), default tax type, invoice prefix and next
+  number with a live preview of the next invoice number, payment due days,
+  invoice footer, and the subscription rules — activate on payment or on
+  issue, renewal invoice lead days, and grace period. The next-number field
+  locks with an explanation once an invoice has been issued. Read-only
+  without `tenant-billing-settings:update`.
+- **Invoices** (new **Billing → Invoices** sidebar entry, gated by
+  `tenant-invoices:list`):
+  - `/tenant/billing/invoices`: list with a status filter, overdue badge,
+    total and balance.
+  - `/tenant/billing/invoices/new`: customer → stream or server → plan and
+    start date → tax and discount. A live, server-calculated summary shows
+    the service period (start → expiry), tax, total, due date, and when the
+    subscription activates. Renewals are detected automatically and keep
+    the plan; an unpaid invoice on the target is linked instead of billed
+    again.
+  - `/tenant/billing/invoices/[id]`: the invoice (from/to, lines with period
+    and expiry, totals, balance), the subscription's status and expiry,
+    payments, and Record payment (partial allowed) and Void dialogs, each
+    permission-gated.
+
 ## [1.5.0] - 2026-07-13
 
 ### Added

@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -126,7 +127,7 @@ export class RolesService {
     return this.findOne(id);
   }
 
-  async remove(id: string) {
+  async remove(id: string, allowSystem = false) {
     const role = await this.prisma.role.findFirst({
       where: { id, status: { not: 'DELETED' } },
       include: {
@@ -134,8 +135,10 @@ export class RolesService {
       },
     });
     if (!role) throw new NotFoundException('Role not found');
-    if (role.isSystem) {
-      throw new BadRequestException('System roles cannot be deleted');
+    if (role.isSystem && !allowSystem) {
+      throw new ForbiddenException(
+        'Deleting a system role requires the roles:delete_system permission',
+      );
     }
     if (role._count.systemUsers > 0) {
       throw new BadRequestException(

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { APP_GUARD, APP_PIPE } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { PrismaModule } from './prisma/prisma.module';
 import { StorageModule } from './storage/storage.module';
@@ -16,14 +17,17 @@ import { TenantBusinessModule } from './tenant-business/tenant-business.module';
 import { TenantMappedBusinessModule } from './tenant-mapped-business/tenant-mapped-business.module';
 import { TenantTaxTypesModule } from './tenant-tax-types/tenant-tax-types.module';
 import { TenantPaymentModesModule } from './tenant-payment-modes/tenant-payment-modes.module';
+import { TenantFlussonicServersModule } from './tenant-flussonic-servers/tenant-flussonic-servers.module';
+import { TenantStreamsModule } from './tenant-streams/tenant-streams.module';
+import { TenantSubscriptionPlansModule } from './tenant-subscription-plans/tenant-subscription-plans.module';
+import { TenantCustomerServersModule } from './tenant-customer-servers/tenant-customer-servers.module';
+import { TenantBillingModule } from './tenant-billing/tenant-billing.module';
+import { CustomerAuthModule } from './customer-auth/customer-auth.module';
+import { CustomerPortalModule } from './customer-portal/customer-portal.module';
 import { TenantInExCategoriesModule } from './tenant-in-ex-categories/tenant-in-ex-categories.module';
-import { TenantBusinessBranchesModule } from './tenant-business-branches/tenant-business-branches.module';
-import { TenantNetworkProvidersModule } from './tenant-network-providers/tenant-network-providers.module';
+import { TenantIncomeExpensesModule } from './tenant-income-expenses/tenant-income-expenses.module';
+import { TenantStreamEventsModule } from './tenant-stream-events/tenant-stream-events.module';
 import { TenantMailConfigModule } from './tenant-mail-config/tenant-mail-config.module';
-import { TenantPlacesModule } from './tenant-places/tenant-places.module';
-import { TenantStreetsModule } from './tenant-streets/tenant-streets.module';
-import { TenantCountersModule } from './tenant-counters/tenant-counters.module';
-import { TenantQrDevicesModule } from './tenant-qr-devices/tenant-qr-devices.module';
 import { TenantCustomersModule } from './tenant-customers/tenant-customers.module';
 import { AppSettingsModule } from './app-settings/app-settings.module';
 import { DashboardModule } from './dashboard/dashboard.module';
@@ -37,6 +41,7 @@ import { DeviceHeaderGuard } from './common/guards/device-header.guard';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
     ThrottlerModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -61,14 +66,17 @@ import { DeviceHeaderGuard } from './common/guards/device-header.guard';
     TenantMappedBusinessModule,
     TenantTaxTypesModule,
     TenantPaymentModesModule,
+    TenantFlussonicServersModule,
+    TenantStreamsModule,
+    TenantSubscriptionPlansModule,
+    TenantCustomerServersModule,
+    TenantBillingModule,
+    CustomerAuthModule,
+    CustomerPortalModule,
     TenantInExCategoriesModule,
-    TenantBusinessBranchesModule,
-    TenantNetworkProvidersModule,
+    TenantIncomeExpensesModule,
+    TenantStreamEventsModule,
     TenantMailConfigModule,
-    TenantPlacesModule,
-    TenantStreetsModule,
-    TenantCountersModule,
-    TenantQrDevicesModule,
     TenantCustomersModule,
     AppSettingsModule,
     DashboardModule,

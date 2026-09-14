@@ -95,13 +95,15 @@ export class TenantInExCategoriesService {
     });
   }
 
-  async remove(id: string) {
+  async remove(id: string, allowSystem = false) {
     const category = await this.prisma.tenantInExCategory.findFirst({
       where: { id, status: { not: 'DELETED' } },
     });
     if (!category) throw new NotFoundException('Income/expense category not found');
-    if (category.isSystem) {
-      throw new BadRequestException('System categories cannot be deleted');
+    if (category.isSystem && !allowSystem) {
+      throw new ForbiddenException(
+        'Deleting a system category requires the tenant-in-ex-categories:delete_system permission',
+      );
     }
 
     const timestamp = now();
@@ -213,9 +215,9 @@ export class TenantInExCategoriesService {
     return this.update(id, dto);
   }
 
-  async removeForTenantUser(tenantUserId: string, id: string) {
+  async removeForTenantUser(tenantUserId: string, id: string, allowSystem = false) {
     await this.findOneForTenantUser(tenantUserId, id);
-    return this.remove(id);
+    return this.remove(id, allowSystem);
   }
 
   private async getMappedBusinessIds(tenantUserId: string): Promise<string[]> {

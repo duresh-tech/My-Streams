@@ -5,20 +5,20 @@
  * without clobbering each other.
  */
 
+import { readStored, removeStored, writeStored } from "@/lib/storage";
+
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
 
 const TENANT_ACCESS_TOKEN_KEY = "tenant.accessToken";
 
 export function getTenantAccessToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(TENANT_ACCESS_TOKEN_KEY);
+  return readStored(TENANT_ACCESS_TOKEN_KEY);
 }
 
 export function setTenantAccessToken(token: string | null) {
-  if (typeof window === "undefined") return;
-  if (token) localStorage.setItem(TENANT_ACCESS_TOKEN_KEY, token);
-  else localStorage.removeItem(TENANT_ACCESS_TOKEN_KEY);
+  if (token) writeStored(TENANT_ACCESS_TOKEN_KEY, token);
+  else removeStored(TENANT_ACCESS_TOKEN_KEY);
 }
 
 function getTenantCsrfToken(): string | null {

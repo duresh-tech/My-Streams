@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import * as nodemailer from 'nodemailer';
+import { sendSmtpMail } from '../common/utils/mail.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { newId, newSystemCode, now } from '../common/utils/id.util';
 import { listResponse, paginate } from '../common/dto/query.dto';
@@ -142,31 +142,8 @@ export class TenantMailConfigService {
       throw new BadRequestException('fromMailAddress must be set before sending a test email');
     }
 
-    // Ports 465/2465 are always implicit TLS (SMTPS) by convention, regardless of
-    // what mailEncryption happens to be set to - getting this wrong causes the
-    // server to drop the connection before the SMTP handshake even starts.
-    const IMPLICIT_TLS_PORTS = new Set([465, 2465]);
-    const secure =
-      IMPLICIT_TLS_PORTS.has(config.mailPort) ||
-      config.mailEncryption === 'SSL' ||
-      config.mailEncryption === 'SMTPS';
-    const requireTLS = !secure && config.mailEncryption === 'TLS';
-
-    const transport = nodemailer.createTransport({
-      host: config.mailHost,
-      port: config.mailPort,
-      secure,
-      requireTLS,
-      auth: config.mailUsername
-        ? { user: config.mailUsername, pass: config.mailPassword ?? undefined }
-        : undefined,
-    });
-
     try {
-      await transport.sendMail({
-        from: config.fromMailName
-          ? { name: config.fromMailName, address: config.fromMailAddress }
-          : config.fromMailAddress,
+      await sendSmtpMail(config, {
         to: toEmail,
         subject: 'Test email',
         text: 'This is a test email to verify your mail configuration is working correctly.',

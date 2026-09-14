@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, useAnimation } from "motion/react";
-import { LoaderCircle, ShieldCheck } from "lucide-react";
+import { LoaderCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ import { fadeUp, shake } from "@/components/motion/variants";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { api, setAccessToken, type LoginResponse } from "@/lib/api";
 import { APP_NAME } from "@/lib/app-name";
+import { AppLogo } from "@/components/app-logo";
 
 export default function SystemLoginPage() {
   const router = useRouter();
@@ -69,9 +70,7 @@ export default function SystemLoginPage() {
         >
           <Card className="w-full">
             <CardHeader className="text-center">
-              <div className="mx-auto mb-2 flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-                <ShieldCheck className="size-6" />
-              </div>
+              <AppLogo size={48} priority className="mx-auto mb-2 rounded-xl" />
               <CardTitle className="text-xl">{APP_NAME}</CardTitle>
               <CardDescription>
                 Sign in to the System Console

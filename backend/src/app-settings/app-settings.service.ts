@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { newId, now } from '../common/utils/id.util';
+import { appTimezone } from '../common/utils/time.util';
 import { listResponse, paginate } from '../common/dto/query.dto';
 import { CreateAppSettingDto, UpdateAppSettingDto, validateValueForDataType } from './dto/app-settings.dto';
 import { AppSettingListQueryDto } from './dto/app-settings-query.dto';
@@ -11,18 +12,6 @@ const APP_LOGO_KEY = 'app.logo_path';
 const DEFAULT_APP_NAME = 'Project5';
 const MAX_UPLOAD_SIZE = 5 * 1024 * 1024; // 5 MB
 const UPLOADS_FOLDER = 'app_settings_uploads';
-
-/** Background screens pushed to a Bonrix DQ12 as raw RGB565 bitmaps. Configured
- * here (rather than hard-coded CDN URLs like Bonrix's own demo) so any tenant
- * can rebrand them from the App Settings admin page without a code change. */
-const DQ12_IMAGE_KEYS = {
-  welcome: 'qr_device.dq12.welcome_image',
-  success: 'qr_device.dq12.success_image',
-  pending: 'qr_device.dq12.pending_image',
-  fail: 'qr_device.dq12.fail_image',
-  cancel: 'qr_device.dq12.cancel_image',
-  qrBackground: 'qr_device.dq12.to_pay_qr_bg_image',
-} as const;
 
 @Injectable()
 export class AppSettingsService {
@@ -118,29 +107,19 @@ export class AppSettingsService {
   /** The app name always comes from the APP_NAME env var (deployment-level
    * branding), not the DB - the app.name row still exists for backward
    * compatibility with the Customization page but no longer affects what's
-   * displayed. Logo stays DB-driven since there's no env equivalent for it. */
+   * displayed. Logo stays DB-driven since there's no env equivalent for it.
+   *
+   * `timezone` rides along here so the frontend can render timestamps in the
+   * backend's zone without a second copy of the setting in its own env, where
+   * the two could silently disagree. This endpoint is already fetched on load
+   * for branding, so it costs no extra request. */
   async getBrandingPublic() {
     const logoRow = await this.prisma.appSetting.findFirst({ where: { key: APP_LOGO_KEY, status: 'ACTIVE' } });
     return {
       appName: this.config.get<string>('APP_NAME', DEFAULT_APP_NAME),
       logoPath: logoRow?.value || null,
+      timezone: appTimezone(),
     };
-  }
-
-  /** Public (unauthenticated, like getBrandingPublic) so both the system and
-   * tenant QR-device pages can fetch these without needing system permissions -
-   * missing keys just resolve to null, so the device page falls back to a
-   * solid background rather than erroring. */
-  async getDq12AssetsPublic() {
-    const entries = Object.entries(DQ12_IMAGE_KEYS) as [keyof typeof DQ12_IMAGE_KEYS, string][];
-    const rows = await Promise.all(
-      entries.map(([, key]) => this.prisma.appSetting.findFirst({ where: { key, status: 'ACTIVE' } })),
-    );
-    const result = {} as Record<keyof typeof DQ12_IMAGE_KEYS, string | null>;
-    entries.forEach(([name], index) => {
-      result[name] = rows[index]?.value || null;
-    });
-    return result;
   }
 
   async uploadLogoValue(file?: Express.Multer.File) {

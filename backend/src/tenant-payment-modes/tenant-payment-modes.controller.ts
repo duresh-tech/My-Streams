@@ -22,6 +22,7 @@ import {
 } from './dto/tenant-payment-mode.dto';
 import { TenantPaymentModeListQueryDto } from './dto/tenant-payment-mode-query.dto';
 import { RequirePermissions } from '../common/decorators/permissions.decorator';
+import { CurrentUser, AuthUser } from '../common/decorators/current-user.decorator';
 
 const TENANT_PAYMENT_MODE_EXAMPLE = {
   id: '019f357b-d398-73aa-9062-adc0f927a584',
@@ -116,7 +117,7 @@ export class TenantPaymentModesController {
     summary: 'Soft-delete a tenant payment mode',
     description:
       'Sets status=DELETED and records deletedAt; recoverable via the restore endpoint. ' +
-      'System payment modes (isSystem=true) cannot be deleted.',
+      'System payment modes (isSystem=true) require the tenant-payment-modes:delete_system permission.',
   })
   @ApiParam({ name: 'id', description: 'Payment mode UUIDv7' })
   @ApiResponse({
@@ -124,10 +125,10 @@ export class TenantPaymentModesController {
     description: 'Payment mode deleted.',
     schema: { example: { success: true } },
   })
-  @ApiResponse({ status: 400, description: 'System payment modes cannot be deleted.' })
+  @ApiResponse({ status: 403, description: 'Missing tenant-payment-modes:delete_system for a system payment mode.' })
   @ApiResponse({ status: 404, description: 'Payment mode not found.' })
-  remove(@Param('id') id: string) {
-    return this.tenantPaymentModesService.remove(id);
+  remove(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.tenantPaymentModesService.remove(id, user.permissions.includes('tenant-payment-modes:delete_system'));
   }
 
   @Patch(':id/restore')

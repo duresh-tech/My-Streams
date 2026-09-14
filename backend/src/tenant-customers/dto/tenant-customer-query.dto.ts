@@ -7,8 +7,6 @@ const TenantCustomerListQuerySchema = z.object({
   search: z.string().max(100).optional(),
   status: z.enum(['ACTIVE', 'INACTIVE', 'BLOCKED', 'DELETED']).optional(),
   tenantBusinessId: z.string().uuid().optional(),
-  tenantPlaceId: z.string().uuid().optional(),
-  tenantStreetId: z.string().uuid().optional(),
   sortBy: z.enum(['fName', 'customerCode', 'createdAt', 'status']).default('createdAt'),
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
 });

@@ -27,23 +27,28 @@ const MODULES: Array<{ module: string; label: string; actions: string[] }> = [
   { module: 'dashboard', label: 'Dashboard', actions: ['view'] },
   { module: 'tenant-dashboard', label: 'Tenant Dashboard', actions: ['view'] },
   { module: 'tenant-account', label: 'Tenant Account', actions: ['view', 'update'] },
-  { module: 'permissions', label: 'Permissions', actions: ['create', 'read', 'update', 'delete'] },
-  { module: 'roles', label: 'Roles', actions: ['create', 'read', 'update', 'delete'] },
+  { module: 'permissions', label: 'Permissions', actions: ['create', 'read', 'update', 'delete', 'delete_system'] },
+  { module: 'roles', label: 'Roles', actions: ['create', 'read', 'update', 'delete', 'delete_system'] },
   { module: 'system-users', label: 'System Users', actions: ['create', 'read', 'update', 'delete'] },
   { module: 'tenant-users', label: 'Tenant Users', actions: ['create', 'read', 'view', 'update', 'delete', 'login-as'] },
   { module: 'tenant-business', label: 'Tenant Business', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
   { module: 'tenant-mapped-business', label: 'Tenant Mapped Business', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
   { module: 'tenant-tax-types', label: 'Tenant Tax Types', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
-  { module: 'tenant-payment-modes', label: 'Tenant Payment Modes', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
-  { module: 'tenant-in-ex-categories', label: 'Tenant Income & Expense Categories', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
-  { module: 'tenant-places', label: 'Tenant Places', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
-  { module: 'tenant-streets', label: 'Tenant Streets', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
-  { module: 'tenant-counters', label: 'Tenant Counters', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
-  { module: 'tenant-qr-devices', label: 'Tenant QR Devices', actions: ['create', 'view', 'update', 'delete', 'list', 'restore', 'push', 'test', 'manage_payment_config', 'view_events'] },
-  { module: 'tenant-customers', label: 'Tenant Customers', actions: ['create', 'view', 'update', 'delete', 'view_deleted', 'restore', 'export', 'import', 'change_status'] },
-  { module: 'tenant-business-branches', label: 'Tenant Business Branches', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
-  { module: 'tenant-network-providers', label: 'Tenant Network Providers', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
+  { module: 'tenant-payment-modes', label: 'Tenant Payment Modes', actions: ['create', 'view', 'update', 'delete', 'delete_system', 'list', 'restore'] },
+  { module: 'tenant-in-ex-categories', label: 'Tenant Income & Expense Categories', actions: ['create', 'view', 'update', 'delete', 'delete_system', 'list', 'restore'] },
+  { module: 'tenant-customers', label: 'Tenant Customers', actions: ['create', 'view', 'update', 'delete', 'view_deleted', 'restore', 'export', 'import', 'change_status', 'login-as'] },
   { module: 'tenant-mail-config', label: 'Tenant Mail Config', actions: ['create', 'view', 'update', 'delete', 'list', 'test'] },
+  { module: 'tenant-streaming-servers', label: 'Tenant Streaming Servers', actions: ['create', 'view', 'update', 'delete', 'list', 'restore', 'sync'] },
+  { module: 'tenant-streams', label: 'Tenant Streams', actions: ['create', 'view', 'update', 'delete', 'list', 'restore', 'enable', 'disable', 'stop', 'reload', 'rename', 'sync', 'transfer', 'view_sessions', 'kick_session', 'override_billing'] },
+  { module: 'tenant-subscription-plans', label: 'Tenant Subscription Plans', actions: ['create', 'view', 'update', 'delete', 'list'] },
+  { module: 'tenant-customer-servers', label: 'Tenant Customer Servers', actions: ['create', 'view', 'update', 'delete', 'list'] },
+  // Billing permissions are added with the phase that gates them (docs/billing-plan.md §8).
+  { module: 'tenant-billing-settings', label: 'Tenant Billing Settings', actions: ['view', 'update'] },
+  { module: 'tenant-invoices', label: 'Tenant Invoices', actions: ['list', 'view', 'create', 'void', 'add_discount'] },
+  { module: 'tenant-payments', label: 'Tenant Payments', actions: ['create', 'void'] },
+  { module: 'tenant-income-expenses', label: 'Tenant Income & Expenses', actions: ['list', 'view', 'create', 'update', 'delete'] },
+  { module: 'tenant-event-alerts', label: 'Tenant Event Alerts', actions: ['list', 'view', 'create', 'update', 'delete'] },
+  { module: 'tenant-stream-events', label: 'Tenant Stream Events', actions: ['list'] },
   { module: 'app-settings', label: 'App Settings', actions: ['create', 'view', 'update', 'delete', 'list', 'restore'] },
   { module: 'uploads', label: 'Uploads', actions: ['create'] },
 ];
@@ -62,8 +67,34 @@ const PERMISSIONS: PermissionSeed[] = MODULES.flatMap(({ module, label, actions 
  * tenant-in-ex-categories. Deletes the old permission rows (RolePermission
  * grants cascade) so stale keys don't linger in the Roles UI. No-op once run.
  */
+/**
+ * Permission keys that were renamed rather than removed. The module still
+ * exists, so the module-level cleanup below would not touch them.
+ */
+const RENAMED_PERMISSION_KEYS = ['tenant-streams:refresh', 'tenant-subscription-plans:restore'];
+
 async function cleanupLegacyPermissions() {
-  const removedModules = ['tenant-expense-categories', 'qr-display-templates', 'tenant-sms'];
+  for (const permissionKey of RENAMED_PERMISSION_KEYS) {
+    const stale = await prisma.permission.findUnique({ where: { permissionKey } });
+    if (!stale) continue;
+    await prisma.rolePermission.deleteMany({ where: { permissionId: stale.id } });
+    await prisma.permission.delete({ where: { id: stale.id } });
+    console.log(`  - removed renamed permission ${permissionKey}`);
+  }
+
+  const removedModules = [
+    'tenant-business-branches',
+    'tenant-network-providers',
+    'tenant-expense-categories',
+    'qr-display-templates',
+    'tenant-sms',
+    'tenant-counters',
+    'tenant-qr-devices',
+    'system-settings',
+    // Places and streets became free-text customer fields.
+    'tenant-places',
+    'tenant-streets',
+  ];
   for (const moduleName of removedModules) {
     const stale = await prisma.permission.findMany({ where: { moduleName }, select: { id: true } });
     if (stale.length === 0) continue;
@@ -143,7 +174,10 @@ async function seedRole(
 
 async function seedSuperAdmin(roleId: string) {
   const username = 'admin';
-  const existing = await prisma.systemUser.findUnique({ where: { username } });
+  const email = 'admin@system.local';
+  // Both username and email are unique, so guarding on username alone makes a
+  // re-run fail whenever another account already holds the seed email.
+  const existing = await prisma.systemUser.findFirst({ where: { OR: [{ username }, { email }] } });
   if (existing) return;
   const timestamp = now();
   await prisma.systemUser.create({
@@ -152,7 +186,7 @@ async function seedSuperAdmin(roleId: string) {
       systemCode: newSystemCode('USR'),
       fName: 'System Administrator',
       username,
-      email: 'admin@system.local',
+      email,
       passwordHash: await argon2.hash('Admin@12345', { type: argon2.argon2id }),
       roleId,
       status: 'ACTIVE',
@@ -243,45 +277,65 @@ async function main() {
       'tenant-in-ex-categories:create',
       'tenant-in-ex-categories:update',
       'tenant-in-ex-categories:delete',
-      'tenant-business-branches:list',
-      'tenant-business-branches:view',
-      'tenant-business-branches:create',
-      'tenant-business-branches:update',
-      'tenant-business-branches:delete',
-      'tenant-network-providers:list',
-      'tenant-network-providers:view',
-      'tenant-network-providers:create',
-      'tenant-network-providers:update',
-      'tenant-network-providers:delete',
       'tenant-mail-config:list',
       'tenant-mail-config:view',
       'tenant-mail-config:create',
       'tenant-mail-config:update',
       'tenant-mail-config:delete',
       'tenant-mail-config:test',
-      'tenant-places:list',
-      'tenant-places:view',
-      'tenant-places:create',
-      'tenant-places:update',
-      'tenant-places:delete',
-      'tenant-streets:list',
-      'tenant-streets:view',
-      'tenant-streets:create',
-      'tenant-streets:update',
-      'tenant-streets:delete',
-      'tenant-counters:list',
-      'tenant-counters:view',
-      'tenant-counters:create',
-      'tenant-counters:update',
-      'tenant-counters:delete',
-      'tenant-qr-devices:list',
-      'tenant-qr-devices:view',
-      'tenant-qr-devices:create',
-      'tenant-qr-devices:update',
-      'tenant-qr-devices:delete',
-      'tenant-qr-devices:push',
-      'tenant-qr-devices:test',
-      'tenant-qr-devices:manage_payment_config',
+      'tenant-streaming-servers:list',
+      'tenant-streaming-servers:view',
+      'tenant-streaming-servers:create',
+      'tenant-streaming-servers:update',
+      'tenant-streaming-servers:delete',
+      'tenant-streaming-servers:restore',
+      'tenant-streaming-servers:sync',
+      'tenant-streams:list',
+      'tenant-streams:view',
+      'tenant-streams:create',
+      'tenant-streams:update',
+      'tenant-streams:delete',
+      'tenant-streams:restore',
+      'tenant-streams:enable',
+      'tenant-streams:disable',
+      'tenant-streams:stop',
+      'tenant-streams:reload',
+      'tenant-streams:rename',
+      'tenant-streams:sync',
+      'tenant-streams:transfer',
+      'tenant-streams:view_sessions',
+      'tenant-streams:kick_session',
+      'tenant-subscription-plans:list',
+      'tenant-subscription-plans:view',
+      'tenant-subscription-plans:create',
+      'tenant-subscription-plans:update',
+      'tenant-subscription-plans:delete',
+      'tenant-customer-servers:list',
+      'tenant-customer-servers:view',
+      'tenant-customer-servers:create',
+      'tenant-customer-servers:update',
+      'tenant-customer-servers:delete',
+      'tenant-billing-settings:view',
+      'tenant-billing-settings:update',
+      'tenant-invoices:list',
+      'tenant-invoices:view',
+      'tenant-invoices:create',
+      'tenant-invoices:void',
+      'tenant-invoices:add_discount',
+      'tenant-payments:create',
+      'tenant-payments:void',
+      'tenant-streams:override_billing',
+      'tenant-event-alerts:list',
+      'tenant-event-alerts:view',
+      'tenant-event-alerts:create',
+      'tenant-event-alerts:update',
+      'tenant-event-alerts:delete',
+      'tenant-stream-events:list',
+      'tenant-income-expenses:list',
+      'tenant-income-expenses:view',
+      'tenant-income-expenses:create',
+      'tenant-income-expenses:update',
+      'tenant-income-expenses:delete',
       'tenant-customers:create',
       'tenant-customers:view',
       'tenant-customers:update',
@@ -291,6 +345,7 @@ async function main() {
       'tenant-customers:export',
       'tenant-customers:import',
       'tenant-customers:change_status',
+      'tenant-customers:login-as',
     ]
       .map((k) => keyToId.get(k)!)
       .filter(Boolean),

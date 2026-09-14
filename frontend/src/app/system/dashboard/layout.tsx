@@ -6,9 +6,9 @@ import {
   Bell,
   ChevronDown,
   LogOut,
-  Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
   Search,
-  ShieldCheck,
   User,
 } from "lucide-react";
 
@@ -24,31 +24,36 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 import { NAV_ITEMS, SidebarNav } from "@/components/sidebar-nav";
 import { NavBreadcrumb } from "@/components/nav-breadcrumb";
 import { CommandPalette } from "@/components/command-palette";
 import { PageTransition } from "@/components/motion/page-transition";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { SessionProvider, useSession } from "@/hooks/use-session";
+import { InstallPrompt } from "@/components/install-prompt";
 import { APP_NAME } from "@/lib/app-name";
+import { AppLogo } from "@/components/app-logo";
+import { useSidebarCollapsed } from "@/hooks/use-sidebar-collapsed";
+import { cn } from "@/lib/utils";
 
-function Brand() {
+function Brand({
+  iconOnly = false,
+  className,
+}: {
+  iconOnly?: boolean;
+  className?: string;
+}) {
   return (
     <Link
       href="/system/dashboard"
-      className="flex items-center gap-2 px-4 font-semibold"
+      className={cn(
+        "flex items-center gap-2 font-semibold",
+        iconOnly ? "px-0" : "px-4",
+        className,
+      )}
     >
-      <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-        <ShieldCheck className="size-4" />
-      </span>
-      {APP_NAME}
+      <AppLogo size={32} className="shrink-0 rounded-lg" />
+      {!iconOnly && APP_NAME}
     </Link>
   );
 }
@@ -67,7 +72,7 @@ export default function DashboardLayout({
 
 function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const { user, loading, logout, hasPermission } = useSession();
-  const [mobileOpen, setMobileOpen] = React.useState(false);
+  const [collapsed, toggleCollapsed] = useSidebarCollapsed();
   const [paletteOpen, setPaletteOpen] = React.useState(false);
 
   if (loading || !user) {
@@ -113,53 +118,60 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-dvh">
       {/* Desktop sidebar */}
-      <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col bg-[image:var(--gradient-sidebar)] text-sidebar-foreground shadow-[var(--shadow-sidebar)] md:flex">
-        <div className="flex h-14 items-center border-b border-white/10">
-          <Brand />
+      <aside
+        className={cn(
+          "sticky top-0 hidden h-dvh shrink-0 flex-col bg-[image:var(--gradient-sidebar)] text-sidebar-foreground shadow-[var(--shadow-sidebar)] transition-[width] duration-200 md:flex",
+          collapsed ? "w-16" : "w-64",
+        )}
+      >
+        <div
+          className={cn(
+            "flex h-14 items-center border-b border-white/10",
+            collapsed && "justify-center",
+          )}
+        >
+          <Brand iconOnly={collapsed} />
         </div>
         <div className="flex-1 overflow-y-auto py-4">
-          <SidebarNav hasPermission={hasPermission} instanceId="desktop" />
+          <SidebarNav
+            hasPermission={hasPermission}
+            instanceId="desktop"
+            collapsed={collapsed}
+          />
         </div>
-        <div className="border-t border-white/10 p-4 text-xs text-white/50">
-          Signed in as <span className="font-medium text-white/80">{user.username}</span>
-          <br />
-          Role: <span className="font-medium text-white/80">{user.roleKey}</span>
+        <div className="border-t border-white/10">
+          {!collapsed && (
+            <div className="px-4 pt-4 text-xs text-white/50">
+              Signed in as <span className="font-medium text-white/80">{user.username}</span>
+              <br />
+              Role: <span className="font-medium text-white/80">{user.roleKey}</span>
+            </div>
+          )}
+          <div className={cn("flex p-2", collapsed ? "justify-center" : "justify-end")}>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleCollapsed}
+              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              aria-expanded={!collapsed}
+              title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              className="text-white/70 hover:bg-white/10 hover:text-white"
+            >
+              {collapsed ? (
+                <PanelLeftOpen className="size-4" />
+              ) : (
+                <PanelLeftClose className="size-4" />
+              )}
+            </Button>
+          </div>
         </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Top navbar */}
         <header className="sticky top-0 z-40 flex h-14 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          {/* Mobile menu */}
-          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-            <SheetTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="md:hidden"
-                aria-label="Open navigation"
-              >
-                <Menu className="size-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent
-              side="left"
-              className="w-72 border-white/10 bg-[image:var(--gradient-sidebar)] p-0 text-sidebar-foreground"
-            >
-              <SheetHeader className="h-14 justify-center border-b border-white/10">
-                <SheetTitle asChild className="text-sidebar-foreground">
-                  <Brand />
-                </SheetTitle>
-              </SheetHeader>
-              <div className="py-2">
-                <SidebarNav
-                  onNavigate={() => setMobileOpen(false)}
-                  hasPermission={hasPermission}
-                  instanceId="mobile"
-                />
-              </div>
-            </SheetContent>
-          </Sheet>
+          {/* Mobile: the drawer is replaced by the scrolling strip below the header. */}
+          <Brand iconOnly className="md:hidden" />
 
           <NavBreadcrumb rootLabel="System Console" navItems={NAV_ITEMS} />
 
@@ -238,11 +250,25 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
           </DropdownMenu>
         </header>
 
+        {/* Mobile nav: sideways-scrolling strip, sticky just under the header */}
+        <div className="sticky top-14 z-30 border-b border-white/10 bg-[image:var(--gradient-sidebar)] text-sidebar-foreground md:hidden">
+          <SidebarNav
+            hasPermission={hasPermission}
+            instanceId="mobile"
+            orientation="horizontal"
+          />
+        </div>
+
         {/* Main content */}
         <main className="flex-1 p-4 md:p-6">
           <PageTransition>{children}</PageTransition>
         </main>
       </div>
+
+      {/* Offered here rather than in the root layout, so it appears only to a
+          signed-in user: this branch is reached only once the session has
+          loaded and a user exists. */}
+      <InstallPrompt />
     </div>
   );
 }

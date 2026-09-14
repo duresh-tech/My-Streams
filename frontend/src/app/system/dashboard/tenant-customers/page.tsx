@@ -67,6 +67,8 @@ interface TenantCustomerRow {
   systemCode: string;
   tenantBusinessId: string;
   customerCode: string;
+  username: string | null;
+  hasPassword: boolean;
   fName: string;
   lName: string | null;
   fatherName: string | null;
@@ -76,8 +78,8 @@ interface TenantCustomerRow {
   secondaryMobile: string | null;
   email: string | null;
   customerType: CustomerType;
-  tenantPlaceId: string | null;
-  tenantStreetId: string | null;
+  place: string | null;
+  street: string | null;
   addressLine1: string;
   addressLine2: string | null;
   city: string | null;
@@ -99,8 +101,6 @@ interface TenantCustomerRow {
   remark: string | null;
   status: CustomerStatus;
   tenantBusiness?: { id: string; systemCode: string; name: string };
-  tenantPlace?: { id: string; systemCode: string; placeName: string };
-  tenantStreet?: { id: string; systemCode: string; streetName: string };
 }
 
 interface BusinessOption {
@@ -108,24 +108,11 @@ interface BusinessOption {
   name: string;
 }
 
-interface PlaceOption {
-  id: string;
-  placeName: string;
-  latitude: number | null;
-  longitude: number | null;
-  radiusMeters: number;
-}
-
-interface StreetOption {
-  id: string;
-  streetName: string;
-  latitude: number | null;
-  longitude: number | null;
-}
-
 interface CustomerFormValues {
   tenantBusinessId: string;
   customerCode: string;
+  username: string;
+  password: string;
   fName: string;
   lName: string;
   fatherName: string;
@@ -135,8 +122,8 @@ interface CustomerFormValues {
   secondaryMobile: string;
   email: string;
   customerType: CustomerType;
-  tenantPlaceId: string;
-  tenantStreetId: string;
+  place: string;
+  street: string;
   addressLine1: string;
   addressLine2: string;
   city: string;
@@ -162,6 +149,8 @@ interface CustomerFormValues {
 const EMPTY_FORM: CustomerFormValues = {
   tenantBusinessId: "",
   customerCode: "",
+  username: "",
+  password: "",
   fName: "",
   lName: "",
   fatherName: "",
@@ -171,8 +160,8 @@ const EMPTY_FORM: CustomerFormValues = {
   secondaryMobile: "",
   email: "",
   customerType: "INDIVIDUAL",
-  tenantPlaceId: "",
-  tenantStreetId: "",
+  place: "",
+  street: "",
   addressLine1: "",
   addressLine2: "",
   city: "",
@@ -225,8 +214,6 @@ export default function TenantCustomersPage() {
   );
 
   const [businessOptions, setBusinessOptions] = React.useState<BusinessOption[] | null>(null);
-  const [placeOptions, setPlaceOptions] = React.useState<PlaceOption[] | null>(null);
-  const [streetOptions, setStreetOptions] = React.useState<StreetOption[] | null>(null);
 
   const [formOpen, setFormOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<TenantCustomerRow | null>(null);
@@ -263,34 +250,10 @@ export default function TenantCustomersPage() {
       .catch(() => toast.error("Failed to load business list"));
   }
 
-  function loadPlaceOptions(tenantBusinessId: string) {
-    if (!tenantBusinessId) {
-      setPlaceOptions([]);
-      return;
-    }
-    api<PlaceOption[]>(`/system/tenant-customers/places?tenantBusinessId=${tenantBusinessId}`)
-      .then((data) => setPlaceOptions(data))
-      .catch(() => toast.error("Failed to load place list"));
-  }
-
-  function loadStreetOptions(tenantBusinessId: string, tenantPlaceId: string) {
-    if (!tenantBusinessId || !tenantPlaceId) {
-      setStreetOptions([]);
-      return;
-    }
-    api<StreetOption[]>(
-      `/system/tenant-customers/streets?tenantBusinessId=${tenantBusinessId}&tenantPlaceId=${tenantPlaceId}`,
-    )
-      .then((data) => setStreetOptions(data))
-      .catch(() => toast.error("Failed to load street list"));
-  }
-
   function openCreate() {
     ensureBusinessOptions();
     setEditing(null);
     setForm(EMPTY_FORM);
-    setPlaceOptions(null);
-    setStreetOptions(null);
     setMapPickerOpen(false);
     setFormOpen(true);
   }
@@ -301,6 +264,9 @@ export default function TenantCustomersPage() {
     setForm({
       tenantBusinessId: row.tenantBusinessId,
       customerCode: row.customerCode,
+      username: row.username ?? "",
+      // Never returned; blank means "keep the stored password".
+      password: "",
       fName: row.fName,
       lName: row.lName ?? "",
       fatherName: row.fatherName ?? "",
@@ -310,8 +276,8 @@ export default function TenantCustomersPage() {
       secondaryMobile: row.secondaryMobile ?? "",
       email: row.email ?? "",
       customerType: row.customerType,
-      tenantPlaceId: row.tenantPlaceId ?? "",
-      tenantStreetId: row.tenantStreetId ?? "",
+      place: row.place ?? "",
+      street: row.street ?? "",
       addressLine1: row.addressLine1,
       addressLine2: row.addressLine2 ?? "",
       city: row.city ?? "",
@@ -333,21 +299,12 @@ export default function TenantCustomersPage() {
       remark: row.remark ?? "",
       status: row.status === "DELETED" ? "ACTIVE" : row.status,
     });
-    loadPlaceOptions(row.tenantBusinessId);
-    if (row.tenantPlaceId) loadStreetOptions(row.tenantBusinessId, row.tenantPlaceId);
     setMapPickerOpen(false);
     setFormOpen(true);
   }
 
   function onBusinessChange(tenantBusinessId: string) {
-    setForm((f) => ({ ...f, tenantBusinessId, tenantPlaceId: "", tenantStreetId: "" }));
-    loadPlaceOptions(tenantBusinessId);
-    setStreetOptions([]);
-  }
-
-  function onPlaceChange(tenantPlaceId: string) {
-    setForm((f) => ({ ...f, tenantPlaceId, tenantStreetId: "" }));
-    loadStreetOptions(form.tenantBusinessId, tenantPlaceId);
+    setForm((f) => ({ ...f, tenantBusinessId }));
   }
 
   async function onPictureSelected(e: React.ChangeEvent<HTMLInputElement>) {
@@ -388,7 +345,8 @@ export default function TenantCustomersPage() {
     try {
       const body = {
         tenantBusinessId: form.tenantBusinessId,
-        customerCode: form.customerCode,
+        username: form.username || undefined,
+        ...(form.password ? { password: form.password } : {}),
         fName: form.fName,
         lName: form.lName || undefined,
         fatherName: form.fatherName || undefined,
@@ -398,8 +356,8 @@ export default function TenantCustomersPage() {
         secondaryMobile: form.secondaryMobile || undefined,
         email: form.email || undefined,
         customerType: form.customerType,
-        tenantPlaceId: form.tenantPlaceId || undefined,
-        tenantStreetId: form.tenantStreetId || undefined,
+        place: form.place.trim() || null,
+        street: form.street.trim() || null,
         addressLine1: form.addressLine1,
         addressLine2: form.addressLine2 || undefined,
         city: form.city || undefined,
@@ -559,15 +517,6 @@ export default function TenantCustomersPage() {
     { header: "Status", cell: (row) => <StatusBadgeText status={row.status} /> },
   ];
 
-  const selectedPlace = placeOptions?.find((p) => p.id === form.tenantPlaceId) ?? null;
-  const selectedStreet = streetOptions?.find((s) => s.id === form.tenantStreetId) ?? null;
-  const contextLocation =
-    selectedStreet && selectedStreet.latitude != null && selectedStreet.longitude != null
-      ? { lat: selectedStreet.latitude, lng: selectedStreet.longitude, radiusMeters: 50 }
-      : selectedPlace && selectedPlace.latitude != null && selectedPlace.longitude != null
-        ? { lat: selectedPlace.latitude, lng: selectedPlace.longitude, radiusMeters: selectedPlace.radiusMeters }
-        : null;
-
   return (
     <>
       <ResourceTable<TenantCustomerRow>
@@ -714,7 +663,7 @@ export default function TenantCustomersPage() {
                 initialLat={form.latitude ? Number(form.latitude) : null}
                 initialLng={form.longitude ? Number(form.longitude) : null}
                 showRadius={false}
-                contextLocation={contextLocation}
+                contextLocation={null}
                 onCancel={() => setMapPickerOpen(false)}
                 onConfirm={(lat, lng) => {
                   setForm((f) => ({ ...f, latitude: lat.toFixed(6), longitude: lng.toFixed(6) }));
@@ -748,10 +697,10 @@ export default function TenantCustomersPage() {
                       <Label htmlFor="customerCode">Customer Code</Label>
                       <Input
                         id="customerCode"
-                        required
-                        maxLength={30}
+                        readOnly
+                        disabled
                         value={form.customerCode}
-                        onChange={(e) => setForm((f) => ({ ...f, customerCode: e.target.value }))}
+                        placeholder="Assigned automatically"
                       />
                     </div>
                     <div className="grid gap-2">
@@ -768,6 +717,32 @@ export default function TenantCustomersPage() {
                           <SelectItem value="BUSINESS">Business</SelectItem>
                         </SelectContent>
                       </Select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="grid gap-2">
+                      <Label htmlFor="username">Portal Username</Label>
+                      <Input
+                        id="username"
+                        autoComplete="off"
+                        minLength={3}
+                        maxLength={50}
+                        value={form.username}
+                        onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="password">Portal Password</Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        autoComplete="new-password"
+                        minLength={8}
+                        maxLength={100}
+                        placeholder={editing?.hasPassword ? "Leave blank to keep" : ""}
+                        value={form.password}
+                        onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+                      />
                     </div>
                   </div>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -864,25 +839,21 @@ export default function TenantCustomersPage() {
                   <h4 className="text-sm font-semibold text-muted-foreground">Address &amp; Map</h4>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="grid gap-2">
-                      <Label>Place</Label>
-                      <Combobox
-                        options={placeOptions?.map((place) => ({ value: place.id, label: place.placeName })) ?? null}
-                        value={form.tenantPlaceId}
-                        onValueChange={onPlaceChange}
-                        placeholder={form.tenantBusinessId ? "Select a place" : "Select a business first"}
-                        searchPlaceholder="Search places..."
-                        emptyText="No places found."
+                      <Label htmlFor="place">Place</Label>
+                      <Input
+                        id="place"
+                        maxLength={150}
+                        value={form.place}
+                        onChange={(e) => setForm((f) => ({ ...f, place: e.target.value }))}
                       />
                     </div>
                     <div className="grid gap-2">
-                      <Label>Street</Label>
-                      <Combobox
-                        options={streetOptions?.map((s) => ({ value: s.id, label: s.streetName })) ?? null}
-                        value={form.tenantStreetId}
-                        onValueChange={(v) => setForm((f) => ({ ...f, tenantStreetId: v }))}
-                        placeholder={form.tenantPlaceId ? "Select a street" : "Select a place first"}
-                        searchPlaceholder="Search streets..."
-                        emptyText="No streets found."
+                      <Label htmlFor="street">Street</Label>
+                      <Input
+                        id="street"
+                        maxLength={150}
+                        value={form.street}
+                        onChange={(e) => setForm((f) => ({ ...f, street: e.target.value }))}
                       />
                     </div>
                   </div>
@@ -1146,7 +1117,6 @@ export default function TenantCustomersPage() {
                   disabled={
                     saving ||
                     !form.tenantBusinessId ||
-                    !form.customerCode ||
                     !form.fName ||
                     !form.primaryMobile ||
                     !form.addressLine1
@@ -1183,8 +1153,8 @@ export default function TenantCustomersPage() {
                 <DetailField label="Primary Mobile" value={viewTarget.primaryMobile} />
                 <DetailField label="Secondary Mobile" value={viewTarget.secondaryMobile} />
                 <DetailField label="Email" value={viewTarget.email} />
-                <DetailField label="Place" value={viewTarget.tenantPlace?.placeName} />
-                <DetailField label="Street" value={viewTarget.tenantStreet?.streetName} />
+                <DetailField label="Place" value={viewTarget.place} />
+                <DetailField label="Street" value={viewTarget.street} />
                 <DetailField label="Address" value={viewTarget.addressLine1} />
                 <DetailField label="City" value={viewTarget.city} />
                 <DetailField label="State" value={viewTarget.state} />

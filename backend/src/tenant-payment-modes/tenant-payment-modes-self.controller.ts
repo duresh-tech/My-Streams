@@ -149,6 +149,10 @@ export class TenantPaymentModesSelfController {
   @ApiResponse({ status: 400, description: 'System payment modes cannot be deleted.' })
   @ApiResponse({ status: 404, description: 'Payment mode not found.' })
   remove(@CurrentTenantUser() user: TenantAuthUser, @Param('id') id: string) {
-    return this.tenantPaymentModesService.removeForTenantUser(user.id, id);
+    return this.tenantPaymentModesService.removeForTenantUser(
+      user.id,
+      id,
+      user.permissions.includes('tenant-payment-modes:delete_system'),
+    );
   }
 }

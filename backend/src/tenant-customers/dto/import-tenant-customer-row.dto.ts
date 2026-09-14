@@ -20,7 +20,6 @@ function csvBoolean(defaultValue: boolean) {
 
 export const ImportTenantCustomerRowSchema = z.object({
   tenantBusinessId: z.preprocess(blankToUndefined, z.string().uuid().optional()),
-  customerCode: z.preprocess(blankToUndefined, z.string().min(1).max(30)),
   fName: z.preprocess(blankToUndefined, z.string().min(1).max(100)),
   lName: z.preprocess(blankToUndefined, z.string().max(100).optional()),
   fatherName: z.preprocess(blankToUndefined, z.string().max(150).optional()),
@@ -30,8 +29,8 @@ export const ImportTenantCustomerRowSchema = z.object({
   secondaryMobile: z.preprocess(blankToUndefined, z.string().max(20).optional()),
   email: z.preprocess(blankToUndefined, z.string().email().max(255).optional()),
   customerType: z.preprocess(blankToUndefined, CustomerTypeEnum.default('INDIVIDUAL')),
-  tenantPlaceId: z.preprocess(blankToUndefined, z.string().uuid().optional()),
-  tenantStreetId: z.preprocess(blankToUndefined, z.string().uuid().optional()),
+  place: z.preprocess(blankToUndefined, z.string().trim().max(150).optional()),
+  street: z.preprocess(blankToUndefined, z.string().trim().max(150).optional()),
   addressLine1: z.preprocess(blankToUndefined, z.string().min(1).max(255)),
   addressLine2: z.preprocess(blankToUndefined, z.string().max(255).optional()),
   city: z.preprocess(blankToUndefined, z.string().max(100).optional()),

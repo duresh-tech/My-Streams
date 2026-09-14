@@ -46,45 +46,26 @@ export class AppSettingsController {
   @Get('public/branding')
   @Public()
   @ApiOperation({
-    summary: 'Get application branding (name/logo)',
+    summary: 'Get application branding (name/logo) and timezone',
     description:
-      'Public endpoint (no auth required) - reads the app.name and app.logo_path ' +
-      'keys and returns them in the stable { appName, logoPath } shape used ' +
-      'throughout the system dashboard and tenant settings UI.',
+      'Public endpoint (no auth required) - returns branding in the stable ' +
+      '{ appName, logoPath } shape used throughout the system dashboard and ' +
+      'tenant settings UI, plus the timezone the backend runs in (APP_TIMEZONE) ' +
+      'so clients render timestamps in the same zone instead of the viewer\'s.',
   })
   @ApiResponse({
     status: 200,
-    description: 'Current branding.',
-    schema: { example: { appName: 'FlowNet', logoPath: 'app_settings_uploads/019f357c-d489-74a9-8490-1f82e745b199.jpg' } },
-  })
-  getBranding() {
-    return this.appSettingsService.getBrandingPublic();
-  }
-
-  @Get('public/dq12-assets')
-  @Public()
-  @ApiOperation({
-    summary: 'Get the configured Bonrix DQ12 background images',
-    description:
-      'Public endpoint (no auth required) - reads the qr_device.dq12.* keys and returns their paths ' +
-      '(or null if not configured) so both the system and tenant QR device pages can render the same screens.',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Configured DQ12 background image paths.',
+    description: 'Current branding and timezone.',
     schema: {
       example: {
-        welcome: 'app_settings_uploads/019f357c-....jpg',
-        success: null,
-        pending: null,
-        fail: null,
-        cancel: null,
-        qrBackground: null,
+        appName: 'FlowNet',
+        logoPath: 'app_settings_uploads/019f357c-d489-74a9-8490-1f82e745b199.jpg',
+        timezone: 'Asia/Kolkata',
       },
     },
   })
-  getDq12Assets() {
-    return this.appSettingsService.getDq12AssetsPublic();
+  getBranding() {
+    return this.appSettingsService.getBrandingPublic();
   }
 
   @Post('logo')

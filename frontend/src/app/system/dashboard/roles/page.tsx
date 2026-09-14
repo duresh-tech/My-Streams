@@ -90,6 +90,7 @@ export default function RolesPage() {
   const canCreate = hasPermission("roles:create");
   const canUpdate = hasPermission("roles:update");
   const canDelete = hasPermission("roles:delete");
+  const canDeleteSystem = hasPermission("roles:delete_system");
 
   const [permissionOptions, setPermissionOptions] = React.useState<PermissionOption[] | null>(null);
   const [permissionFilter, setPermissionFilter] = React.useState("");
@@ -289,7 +290,9 @@ export default function RolesPage() {
                             label: "Delete",
                             icon: Trash2,
                             onClick: () => setDeleteTarget(row),
-                            disabled: row.isSystem || (row._count?.systemUsers ?? 0) > 0,
+                            disabled:
+                              (row.isSystem && !canDeleteSystem) ||
+                              (row._count?.systemUsers ?? 0) > 0,
                             destructive: true,
                           },
                         ]

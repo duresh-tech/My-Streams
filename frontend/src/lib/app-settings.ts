@@ -10,6 +10,11 @@ const API_URL =
 export interface AppSettings {
   appName: string;
   logoPath: string | null;
+  /**
+   * The backend's APP_TIMEZONE. Served from here rather than a frontend env
+   * var so the two cannot disagree about what zone a timestamp is in.
+   */
+  timezone: string | null;
 }
 
 export async function fetchAppSettings(): Promise<AppSettings> {
@@ -18,25 +23,9 @@ export async function fetchAppSettings(): Promise<AppSettings> {
   });
   if (!response.ok) throw new Error("Failed to load app settings");
   const data = await response.json();
-  return { appName: data.appName, logoPath: data.logoPath ?? null };
-}
-
-export interface Dq12Assets {
-  welcome: string | null;
-  success: string | null;
-  pending: string | null;
-  fail: string | null;
-  cancel: string | null;
-  qrBackground: string | null;
-}
-
-/** Background images for the Bonrix DQ12 display, configured via the App
- * Settings qr_device.dq12.* keys. Any key left unconfigured comes back null -
- * callers fall back to a plain dark screen with label text. */
-export async function fetchDq12Assets(): Promise<Dq12Assets> {
-  const response = await fetch(`${API_URL}/system/app-settings/public/dq12-assets`, {
-    headers: { "x-device-type": "website" },
-  });
-  if (!response.ok) throw new Error("Failed to load DQ12 display assets");
-  return response.json();
+  return {
+    appName: data.appName,
+    logoPath: data.logoPath ?? null,
+    timezone: data.timezone ?? null,
+  };
 }

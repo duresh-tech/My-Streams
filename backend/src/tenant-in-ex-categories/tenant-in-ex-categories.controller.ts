@@ -22,6 +22,7 @@ import {
 } from './dto/tenant-in-ex-category.dto';
 import { TenantInExCategoryListQueryDto } from './dto/tenant-in-ex-category-query.dto';
 import { RequirePermissions } from '../common/decorators/permissions.decorator';
+import { CurrentUser, AuthUser } from '../common/decorators/current-user.decorator';
 
 const TENANT_IN_EX_CATEGORY_EXAMPLE = {
   id: '019f357b-d398-73aa-9062-adc0f927a584',
@@ -119,7 +120,7 @@ export class TenantInExCategoriesController {
     summary: 'Soft-delete a tenant income/expense category',
     description:
       'Sets status=DELETED and records deletedAt; recoverable via the restore endpoint. ' +
-      'System categories (isSystem=true) cannot be deleted.',
+      'System categories (isSystem=true) require the tenant-in-ex-categories:delete_system permission.',
   })
   @ApiParam({ name: 'id', description: 'Category UUIDv7' })
   @ApiResponse({
@@ -127,10 +128,10 @@ export class TenantInExCategoriesController {
     description: 'Category deleted.',
     schema: { example: { success: true } },
   })
-  @ApiResponse({ status: 400, description: 'System categories cannot be deleted.' })
+  @ApiResponse({ status: 403, description: 'Missing tenant-in-ex-categories:delete_system for a system category.' })
   @ApiResponse({ status: 404, description: 'Category not found.' })
-  remove(@Param('id') id: string) {
-    return this.tenantInExCategoriesService.remove(id);
+  remove(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.tenantInExCategoriesService.remove(id, user.permissions.includes('tenant-in-ex-categories:delete_system'));
   }
 
   @Patch(':id/restore')

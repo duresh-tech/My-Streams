@@ -1,4 +1,5 @@
 import {
+  Req,
   BadRequestException,
   Body,
   Controller,
@@ -14,7 +15,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import { parse } from 'csv-parse/sync';
 import { stringify } from 'csv-stringify/sync';
 import {
@@ -28,6 +29,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { TenantCustomersService } from './tenant-customers.service';
+import { CustomerAuthService } from '../customer-auth/customer-auth.service';
 import {
   ChangeTenantCustomerStatusDto,
   CreateTenantCustomerDto,
@@ -68,34 +70,58 @@ const TENANT_CUSTOMER_EXAMPLE = {
 @UseGuards(TenantJwtAuthGuard, TenantPermissionsGuard)
 @Controller('tenant/customers')
 export class TenantCustomersSelfController {
-  constructor(private readonly tenantCustomersService: TenantCustomersService) {}
+  constructor(
+    private readonly tenantCustomersService: TenantCustomersService,
+    private readonly customerAuthService: CustomerAuthService,
+  ) {}
+
+  @Post(':id/login-as')
+  @RequireTenantPermissions('tenant-customers:login-as')
+  @ApiOperation({
+    summary: 'Sign in as one of your customers',
+    description:
+      'Issues a customer-portal session for the given customer without their password, for ' +
+      'support. Restricted to customers of the caller\'s own business, and refused for a ' +
+      'customer with no portal username. The session is marked impersonated so the portal can ' +
+      'show that someone is acting on the account rather than the customer themselves.',
+  })
+  @ApiParam({ name: 'id', description: 'Customer UUIDv7' })
+  @ApiResponse({
+    status: 200,
+    description: 'Customer session issued.',
+    schema: {
+      example: {
+        customer: { id: '019f357b-c211-71a0-9062-adc0f927a222', customerCode: 'CUS001', fName: 'John' },
+        impersonated: true,
+        redirectTo: '/customer/streams',
+        accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        csrfToken: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6',
+      },
+    },
+  })
+  @ApiResponse({ status: 403, description: 'Another business\'s customer, or no portal username.' })
+  @ApiResponse({ status: 404, description: 'Customer not found.' })
+  async loginAsCustomer(
+    @CurrentTenantUser() user: TenantAuthUser,
+    @Param('id') id: string,
+    @Req() req: Request,
+  ) {
+    // The business is resolved from the caller, so a tenant admin can only ever
+    // impersonate within their own tenant.
+    const tenantBusinessId = await this.tenantCustomersService.getMappedBusinessIdFor(user.id);
+    return this.customerAuthService.loginAs(
+      id,
+      tenantBusinessId,
+      (req as Request & { deviceType?: string }).deviceType ?? 'website',
+    );
+  }
 
   @Get('businesses')
   @RequireTenantPermissions('tenant-customers:view')
   @ApiOperation({ summary: "List the caller's own mapped businesses" })
   listBusinesses(@CurrentTenantUser() user: TenantAuthUser) {
     return this.tenantCustomersService.listMappedBusinesses(user.id);
-  }
-
-  @Get('places')
-  @RequireTenantPermissions('tenant-customers:view')
-  @ApiOperation({ summary: "List places for one of the caller's own businesses" })
-  @ApiQuery({ name: 'tenantBusinessId', required: true })
-  listPlaces(@CurrentTenantUser() user: TenantAuthUser, @Query('tenantBusinessId') tenantBusinessId: string) {
-    return this.tenantCustomersService.listPlacesForTenantUser(user.id, tenantBusinessId);
-  }
-
-  @Get('streets')
-  @RequireTenantPermissions('tenant-customers:view')
-  @ApiOperation({ summary: "List streets for a place within one of the caller's own businesses" })
-  @ApiQuery({ name: 'tenantBusinessId', required: true })
-  @ApiQuery({ name: 'tenantPlaceId', required: true })
-  listStreets(
-    @CurrentTenantUser() user: TenantAuthUser,
-    @Query('tenantBusinessId') tenantBusinessId: string,
-    @Query('tenantPlaceId') tenantPlaceId: string,
-  ) {
-    return this.tenantCustomersService.listStreetsForTenantUser(user.id, tenantBusinessId, tenantPlaceId);
   }
 
   @Get('deleted')

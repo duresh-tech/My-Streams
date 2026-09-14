@@ -6,6 +6,8 @@
  * - Transparently refreshes the access token once on 401
  */
 
+import { readStored, removeStored, writeStored } from "@/lib/storage";
+
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
 
@@ -15,14 +17,12 @@ export const UPLOADS_ORIGIN = API_URL.replace(/\/api\/v\d+\/?$/, "");
 const ACCESS_TOKEN_KEY = "system.accessToken";
 
 export function getAccessToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(ACCESS_TOKEN_KEY);
+  return readStored(ACCESS_TOKEN_KEY);
 }
 
 export function setAccessToken(token: string | null) {
-  if (typeof window === "undefined") return;
-  if (token) localStorage.setItem(ACCESS_TOKEN_KEY, token);
-  else localStorage.removeItem(ACCESS_TOKEN_KEY);
+  if (token) writeStored(ACCESS_TOKEN_KEY, token);
+  else removeStored(ACCESS_TOKEN_KEY);
 }
 
 function getCsrfToken(): string | null {
@@ -135,32 +135,6 @@ export async function uploadFile(file: File): Promise<{ path: string; driver: st
     throw new ApiError(response.status, message, data);
   }
   return data as { path: string; driver: string };
-}
-
-/** Uploads and immediately persists the application (SaaS) logo; returns its stored path. */
-export async function uploadAppLogo(file: File): Promise<{ path: string }> {
-  const formData = new FormData();
-  formData.append("file", file);
-
-  const headers: Record<string, string> = { "x-device-type": "website" };
-  const token = getAccessToken();
-  if (token) headers.Authorization = `Bearer ${token}`;
-
-  const response = await fetch(`${API_URL}/system/app-settings/logo`, {
-    method: "POST",
-    headers,
-    credentials: "include",
-    body: formData,
-  });
-
-  const data = await response.json().catch(() => null);
-  if (!response.ok) {
-    const message =
-      (data && (Array.isArray(data.message) ? data.message[0] : data.message)) ||
-      `Upload failed (${response.status})`;
-    throw new ApiError(response.status, message, data);
-  }
-  return data as { path: string };
 }
 
 /** Uploads a file for a FILE-dataType app setting; returns its stored path (caller sets it as the setting's value). */

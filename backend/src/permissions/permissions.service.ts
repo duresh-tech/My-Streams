@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -86,10 +87,12 @@ export class PermissionsService {
     });
   }
 
-  async remove(id: string) {
+  async remove(id: string, allowSystem = false) {
     const permission = await this.findOne(id);
-    if (permission.isSystem) {
-      throw new BadRequestException('System permissions cannot be deleted');
+    if (permission.isSystem && !allowSystem) {
+      throw new ForbiddenException(
+        'Deleting a system permission requires the permissions:delete_system permission',
+      );
     }
     const timestamp = now();
     await this.prisma.permission.update({

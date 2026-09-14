@@ -42,15 +42,31 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  dismissible = !showCloseButton,
+  onInteractOutside,
+  onEscapeKeyDown,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean;
+  /** Modals close only via the close button (or an explicit action), so a
+   * stray click on the overlay can't discard a half-filled form. Defaults to
+   * dismissible when there is no close button to click - otherwise a dialog
+   * without one (e.g. the command palette) would have no way out. */
+  dismissible?: boolean;
 }) {
   return (
     <DialogPortal>
       <DialogOverlay />
       <DialogPrimitive.Content
         data-slot="dialog-content"
+        onInteractOutside={(event) => {
+          onInteractOutside?.(event);
+          if (!dismissible) event.preventDefault();
+        }}
+        onEscapeKeyDown={(event) => {
+          onEscapeKeyDown?.(event);
+          if (!dismissible) event.preventDefault();
+        }}
         className={cn(
           "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg duration-200 sm:max-w-2xl max-h-[90vh] overflow-y-auto",
           className,

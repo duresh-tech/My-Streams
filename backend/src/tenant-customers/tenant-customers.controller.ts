@@ -49,8 +49,8 @@ const TENANT_CUSTOMER_EXAMPLE = {
   secondaryMobile: null,
   email: 'ravi.kumar@example.com',
   customerType: 'INDIVIDUAL',
-  tenantPlaceId: '019f357b-d398-73aa-9062-adc0f927a584',
-  tenantStreetId: '019f357b-e5b1-73aa-9062-adc0f927a584',
+  place: 'Sector 12',
+  street: 'Baker Street',
   addressLine1: '221B Baker Street',
   addressLine2: null,
   city: 'New Delhi',
@@ -79,16 +79,6 @@ const TENANT_CUSTOMER_EXAMPLE = {
     systemCode: 'TNB-MR8NZ6OO-C0CB',
     name: 'Acme Retail Pvt Ltd',
   },
-  tenantPlace: {
-    id: '019f357b-d398-73aa-9062-adc0f927a584',
-    systemCode: 'PLC-MR8NZ6OO-C0CB',
-    placeName: 'Warehouse - Sector 12',
-  },
-  tenantStreet: {
-    id: '019f357b-e5b1-73aa-9062-adc0f927a584',
-    systemCode: 'STR-MR8NZ6OO-C0CB',
-    streetName: 'MG Road',
-  },
 };
 
 @ApiTags('System / Tenant Customers')
@@ -96,26 +86,6 @@ const TENANT_CUSTOMER_EXAMPLE = {
 @Controller('system/tenant-customers')
 export class TenantCustomersController {
   constructor(private readonly tenantCustomersService: TenantCustomersService) {}
-
-  @Get('places')
-  @RequirePermissions('tenant-customers:view')
-  @ApiOperation({ summary: 'List places for a tenant business (customer address picker)' })
-  @ApiQuery({ name: 'tenantBusinessId', required: true })
-  listPlaces(@Query('tenantBusinessId') tenantBusinessId: string) {
-    return this.tenantCustomersService.listPlaces(tenantBusinessId);
-  }
-
-  @Get('streets')
-  @RequirePermissions('tenant-customers:view')
-  @ApiOperation({ summary: 'List streets for a place (customer address picker)' })
-  @ApiQuery({ name: 'tenantBusinessId', required: true })
-  @ApiQuery({ name: 'tenantPlaceId', required: true })
-  listStreets(
-    @Query('tenantBusinessId') tenantBusinessId: string,
-    @Query('tenantPlaceId') tenantPlaceId: string,
-  ) {
-    return this.tenantCustomersService.listStreets(tenantBusinessId, tenantPlaceId);
-  }
 
   @Get('deleted')
   @RequirePermissions('tenant-customers:view_deleted')
@@ -208,7 +178,7 @@ export class TenantCustomersController {
   @RequirePermissions('tenant-customers:create')
   @ApiOperation({
     summary: 'Create a tenant customer',
-    description: 'tenantPlaceId must belong to the business; tenantStreetId (if given) must belong to the chosen place.',
+    description: 'place and street are free text (up to 150 characters each).',
   })
   @ApiResponse({ status: 201, schema: { example: TENANT_CUSTOMER_EXAMPLE } })
   @ApiResponse({ status: 400, description: 'Business/place/street mismatch, or customerCode already used.' })

@@ -155,6 +155,10 @@ export class TenantInExCategoriesSelfController {
   @ApiResponse({ status: 400, description: 'System categories cannot be deleted.' })
   @ApiResponse({ status: 404, description: 'Category not found.' })
   remove(@CurrentTenantUser() user: TenantAuthUser, @Param('id') id: string) {
-    return this.tenantInExCategoriesService.removeForTenantUser(user.id, id);
+    return this.tenantInExCategoriesService.removeForTenantUser(
+      user.id,
+      id,
+      user.permissions.includes('tenant-in-ex-categories:delete_system'),
+    );
   }
 }

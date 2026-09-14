@@ -7,7 +7,10 @@ const CustomerStatusEnum = z.enum(['ACTIVE', 'INACTIVE', 'BLOCKED', 'DELETED']);
 
 export const CreateTenantCustomerSchema = z.object({
   tenantBusinessId: z.string().uuid(),
-  customerCode: z.string().min(1).max(30),
+  // Customer portal credentials. The password is plaintext on the way in,
+  // stored Argon2id-hashed, and never returned.
+  username: z.string().min(3).max(50).optional(),
+  password: z.string().min(8).max(100).optional(),
   fName: z.string().min(1).max(100),
   lName: z.string().max(100).optional(),
   fatherName: z.string().max(150).optional(),
@@ -17,8 +20,8 @@ export const CreateTenantCustomerSchema = z.object({
   secondaryMobile: z.string().max(20).optional(),
   email: z.string().email().max(255).optional(),
   customerType: CustomerTypeEnum.default('INDIVIDUAL'),
-  tenantPlaceId: z.string().uuid().optional(),
-  tenantStreetId: z.string().uuid().optional(),
+  place: z.string().trim().max(150).nullish(),
+  street: z.string().trim().max(150).nullish(),
   addressLine1: z.string().min(1).max(255),
   addressLine2: z.string().max(255).optional(),
   city: z.string().max(100).optional(),

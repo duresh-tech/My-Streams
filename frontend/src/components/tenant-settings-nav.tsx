@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { ArrowLeftRight, Building, Building2, CreditCard, Mail, MapPin, Percent, QrCode, Route, Store, User, Wifi } from "lucide-react";
+import { ArrowLeftRight, BellRing, Building2, CreditCard, Mail, Percent, Receipt, Timer, User } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import {
@@ -17,16 +17,13 @@ import { useTenantSession } from "@/hooks/use-tenant-session";
 const SETTINGS_NAV_ITEMS = [
   { href: "/tenant/settings/user-account", label: "Account Settings", icon: User, permission: "tenant-account:view" },
   { href: "/tenant/settings/business-information", label: "Business Information", icon: Building2, permission: "tenant-business:view" },
-  { href: "/tenant/settings/business-branches", label: "Business Branches", icon: Building, permission: "tenant-business-branches:list" },
-  { href: "/tenant/settings/network-providers", label: "Network Providers", icon: Wifi, permission: "tenant-network-providers:list" },
   { href: "/tenant/settings/tax-types", label: "Tax Types", icon: Percent, permission: "tenant-tax-types:list" },
   { href: "/tenant/settings/payment-modes", label: "Payment Modes", icon: CreditCard, permission: "tenant-payment-modes:list" },
+  { href: "/tenant/settings/billing", label: "Billing", icon: Receipt, permission: "tenant-billing-settings:view" },
+  { href: "/tenant/settings/cron-jobs", label: "Cron Jobs", icon: Timer, permission: "tenant-billing-settings:view" },
   { href: "/tenant/settings/in-ex-categories", label: "Income & Expense Categories", icon: ArrowLeftRight, permission: "tenant-in-ex-categories:list" },
   { href: "/tenant/settings/mail-config", label: "Mail Config", icon: Mail, permission: "tenant-mail-config:list" },
-  { href: "/tenant/settings/places", label: "Places", icon: MapPin, permission: "tenant-places:list" },
-  { href: "/tenant/settings/streets", label: "Streets", icon: Route, permission: "tenant-streets:list" },
-  { href: "/tenant/settings/counters", label: "Counters", icon: Store, permission: "tenant-counters:list" },
-  { href: "/tenant/settings/qr-devices", label: "QR Devices", icon: QrCode, permission: "tenant-qr-devices:list" },
+  { href: "/tenant/settings/event-alerts", label: "Event Alerts", icon: BellRing, permission: "tenant-event-alerts:list" },
 ];
 
 export function TenantSettingsNav() {

@@ -12,6 +12,10 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Overridable so a verification build can be run while a dev server is using
+  // the default .next directory - two Next processes sharing one build dir
+  // corrupt each other's output.
+  distDir: process.env.NEXT_DIST_DIR ?? ".next",
   poweredByHeader: false,
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];

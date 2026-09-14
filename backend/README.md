@@ -54,7 +54,7 @@ controllers (see `CHANGELOG.md` for the full per-resource list).
 | Area | Routes |
 | --- | --- |
 | System auth | `POST /system/login`, `/system/register`, `/system/refresh`, `/system/logout`, `GET /system/me` |
-| Tenant auth | `POST /tenant/login`, `/tenant/refresh`, `/tenant/logout`, `GET /tenant/me`, `GET /tenant/dashboard` |
+| Tenant auth | `POST /tenant/login`, `/tenant/refresh`, `/tenant/logout`, `GET /tenant/me`, `GET /tenant/dashboard`, `GET /tenant/dashboard/overview?range=30d\|90d\|12m` |
 | Permissions | `GET/POST /system/permissions`, `GET/PATCH/DELETE /system/permissions/:id` |
 | Roles | `GET/POST /system/roles`, `GET/PATCH/DELETE /system/roles/:id` |
 | System users | `GET/POST /system/users`, `GET/PATCH/DELETE /system/users/:id` |
@@ -62,11 +62,15 @@ controllers (see `CHANGELOG.md` for the full per-resource list).
 | Tenant business | `GET/POST /system/tenant-business`, `GET/PATCH/DELETE /system/tenant-business/:id`, `PATCH .../restore`; tenant self-service twin at `/tenant/business` (own profile only) |
 | Tenant mapped business | `GET/POST /system/tenant-mapped-business`, `GET/PUT/PATCH/DELETE /system/tenant-mapped-business/:id`, `PATCH .../restore` |
 | Tenant account | `GET/PATCH /tenant/account`, `POST /tenant/account/avatar` |
-| Tenant tax types, payment modes, income & expense categories, business branches, network providers, mail config, places, streets | Each: `GET/POST /system/tenant-<resource>`, `GET/PATCH/DELETE /system/tenant-<resource>/:id` (+ `restore` where applicable); tenant self-service twin at `/tenant/<resource>` scoped to the caller's mapped business. Mail config additionally has `POST .../:id/test-email`, and tenant self-service create is capped at one config per account (system-admin create is not). |
+| Tenant tax types, payment modes, income & expense categories, business branches, network providers, mail config | Each: `GET/POST /system/tenant-<resource>`, `GET/PATCH/DELETE /system/tenant-<resource>/:id` (+ `restore` where applicable); tenant self-service twin at `/tenant/<resource>` scoped to the caller's mapped business. Mail config additionally has `POST .../:id/test-email`, and tenant self-service create is capped at one config per account (system-admin create is not). |
 | Tenant customers | `GET/POST /system/tenant-customers`, `GET/PATCH/DELETE /system/tenant-customers/:id`, `PATCH .../restore`, `PATCH .../:id/status`, `GET .../deleted`, `GET .../export` (CSV), `POST .../import` (CSV); tenant self-service twin at `/tenant/customers`, scoped to the caller's mapped business |
-| Tenant QR devices | `GET/POST /system/tenant-qr-devices`, `GET/PATCH/DELETE /system/tenant-qr-devices/:id`, `PATCH .../restore`, `PATCH .../:id/payment-config`, `POST .../:id/push`, `POST .../:id/test`, `POST .../:id/log-serial`, plus `GET .../places`, `.../counters`, `.../events`; tenant self-service twin at `/tenant/qr-devices` (+ `GET .../businesses`), capped at one device per tenant account |
+| Tenant invoices | `GET/POST /tenant/invoices`, `GET /tenant/invoices/:id`, `POST /tenant/invoices/preview`, `POST .../:id/payments`, `POST .../:id/void` (cancel, also voids payments), `GET .../options`, `GET .../options/customers`, `GET .../options/customers/:customerId/billables`, `GET .../options/payment-modes`. Create takes `periods` (bill ahead) and an optional `payment`. Tenant surface only for now |
+| Tenant income & expenses | `GET/POST /tenant/income-expenses`, `GET/PATCH/DELETE /tenant/income-expenses/:id`, `GET .../options`, `GET .../summary`. Invoice payments book an income entry automatically (read-only, voided with the payment). Permissions `tenant-income-expenses:list/view/create/update/delete` |
+| Stream events & alerts | `POST /webhooks/flussonic/:serverId/:token` (streaming server event sink; token auth, no device header), `GET /tenant/stream-events` (+ `options`), `GET/POST /tenant/event-alerts`, `GET/PATCH/DELETE /tenant/event-alerts/:id`, `POST .../:id/test`, `GET .../options`; server side `GET /tenant/streaming-servers/event-options`, `POST /tenant/streaming-servers/:id/event-sink/sync`. Needs `PUBLIC_API_URL` |
+| Customer billing | `GET /customer/billing/invoices`, `GET /customer/billing/invoices/:id`. `GET /customer/servers` and `/customer/streams` carry a `billing` status and hide anything on a deleted server |
+| Tenant billing settings | `GET/PATCH /system/tenant-billing-settings/:tenantBusinessId`; tenant self-service twin at `GET/PATCH /tenant/billing-settings`. One row per business, created with defaults on first read (no create endpoint). Billing job: `GET /tenant/billing-settings/job` (schedule, last and next run) and `POST .../job/run`; interval and pause via `lifecycleIntervalMinutes` / `lifecyclePaused`. See `docs/billing-plan.md` |
 | App settings | `GET /system/app-settings/public/branding` (public), `GET/POST /system/app-settings`, `GET/PATCH/DELETE /system/app-settings/:id`, `PATCH .../restore`, `GET .../key/:key`, `POST .../logo` |
-| Dashboard | `GET /system/dashboard` |
+| Dashboard | `GET /system/dashboard`, `GET /system/dashboard/overview?range=30d\|90d\|12m` |
 | Uploads | `POST /system/uploads`; tenant self-service twin at `POST /tenant/uploads` |
 
 Full request/response schemas — including a concrete JSON example for
@@ -90,22 +94,19 @@ Seeded permission keys (module: actions):
 | `dashboard` | `view` |
 | `tenant-dashboard` | `view` |
 | `tenant-account` | `view`, `update` |
-| `permissions` | `create`, `read`, `update`, `delete` |
-| `roles` | `create`, `read`, `update`, `delete` |
+| `permissions` | `create`, `read`, `update`, `delete`, `delete_system` |
+| `roles` | `create`, `read`, `update`, `delete`, `delete_system` |
 | `system-users` | `create`, `read`, `update`, `delete` |
 | `tenant-users` | `create`, `read`, `view`, `update`, `delete`, `login-as` |
 | `tenant-business` | `create`, `view`, `update`, `delete`, `list`, `restore` |
 | `tenant-mapped-business` | `create`, `view`, `update`, `delete`, `list`, `restore` |
 | `tenant-tax-types` | `create`, `view`, `update`, `delete`, `list`, `restore` |
-| `tenant-payment-modes` | `create`, `view`, `update`, `delete`, `list`, `restore` |
-| `tenant-in-ex-categories` | `create`, `view`, `update`, `delete`, `list`, `restore` |
-| `tenant-places` | `create`, `view`, `update`, `delete`, `list`, `restore` |
-| `tenant-streets` | `create`, `view`, `update`, `delete`, `list`, `restore` |
+| `tenant-payment-modes` | `create`, `view`, `update`, `delete`, `delete_system`, `list`, `restore` |
+| `tenant-in-ex-categories` | `create`, `view`, `update`, `delete`, `delete_system`, `list`, `restore` |
 | `tenant-business-branches` | `create`, `view`, `update`, `delete`, `list`, `restore` |
 | `tenant-network-providers` | `create`, `view`, `update`, `delete`, `list`, `restore` |
 | `tenant-mail-config` | `create`, `view`, `update`, `delete`, `list`, `test` |
 | `tenant-customers` | `create`, `view`, `update`, `delete`, `view_deleted`, `restore`, `export`, `import`, `change_status` |
-| `tenant-qr-devices` | `create`, `view`, `update`, `delete`, `list`, `restore`, `push`, `test`, `manage_payment_config`, `view_events` |
 | `app-settings` | `create`, `view`, `update`, `delete`, `list`, `restore` |
 | `uploads` | `create` |
 
@@ -113,10 +114,17 @@ Seeded permission keys (module: actions):
 non-`restore` actions of every tenant-scoped module, plus `tenant-users:*`
 minus `login-as`. `tenant-customers` is the one exception — `TENANT_ADMIN`
 gets all 9 actions including `restore`/`view_deleted`/`export`/`import`/
-`change_status`. `tenant-qr-devices` also withholds `view_events` (in
-addition to `restore`) from `TENANT_ADMIN` — the cross-device event log is
-system-admin-only. `app-settings` is system-admin-only and not granted to
+`change_status`. `app-settings` is system-admin-only and not granted to
 `TENANT_ADMIN` at all.
+
+Rows flagged `isSystem` are seeded defaults and are refused by the normal
+`delete` action. The four modules that have such rows — `permissions`,
+`roles`, `tenant-payment-modes`, `tenant-in-ex-categories` — each carry a
+second `delete_system` action that lifts that refusal; the delete endpoint
+reads it off the caller and returns 403 when a system row is targeted
+without it. Only `SUPER_ADMIN` holds these (it is granted every
+permission); `TENANT_ADMIN` deliberately does not, so seeded defaults
+shared across businesses cannot be removed from the tenant portal.
 
 ## Security
 

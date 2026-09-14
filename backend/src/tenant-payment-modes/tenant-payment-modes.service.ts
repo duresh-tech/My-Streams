@@ -91,13 +91,15 @@ export class TenantPaymentModesService {
     });
   }
 
-  async remove(id: string) {
+  async remove(id: string, allowSystem = false) {
     const mode = await this.prisma.tenantPaymentMode.findFirst({
       where: { id, status: { not: 'DELETED' } },
     });
     if (!mode) throw new NotFoundException('Payment mode not found');
-    if (mode.isSystem) {
-      throw new BadRequestException('System payment modes cannot be deleted');
+    if (mode.isSystem && !allowSystem) {
+      throw new ForbiddenException(
+        'Deleting a system payment mode requires the tenant-payment-modes:delete_system permission',
+      );
     }
 
     const timestamp = now();
@@ -203,9 +205,9 @@ export class TenantPaymentModesService {
     return this.update(id, dto);
   }
 
-  async removeForTenantUser(tenantUserId: string, id: string) {
+  async removeForTenantUser(tenantUserId: string, id: string, allowSystem = false) {
     await this.findOneForTenantUser(tenantUserId, id);
-    return this.remove(id);
+    return this.remove(id, allowSystem);
   }
 
   private async getMappedBusinessIds(tenantUserId: string): Promise<string[]> {

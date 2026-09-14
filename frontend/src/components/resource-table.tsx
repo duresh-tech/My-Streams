@@ -141,7 +141,7 @@ export function ResourceTable<T extends { id: string }>({
                 {/* Tablet/desktop: table skeleton */}
                 <div className="hidden sm:block">
                   <Table>
-                    <TableHeader className="sticky top-14 z-10 bg-card shadow-sm">
+                    <TableHeader className="sticky top-0 z-10 bg-card shadow-sm">
                       <TableRow>
                         {columns.map((col) => (
                           <TableHead key={col.header} className={col.className}>
@@ -235,7 +235,7 @@ export function ResourceTable<T extends { id: string }>({
                 {/* Tablet/desktop: table */}
                 <div className="hidden sm:block">
                   <Table>
-                    <TableHeader className="sticky top-14 z-10 bg-card shadow-sm">
+                    <TableHeader className="sticky top-0 z-10 bg-card shadow-sm">
                       <TableRow>
                         {columns.map((col) => (
                           <TableHead key={col.header} className={col.className}>

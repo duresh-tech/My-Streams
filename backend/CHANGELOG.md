@@ -7,6 +7,220 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Dashboard insights** (read-only, no schema change):
+  - `GET /tenant/dashboard/overview?range=30d|90d|12m`
+    (`tenant-dashboard:view`): buckets (30 days, 13 weeks or 12 months in the
+    app timezone) and sections `billing` (collected series, outstanding,
+    overdue, invoice statuses, plans expiring in 7 days), `streams` (running,
+    off by billing, off by a user, per server, server connections), `customers`
+    (new series, with/without an active bill), `events` (Source/Stream/Viewer
+    series, alert results) and `incomeExpense` (income/expense series, net).
+    Each section is `null` unless the caller holds its list permission.
+  - `GET /system/dashboard/overview?range=` (`dashboard:view`): growth
+    (businesses, tenant users, customers, top businesses), infrastructure
+    (server connections, stream states, unreachable servers), billing per
+    currency (never summed across currencies) and access (active system,
+    tenant and customer sessions; distinct users signing in per bucket).
+  - `common/utils/dashboard-buckets.ts` with unit tests.
+- **Stream events and email alerts** (`tenant-stream-events` module;
+  `tenant_stream_events`, `tenant_event_alert_rules`,
+  `tenant_event_alert_cooldowns` tables; `eventsEnabled`, `eventTypes`,
+  `eventWebhookToken`, `eventSinkSyncedAt`, `eventSinkError` on
+  `tenant_flussonic_servers` - all additive):
+  - Streaming servers: `eventsEnabled` and `eventTypes` (Flussonic 24.03
+    names: `source_opened|connected|started|updated|closed`,
+    `stream_opened|updated|closed`, `play_opened|started|updated|closed`) on
+    create/update. Saving creates, updates or removes an event sink
+    `mystreams-<serverId>` on the server with
+    `only: [{ event: [...] }]`, posting to
+    `PUBLIC_API_URL/webhooks/flussonic/:serverId/:token`. A failed sync never
+    fails the save; it is reported as `eventSinkError`.
+    `GET /tenant/streaming-servers/event-options`,
+    `POST /tenant/streaming-servers/:id/event-sink/sync`.
+  - Webhook `POST /webhooks/flussonic/:serverId/:token`: token-authenticated,
+    exempt from the device header and rate limiting, accepts one event, an
+    array or `{ events }` (max 1000), stores them, matches them to managed
+    streams and customers, and processes alerts after responding. JSON body
+    limit raised to 5 MB.
+  - Alert rules `tenant/event-alerts` (CRUD, `options`, `:id/test`): events
+    (0:N), scope by servers/streams/customers (empty = all), recipients,
+    `customerRecipients` (`NONE`, `STREAM_OWNER`, or `SERVER_CUSTOMERS` - the
+    owner plus every customer actively assigned to the stream's server,
+    always by Bcc), and a per-stream cooldown. Emails go
+    through the business's mail config (`common/utils/mail.util.ts`, now also
+    used by the mail config test email).
+  - Event log `GET /tenant/stream-events` (+ `options`), kept 30 days by a
+    daily cleanup.
+  - Permissions `tenant-event-alerts:list/view/create/update/delete`,
+    `tenant-stream-events:list`, granted to `TENANT_ADMIN`. New env
+    `PUBLIC_API_URL` (see `.env.example`).
+
+### Changed
+
+- **Any payment activates a subscription** (`activateOn = PAYMENT`):
+  recording any amount on an invoice now puts its subscription into effect
+  and enables the stream; previously only a payment in full did. Each billing
+  job run also activates subscriptions still awaiting payment on invoices
+  that already carry money (`PARTIALLY_PAID` or `PAID`), so invoices part-paid
+  before this change come on at the next run. Job results add `activated`.
+
+- **Billing job enables paid streams**: a customer stream with a valid bill
+  (ACTIVE, or within grace) that is switched off is switched on again,
+  whoever switched it off - previously only streams billing itself had
+  switched off came back. Paid streams switched off on the streaming server
+  outside this app are switched on again too
+  (`TenantStreamSyncService.ensureRemoteState`, replacing
+  `ensureRemoteDisabled`). Job results add `streamsReEnabled`.
+
+### Fixed
+
+- **Blocked streams re-enabled on the streaming server**: the billing job
+  trusted its own `disabled` flag, so a blocked stream switched back on
+  outside this app (for example in the server's own UI) kept running while
+  the app showed it as off. Each run now reads every blocked customer stream
+  from its server and switches it off again if it is enabled
+  (`TenantStreamSyncService.ensureRemoteDisabled`). Job results add
+  `streamsBlocked` and `streamsReDisabled`.
+- **Customer portal stream access**: a stream attached to the customer can be
+  opened (view, stats, sessions) even when the customer has no active
+  assignment on its server - previously it was listed on My Streams but
+  opening it failed with "You no longer have access to the server this stream
+  is on". Edit, enable, reload and delete are governed by the billing rule;
+  creating a stream still requires an assignment for its quota.
+
+### Removed
+
+- **Places and streets** (`tenant-places`, `tenant-streets` modules, their
+  `tenant_places` / `tenant_streets` tables and permissions). A customer's
+  `place` and `street` are now free-text `VARCHAR(150)` columns replacing
+  `tenantPlaceId` / `tenantStreetId` on customers, CSV import/export and the
+  customer portal profile; `GET /tenant/customers/places|streets`,
+  `/system/tenant-customers/places|streets` and `/customer/places|streets`
+  are gone, and customer search also matches place and street. The seed
+  removes the old permissions and their role grants.
+
+### Added
+
+- **Billing job per business** (`tenant_billing_settings.lifecycleIntervalMinutes`,
+  `lifecyclePaused`, `lifecycleLastRunAt`, `lifecycleLastResult`, additive):
+  the scheduler ticks every minute and runs the job only for businesses that
+  are due by their own interval (1, 5, 10, 15, 30 or 60 minutes, or 6, 12 or
+  24 hours; default 5) and not paused. Each run records its time and counts
+  (past due, suspended, streams disabled / enabled, failures) or its error.
+  `GET /tenant/billing-settings/job` returns the schedule with last and next
+  run; `POST /tenant/billing-settings/job/run` (`tenant-billing-settings:update`)
+  runs it now, even while paused, and returns 409 if it is already running.
+  A business without a settings row gets the defaults on the first tick.
+
+- **Billing enforcement on customer streams** (`tenant-billing/billing-access.ts`,
+  with tests): a customer stream is ACTIVE while its own STREAM plan or the
+  SERVER plan on its server has an unexpired period, GRACE for the business's
+  `graceDays` after that, and BLOCKED otherwise - including streams never
+  billed. The tenant's own streams are unaffected.
+  - Customer portal: edit, enable, reload and delete on a BLOCKED stream
+    return 403 (disable is always allowed); `GET /customer/streams`,
+    `/streams/:id` and `/streams/:id/view` carry `access`. A stream created on
+    a server without an active plan starts disabled.
+  - Tenant portal: enabling a BLOCKED customer stream needs the new
+    `tenant-streams:override_billing` (granted to `TENANT_ADMIN`) and marks it
+    `billingExempt` until a covering subscription is active again or a user
+    disables it.
+  - `BillingLifecycleService` (`@nestjs/schedule`, on each business's own
+    interval - see Billing job - one runner via MySQL `GET_LOCK`): lapsed subscriptions become
+    `PAST_DUE`, then `SUSPENDED` after grace; blocked streams are disabled on
+    the server and marked `billingDisabledAt`; streams billing disabled are
+    re-enabled once covered. Creating an invoice, recording a payment and
+    cancelling apply the result to that customer's streams immediately.
+  - Schema: `tenant_streams.billingDisabledAt`, `tenant_streams.billingExempt`
+    (additive).
+- **Exact service periods**: a new subscription starting today starts at the
+  moment its invoice activates (payment, or issue), not midnight; a renewal
+  paid after suspension starts at payment. The invoice line's period moves
+  with it. Past start dates are refused.
+
+- **Bill ahead and collect on create** (`POST /tenant/invoices`, `/preview`):
+  `periods` (1-24, default 1) bills that many plan durations on one line,
+  for new subscriptions and renewals alike; period ends stay on the
+  anchor schedule (`nextPeriods` in `billing-math.ts`, with tests). An
+  optional `payment` is recorded in the same transaction as the invoice
+  (requires `tenant-payments:create`).
+- **Invoice cancel** (`POST /tenant/invoices/:id/void`): now allowed on
+  `ISSUED`, `PARTIALLY_PAID` and `PAID` invoices. Recorded payments are
+  voided with it (requires the new `tenant-payments:void`) and
+  `amountPaid` returns to 0. Refused while a later invoice bills the same
+  subscription.
+- **Income & expense ledger** (`tenant-income-expenses` module,
+  `tenant_income_expenses` table): list/summary/view/create/update/delete
+  under `tenant/income-expenses`, scoped to the caller's business, with
+  permissions `tenant-income-expenses:list/view/create/update/delete`
+  granted to `TENANT_ADMIN`. Every recorded invoice payment books an income
+  entry under an "Invoice Payment" category (created per business on first
+  use); those entries are read-only and are voided with their payment.
+- **Customer billing** (`customer/billing/invoices`, `/invoices/:id`): the
+  customer's own non-draft invoices with lines and recorded payments.
+  `GET /customer/servers` and `/customer/streams` now include a `billing`
+  summary (plan, status, period end, unpaid invoice); a stream without its
+  own plan shows the server plan covering it.
+
+- **Billing, Phase 1** (`docs/billing-plan.md`): the foundation for selling
+  subscription plans to customers.
+  - **Schema**: `tenant_billing_settings`, `tenant_subscriptions`,
+    `tenant_invoices`, `tenant_invoice_items`, `tenant_payments`, plus
+    back-relations on business, customer, plan, server, customer-server
+    assignment, tax type and payment mode. Additive only. Subscriptions
+    snapshot the plan's limits and price at purchase; invoice items carry a
+    `@@unique([tenantSubscriptionId, periodStart])` so a renewal can never be
+    billed twice; commercial records have no `DELETED` status (they are
+    cancelled or voided).
+  - **Billing settings** (`tenant-billing` module): `GET/PATCH
+    /tenant/billing-settings` and the system twin `GET/PATCH
+    /system/tenant-billing-settings/:tenantBusinessId`. One row per
+    business, created with defaults on first read. Currency is validated
+    against ISO 4217, the default tax type must be an `ACTIVE` tax type of the
+    same business, and `nextInvoiceNumber` is refused once the business has
+    issued an invoice (`invoiceNumberLocked` in the response).
+  - **Permissions**: `tenant-billing-settings:view`, `:update`, granted to
+    `TENANT_ADMIN`. The remaining billing permissions are seeded with the
+    phase that gates them.
+  - **`billing-math.ts`**: calendar-correct period arithmetic in the app
+    timezone (month-end clamping, DST-safe days), per-line half-up Decimal
+    tax and totals, and invoice-number formatting.
+- **Invoices for streams and servers** (`tenant/invoices`, tenant surface
+  only):
+  - `POST /tenant/invoices/preview` and `POST /tenant/invoices` bill an
+    assigned customer's **stream** (STREAM plan — exactly one stream) or
+    **server assignment** (SERVER plan). The invoice is issued immediately
+    with the next gapless number (the settings row is locked `FOR UPDATE`).
+    Expiry = start date (default today, midnight in `APP_TIMEZONE`) + plan
+    duration, month-end clamped. A target with an active subscription is
+    renewed instead: from its current expiry, at the price it was
+    subscribed at, anchored to the first period so Jan 31 renews to Feb 28
+    and then Mar 31.
+  - One open invoice per stream/server: another is refused until the first
+    is paid or voided.
+  - `POST /tenant/invoices/:id/payments` records full or partial payments.
+    Paying in full — or issuing, when `activateOn=ISSUE` or the total is
+    zero — activates the subscription for the invoiced period and, for
+    SERVER plans, sets the assignment's `streamLimit` (left unchanged, with
+    a warning, if the customer already runs more streams).
+  - `POST /tenant/invoices/:id/void` for issued, unpaid invoices: cancels
+    the subscription it opened or rolls back the renewal it activated.
+    Stream limits already applied are not reverted.
+  - `GET /tenant/invoices`, `GET /tenant/invoices/:id`, and form options:
+    `options`, `options/customers`, `options/customers/:customerId/billables`,
+    `options/payment-modes`.
+  - Schema: `tenant_subscriptions.tenantStreamId`.
+  - Permissions: `tenant-invoices:list|view|create|void|add_discount` and
+    `tenant-payments:create`, granted to `TENANT_ADMIN`. A discount requires
+    `add_discount`.
+  - `billing-math.ts`: `startOfDate`, `calendarDate`, `nextPeriod`, with 7
+    more tests (27 total).
+- **`npm test`**: Node's built-in test runner via `ts-node`, no new
+  dependency. Specs live in `backend/test/` so `nest build` does not compile
+  them. First suite: 20 tests for `billing-math.ts`.
+
 ## [1.6.0] - 2026-07-13
 
 ### Fixed

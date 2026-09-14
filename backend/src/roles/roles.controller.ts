@@ -18,6 +18,7 @@ import {
 import { RolesService } from './roles.service';
 import { CreateRoleDto, UpdateRoleDto } from './dto/role.dto';
 import { RequirePermissions } from '../common/decorators/permissions.decorator';
+import { CurrentUser, AuthUser } from '../common/decorators/current-user.decorator';
 import { ListQueryDto } from '../common/dto/query.dto';
 
 const ROLE_LIST_ITEM_EXAMPLE = {
@@ -140,7 +141,7 @@ export class RolesController {
   @ApiOperation({
     summary: 'Soft-delete a role',
     description:
-      'System roles and roles still assigned to users cannot be deleted.',
+      'Roles assigned to users cannot be deleted. System roles require the roles:delete_system permission.',
   })
   @ApiParam({ name: 'id', description: 'Role UUIDv7' })
   @ApiResponse({
@@ -148,8 +149,9 @@ export class RolesController {
     description: 'Role deleted.',
     schema: { example: { success: true } },
   })
-  @ApiResponse({ status: 400, description: 'System role or role in use.' })
-  remove(@Param('id') id: string) {
-    return this.rolesService.remove(id);
+  @ApiResponse({ status: 400, description: 'Role in use.' })
+  @ApiResponse({ status: 403, description: 'Missing roles:delete_system for a system role.' })
+  remove(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.rolesService.remove(id, user.permissions.includes('roles:delete_system'));
   }
 }

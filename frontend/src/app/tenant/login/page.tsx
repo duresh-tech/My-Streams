@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { motion, useAnimation } from "motion/react";
-import { Building2, LoaderCircle } from "lucide-react";
+import { LoaderCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ import { fadeUp, shake } from "@/components/motion/variants";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { setTenantAccessToken, tenantApi, type TenantLoginResponse } from "@/lib/tenant-api";
 import { APP_NAME } from "@/lib/app-name";
+import { AppLogo } from "@/components/app-logo";
 
 export default function TenantLoginPage() {
   const router = useRouter();
@@ -67,9 +68,7 @@ export default function TenantLoginPage() {
         >
           <Card className="w-full">
             <CardHeader className="text-center">
-              <div className="mx-auto mb-2 flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-                <Building2 className="size-6" />
-              </div>
+              <AppLogo size={48} priority className="mx-auto mb-2 rounded-xl" />
               <CardTitle className="text-xl">{APP_NAME}</CardTitle>
               <CardDescription>
                 Sign in to the Tenant Portal

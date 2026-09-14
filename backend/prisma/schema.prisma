@@ -166,14 +166,19 @@ model TenantBusiness {
   taxTypes          TenantTaxType[]
   paymentModes      TenantPaymentMode[]
   inExCategories    TenantInExCategory[]
-  branches          TenantBusinessBranch[]
-  networkProviders  TenantNetworkProvider[]
   mailConfigs       TenantMailConfig[]
-  places            TenantPlace[]
-  streets           TenantStreet[]
   customers         TenantCustomer[]
-  counters          TenantCounter[]
-  qrDevices         TenantQrDevice[]
+  flussonicServers  TenantFlussonicServer[]
+  streams           TenantStream[]
+  subscriptionPlans TenantSubscriptionPlan[]
+  customerServers   TenantCustomerServer[]
+  billingSettings   TenantBillingSettings?
+  subscriptions     TenantSubscription[]
+  invoices          TenantInvoice[]
+  payments          TenantPayment[]
+  incomeExpenses    TenantIncomeExpense[]
+  streamEvents      TenantStreamEvent[]
+  eventAlertRules   TenantEventAlertRule[]
 
   @@index([status])
   @@index([country])
@@ -206,7 +211,8 @@ model TenantTaxType {
   updatedAt        BigInt
   deletedAt        BigInt?
 
-  tenantBusiness TenantBusiness @relation(fields: [tenantBusinessId], references: [id])
+  tenantBusiness          TenantBusiness          @relation(fields: [tenantBusinessId], references: [id])
+  billingSettingsDefaults TenantBillingSettings[]
 
   @@index([status])
   @@index([tenantBusinessId])
@@ -232,7 +238,9 @@ model TenantPaymentMode {
   updatedAt        BigInt
   deletedAt        BigInt?
 
-  tenantBusiness TenantBusiness @relation(fields: [tenantBusinessId], references: [id])
+  tenantBusiness TenantBusiness  @relation(fields: [tenantBusinessId], references: [id])
+  payments       TenantPayment[]
+  incomeExpenses TenantIncomeExpense[]
 
   @@index([status])
   @@index([tenantBusinessId])
@@ -265,77 +273,12 @@ model TenantInExCategory {
   updatedAt        BigInt
   deletedAt        BigInt?
 
-  tenantBusiness TenantBusiness @relation(fields: [tenantBusinessId], references: [id])
+  tenantBusiness TenantBusiness        @relation(fields: [tenantBusinessId], references: [id])
+  entries        TenantIncomeExpense[]
 
   @@index([status])
   @@index([tenantBusinessId])
   @@map("tenant_in_ex_categories")
-}
-
-enum TenantBusinessBranchStatus {
-  ACTIVE
-  INACTIVE
-  BLOCKED
-  DELETED
-}
-
-model TenantBusinessBranch {
-  id               String                     @id @db.Char(36) // UUIDv7
-  systemCode       String                     @unique @db.VarChar(30)
-  tenantBusinessId String                     @db.Char(36)
-  branchName       String                     @db.VarChar(150)
-  email            String                     @db.VarChar(150)
-  phone            String                     @db.VarChar(20)
-  addressLine1     String                     @db.VarChar(255)
-  addressLine2     String?                    @db.VarChar(255)
-  description      String?                    @db.VarChar(255)
-  status           TenantBusinessBranchStatus @default(ACTIVE)
-  createdAt        BigInt
-  updatedAt        BigInt
-  deletedAt        BigInt?
-
-  tenantBusiness TenantBusiness @relation(fields: [tenantBusinessId], references: [id])
-
-  @@index([status])
-  @@index([tenantBusinessId])
-  @@map("tenant_business_branches")
-}
-
-enum TenantNetworkProviderType {
-  CABLE_TV
-  ISP
-  IPTV
-  OTHERS
-}
-
-enum TenantNetworkProviderStatus {
-  ACTIVE
-  INACTIVE
-  BLOCKED
-  DELETED
-}
-
-model TenantNetworkProvider {
-  id               String                      @id @db.Char(36) // UUIDv7
-  systemCode       String                      @unique @db.VarChar(30)
-  tenantBusinessId String                      @db.Char(36)
-  type             TenantNetworkProviderType
-  name             String                      @db.VarChar(150)
-  email            String?                     @db.VarChar(150)
-  phone            String?                     @db.VarChar(20)
-  addressLine1     String?                     @db.VarChar(255)
-  addressLine2     String?                     @db.VarChar(255)
-  description      String?                     @db.VarChar(255)
-  status           TenantNetworkProviderStatus @default(ACTIVE)
-  createdAt        BigInt
-  updatedAt        BigInt
-  deletedAt        BigInt?
-
-  tenantBusiness TenantBusiness @relation(fields: [tenantBusinessId], references: [id])
-
-  @@index([status])
-  @@index([tenantBusinessId])
-  @@map("tenant_network_providers")
 }
 
 enum TenantMailDriver {
@@ -465,179 +408,6 @@ model AppSetting {
   @@map("app_settings")
 }
 
-enum TenantPlaceStatus {
-  ACTIVE
-  INACTIVE
-  BLOCKED
-  DELETED
-}
-
-model TenantPlace {
-  id               String            @id @db.Char(36) // UUIDv7
-  systemCode       String            @unique @db.VarChar(30)
-  tenantBusinessId String            @db.Char(36)
-  placeName        String            @db.VarChar(100)
-  remark           String?           @db.VarChar(255)
-  latitude         Decimal?          @db.Decimal(10, 8)
-  longitude        Decimal?          @db.Decimal(11, 8)
-  radiusMeters     Int               @default(100)
-  status           TenantPlaceStatus @default(ACTIVE)
-  createdAt        BigInt
-  updatedAt        BigInt
-  deletedAt        BigInt?
-
-  tenantBusiness TenantBusiness   @relation(fields: [tenantBusinessId], references: [id])
-  streets        TenantStreet[]
-  customers      TenantCustomer[]
-  counters       TenantCounter[]
-  qrDevices      TenantQrDevice[]
-
-  @@index([status])
-  @@index([tenantBusinessId])
-  @@map("tenant_places")
-}
-
-enum TenantStreetStatus {
-  ACTIVE
-  INACTIVE
-  BLOCKED
-  DELETED
-}
-
-model TenantStreet {
-  id               String             @id @db.Char(36) // UUIDv7
-  systemCode       String             @unique @db.VarChar(30)
-  tenantBusinessId String             @db.Char(36)
-  tenantPlaceId    String             @db.Char(36)
-  streetCode       String             @db.Char(3) // 3 uppercase letters (A-Z), unique per business
-  streetName       String             @db.VarChar(100)
-  latitude         Decimal?           @db.Decimal(10, 8)
-  longitude        Decimal?           @db.Decimal(11, 8)
-  remark           String?            @db.VarChar(255)
-  status           TenantStreetStatus @default(ACTIVE)
-  createdAt        BigInt
-  updatedAt        BigInt
-  deletedAt        BigInt?
-
-  tenantBusiness TenantBusiness   @relation(fields: [tenantBusinessId], references: [id])
-  tenantPlace    TenantPlace      @relation(fields: [tenantPlaceId], references: [id])
-  customers      TenantCustomer[]
-
-  @@unique([tenantBusinessId, streetCode])
-  @@index([status])
-  @@index([tenantBusinessId])
-  @@index([tenantPlaceId])
-  @@map("tenant_streets")
-}
-
-enum TenantCounterStatus {
-  ACTIVE
-  INACTIVE
-  BLOCKED
-  DELETED
-}
-
-model TenantCounter {
-  id               String               @id @db.Char(36) // UUIDv7
-  systemCode       String               @unique @db.VarChar(30)
-  tenantBusinessId String               @db.Char(36)
-  tenantPlaceId    String?              @db.Char(36)
-  counterCode      String               @db.VarChar(30)
-  counterName      String               @db.VarChar(100)
-  description      String?              @db.VarChar(255)
-  status           TenantCounterStatus  @default(ACTIVE)
-  createdAt        BigInt
-  updatedAt        BigInt
-  deletedAt        BigInt?
-
-  tenantBusiness TenantBusiness   @relation(fields: [tenantBusinessId], references: [id])
-  tenantPlace    TenantPlace?     @relation(fields: [tenantPlaceId], references: [id])
-  qrDevices      TenantQrDevice[]
-
-  @@unique([tenantBusinessId, counterCode])
-  @@index([status])
-  @@index([tenantBusinessId])
-  @@index([tenantPlaceId])
-  @@map("tenant_counters")
-}
-
-enum TenantQrDeviceModel {
-  BONRIX_DQ12
-  GENERIC
-}
-
-enum TenantQrDeviceCollectionMode {
-  MANUAL
-  AUTOMATIC
-}
-
-enum TenantQrDeviceStatus {
-  ACTIVE
-  INACTIVE
-  BLOCKED
-  DELETED
-}
-
-model TenantQrDevice {
-  id                String                       @id @db.Char(36) // UUIDv7
-  systemCode        String                       @unique @db.VarChar(30)
-  tenantBusinessId  String                       @db.Char(36)
-  tenantPlaceId     String?                      @db.Char(36)
-  tenantCounterId   String?                      @db.Char(36)
-  deviceCode        String                       @db.VarChar(30)
-  deviceName        String                       @db.VarChar(100)
-  deviceModel       TenantQrDeviceModel          @default(BONRIX_DQ12)
-  collectionMode    TenantQrDeviceCollectionMode @default(MANUAL)
-  upiVpa            String?                      @db.VarChar(150)
-  lastPushAt        BigInt?
-  lastTestAt        BigInt?
-  lastPaymentAt     BigInt?
-  status            TenantQrDeviceStatus         @default(ACTIVE)
-  createdAt         BigInt
-  updatedAt         BigInt
-  deletedAt         BigInt?
-
-  tenantBusiness  TenantBusiness           @relation(fields: [tenantBusinessId], references: [id])
-  tenantPlace     TenantPlace?             @relation(fields: [tenantPlaceId], references: [id])
-  tenantCounter   TenantCounter?           @relation(fields: [tenantCounterId], references: [id])
-  events          TenantQrDeviceEvent[]
-
-  @@unique([tenantBusinessId, deviceCode])
-  @@index([status])
-  @@index([tenantBusinessId])
-  @@index([tenantPlaceId])
-  @@index([tenantCounterId])
-  @@map("tenant_qr_devices")
-}
-
-enum TenantQrDeviceEventType {
-  CREATED
-  CONFIG_UPDATED
-  PUSH_REQUESTED
-  TEST_TRIGGERED
-  PAYMENT_CONFIRMED
-  ERROR
-}
-
-model TenantQrDeviceEvent {
-  id               String                  @id @db.Char(36) // UUIDv7
-  tenantQrDeviceId String                  @db.Char(36)
-  eventType        TenantQrDeviceEventType
-  amount           Decimal?                @db.Decimal(12, 2)
-  message          String?                 @db.VarChar(255)
-  atCommand        String?                 @db.Text
-  atResponse       String?                 @db.Text
-  payload          String?                 @db.LongText
-  createdAt        BigInt
-
-  device TenantQrDevice @relation(fields: [tenantQrDeviceId], references: [id], onDelete: Cascade)
-
-  @@index([tenantQrDeviceId])
-  @@index([eventType])
-  @@index([createdAt])
-  @@map("tenant_qr_device_events")
-}
-
 enum TenantCustomerGender {
   MALE
   FEMALE
@@ -663,6 +433,10 @@ model TenantCustomer {
   systemCode        String               @unique @db.VarChar(30)
   tenantBusinessId  String               @db.Char(36)
   customerCode      String               @db.VarChar(30)
+  // Customer portal credentials. Nullable: a customer need not have portal
+  // access, and MySQL allows many NULLs under a unique index.
+  username          String?              @unique @db.VarChar(50)
+  passwordHash      String?              @db.VarChar(255) // Argon2id
   fName             String               @db.VarChar(100)
   lName             String?              @db.VarChar(100)
   fatherName        String?              @db.VarChar(150)
@@ -672,8 +446,9 @@ model TenantCustomer {
   secondaryMobile   String?              @db.VarChar(20)
   email             String?              @db.VarChar(255)
   customerType      TenantCustomerType   @default(INDIVIDUAL)
-  tenantPlaceId     String?              @db.Char(36)
-  tenantStreetId    String?              @db.Char(36)
+  // Typed in, not picked from a list.
+  place             String?              @db.VarChar(150)
+  street            String?              @db.VarChar(150)
   addressLine1      String               @db.VarChar(255)
   addressLine2      String?              @db.VarChar(255)
   city              String?              @db.VarChar(100)
@@ -698,14 +473,762 @@ model TenantCustomer {
   updatedAt         BigInt
   deletedAt         BigInt?
 
-  tenantBusiness TenantBusiness @relation(fields: [tenantBusinessId], references: [id])
-  tenantPlace    TenantPlace?   @relation(fields: [tenantPlaceId], references: [id])
-  tenantStreet   TenantStreet?  @relation(fields: [tenantStreetId], references: [id])
+  tenantBusiness  TenantBusiness               @relation(fields: [tenantBusinessId], references: [id])
+  streams         TenantStream[]
+  assignedServers TenantCustomerServer[]
+  refreshTokens   TenantCustomerRefreshToken[]
+  subscriptions   TenantSubscription[]
+  invoices        TenantInvoice[]
+  payments        TenantPayment[]
+  streamEvents    TenantStreamEvent[]
 
   @@unique([tenantBusinessId, customerCode])
   @@index([status])
   @@index([tenantBusinessId])
-  @@index([tenantPlaceId])
-  @@index([tenantStreetId])
   @@map("tenant_customers")
+}
+
+/// Result of the last connectivity check against the server's API.
+enum TenantFlussonicConnectionStatus {
+  UNKNOWN // never checked, or the connection settings changed since the last check
+  CONNECTED // the API answered and accepted the credentials
+  UNAUTHORIZED // the API answered but rejected the credentials
+  UNREACHABLE // no answer, timeout, TLS failure, or an unexpected HTTP status
+}
+
+enum TenantFlussonicServerStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+  TERMINATED
+  DELETED
+}
+
+model TenantFlussonicServer {
+  id                      String                          @id @db.Char(36) // UUIDv7
+  systemCode              String                          @unique @db.VarChar(30)
+  tenantBusinessId        String                          @db.Char(36)
+  name                    String                          @db.VarChar(150)
+  hostName                String                          @db.VarChar(255)
+  hostPort                Int                             @default(80)
+  domain                  String?                         @db.VarChar(255)
+  useSSL                  Boolean                         @default(true)
+  flussonicApiUsername    String?                         @db.VarChar(150)
+  flussonicApiPasswordEnc String?                         @db.VarChar(512) // AES-256-GCM, never returned by the API
+  apiBasePath             String                          @default("/streamer/api/v3") @db.VarChar(255)
+  flussonicApiAccessToken String?                         @db.VarChar(512) // AES-256-GCM, never returned by the API
+  apiVersionTag           String?                         @db.VarChar(50)
+  // Protocol listener ports as configured on the streamer. Used to build the
+  // publish and playback URLs shown for each stream.
+  httpPort                Int                             @default(80)
+  httpsPort               Int                             @default(443)
+  rtmpPort                Int                             @default(1935)
+  rtmpsPort               Int                             @default(443)
+  rtspPort                Int                             @default(554)
+  rtspsPort               Int                             @default(322)
+  srtPort                 Int                             @default(9710)
+  flussonicVersion        String?                         @db.VarChar(50)
+  remark                  String?                         @db.Text
+  // Stream events: whether the server sends them here, which ones (a JSON
+  // array of event names), the secret in the webhook URL, and the outcome of
+  // the last event sink sync to the server.
+  eventsEnabled           Boolean                         @default(false)
+  eventTypes              Json?
+  eventWebhookToken       String?                         @db.VarChar(64)
+  eventSinkSyncedAt       BigInt?
+  eventSinkError          String?                         @db.VarChar(500)
+  status                  TenantFlussonicServerStatus     @default(ACTIVE)
+  connectionStatus        TenantFlussonicConnectionStatus @default(UNKNOWN)
+  connectionCheckedAt     BigInt?
+  createdAt               BigInt
+  createdBy               String?                         @db.Char(36) // system or tenant user id; no FK, actor can be either
+  updatedAt               BigInt
+  updatedBy               String?                         @db.Char(36)
+  deletedAt               BigInt?
+  deletedBy               String?                         @db.Char(36)
+
+  tenantBusiness  TenantBusiness         @relation(fields: [tenantBusinessId], references: [id])
+  streams         TenantStream[]
+  customerServers TenantCustomerServer[]
+  subscriptions   TenantSubscription[]
+  streamEvents    TenantStreamEvent[]
+
+  @@unique([tenantBusinessId, name])
+  @@index([status])
+  @@index([tenantBusinessId])
+  @@map("tenant_flussonic_servers")
+}
+
+enum TenantStreamStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+  DELETED
+}
+
+/// Result of the last reconcile against the server that hosts the stream.
+enum TenantStreamSyncStatus {
+  IN_SYNC // present both sides, mapped config matches
+  PENDING_PUSH // local change not yet accepted by the server
+  MISSING_ON_SERVER // in our DB, absent on the server
+  ORPHAN_ON_SERVER // on the server, no DB record
+  CONFLICT // both present and differing; needs a human decision
+  RENAMING // mid-rename, leave alone
+  TRANSFERRING // mid-transfer, leave alone
+  UNREACHABLE // server did not answer at the last attempt
+}
+
+/// Mirror of Flussonic's `named_by`: where the stream was initialised.
+/// Only CONFIG and EXTERNAL streams are ours to manage; USER streams are
+/// ephemeral play/publish sessions and REMOTE ones belong to another node.
+enum TenantStreamNamedBy {
+  CONFIG
+  USER
+  REMOTE
+  EXTERNAL
+}
+
+model TenantStream {
+  id                      String  @id @db.Char(36) // UUIDv7
+  systemCode              String  @unique @db.VarChar(30)
+  tenantBusinessId        String  @db.Char(36)
+  tenantFlussonicServerId String  @db.Char(36)
+  tenantCustomerId        String? @db.Char(36)
+
+  // Optional: a server-side name may be bare (`demo`) as well as namespaced
+  // (`live/ch01`). May itself contain slashes, since the prefix is a path.
+  applicationName String? @db.VarChar(150)
+  streamKey       String  @db.VarChar(100)
+  // Derived as applicationName/streamKey, but stored: it is the identity the
+  // server knows, it carries the per-server unique index, and a rename needs
+  // the old and new name at the same time.
+  name            String  @db.VarChar(200)
+  title           String  @db.VarChar(150)
+  ingestDomain    String? @db.VarChar(255)
+  // Applies to this stream's own ingest domain. When no ingest domain is set,
+  // the server's useSSL decides the scheme instead.
+  useSSL          Boolean @default(false)
+  comment         String? @db.Text
+  retryLimit      Int?
+  sourceTimeout   Int?
+  isStatic        Boolean @default(true)
+  disabled        Boolean @default(false)
+  // Set when billing switched the stream off, so only those streams are
+  // switched back on when the bill is paid - never one a user turned off.
+  billingDisabledAt BigInt?
+  // A tenant user enabled it despite no active bill; billing leaves it alone
+  // until a covering subscription is active again or a user switches it off.
+  billingExempt   Boolean @default(false)
+  // play_protocols_spec: { whitelist, hls, cmaf, ... }. JSON so a new Flussonic
+  // protocol does not need a migration.
+  protocols       Json
+
+  namedBy    TenantStreamNamedBy?
+  status     TenantStreamStatus     @default(ACTIVE)
+  syncStatus TenantStreamSyncStatus @default(PENDING_PUSH)
+  // SHA-256 of the canonically serialised mapped config last pushed.
+  configHash String?                @db.Char(64)
+
+  lastSyncedAt BigInt?
+  createdAt    BigInt
+  createdBy    String? @db.Char(36)
+  updatedAt    BigInt
+  updatedBy    String? @db.Char(36)
+  deletedAt    BigInt?
+  deletedBy    String? @db.Char(36)
+
+  tenantBusiness        TenantBusiness          @relation(fields: [tenantBusinessId], references: [id])
+  tenantFlussonicServer TenantFlussonicServer   @relation(fields: [tenantFlussonicServerId], references: [id])
+  tenantCustomer        TenantCustomer?         @relation(fields: [tenantCustomerId], references: [id])
+  inputs                TenantStreamInput[]
+  operations            TenantStreamOperation[]
+  subscriptions         TenantSubscription[]
+  events                TenantStreamEvent[]
+
+  // The requested rule, scoped by application. Plain
+  // [business, server, streamKey] was the original intent, but real data has
+  // `demo/demo` and `demo` side by side - both key `demo` - so that form
+  // rejects legitimate server state. Including applicationName keeps the intent
+  // (a key is unique within its application) and admits it.
+  @@unique([tenantBusinessId, tenantFlussonicServerId, applicationName, streamKey])
+  // What actually protects the server: Flussonic keys on the full
+  // application/key name, which the rule above does not make unique across
+  // two different businesses sharing one server.
+  @@unique([tenantFlussonicServerId, name])
+  @@index([status])
+  @@index([syncStatus])
+  @@index([tenantCustomerId])
+  @@map("tenant_streams")
+}
+
+model TenantStreamInput {
+  id             String  @id @db.Char(36) // UUIDv7
+  tenantStreamId String  @db.Char(36)
+  // 1-based; defines failover order and maps to stream_input.priority.
+  priority       Int
+  url            String  @db.VarChar(500)
+  comment        String? @db.VarChar(255)
+  sourceTimeout  Int?
+  timeout        Int?
+  framesTimeout  Int?
+  userAgent      String? @db.VarChar(255)
+  maxBitrate     Int?
+
+  tenantStream TenantStream @relation(fields: [tenantStreamId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantStreamId, priority])
+  @@index([tenantStreamId])
+  @@map("tenant_stream_inputs")
+}
+
+enum TenantStreamOperationKind {
+  RENAME
+  TRANSFER
+}
+
+/// A rename or transfer touches a remote server and cannot be wrapped in a
+/// database transaction, so each step is recorded. CREATED_ON_TARGET means the
+/// new stream exists but the old one could not be removed - visible and
+/// fixable, rather than a silent duplicate.
+enum TenantStreamOperationState {
+  PENDING
+  CREATED_ON_TARGET
+  COMPLETED
+  FAILED
+  ROLLED_BACK
+}
+
+model TenantStreamOperation {
+  id             String                     @id @db.Char(36) // UUIDv7
+  systemCode     String                     @unique @db.VarChar(30)
+  tenantStreamId String                     @db.Char(36)
+  kind           TenantStreamOperationKind
+  fromServerId   String?                    @db.Char(36)
+  toServerId     String?                    @db.Char(36)
+  fromName       String?                    @db.VarChar(200)
+  toName         String?                    @db.VarChar(200)
+  state          TenantStreamOperationState @default(PENDING)
+  error          String?                    @db.Text
+  createdAt      BigInt
+  createdBy      String?                    @db.Char(36)
+  completedAt    BigInt?
+
+  tenantStream TenantStream @relation(fields: [tenantStreamId], references: [id], onDelete: Cascade)
+
+  @@index([tenantStreamId])
+  @@index([state])
+  @@map("tenant_stream_operations")
+}
+
+enum TenantSubscriptionFor {
+  STREAM
+  SERVER
+}
+
+enum TenantSubscriptionDurationUnit {
+  DAY
+  MONTH
+  YEAR
+}
+
+enum TenantSubscriptionPlanStatus {
+  ACTIVE
+  INACTIVE
+  DELETED
+}
+
+model TenantSubscriptionPlan {
+  id               String  @id @db.Char(36) // UUIDv7
+  systemCode       String  @unique @db.VarChar(30)
+  // Scopes the plan to one tenant business. Not in the original field list, but
+  // without it every tenant would see and edit every other tenant's plans.
+  tenantBusinessId String  @db.Char(36)
+  name             String  @db.VarChar(150)
+  description      String? @db.Text
+
+  subscriptionFor TenantSubscriptionFor
+
+  maxStreams      Int?
+  maxPlaySession  Int?
+  maxServerStream Int?
+
+  // Free-form list of selling points, and the playback protocols the plan
+  // permits. JSON so a new protocol needs no migration - the same reasoning as
+  // TenantStream.protocols.
+  features          Json?
+  playbackProtocols Json?
+
+  durationValue Int
+  durationUnit  TenantSubscriptionDurationUnit
+
+  // Decimal, not Float: money must not accumulate binary rounding error.
+  orginalPrice  Decimal @db.Decimal(12, 2)
+  customerPrice Decimal @db.Decimal(12, 2)
+  resellerPrice Decimal @db.Decimal(12, 2)
+
+  showCustomer Boolean @default(true)
+  showReseller Boolean @default(false)
+
+  status TenantSubscriptionPlanStatus @default(ACTIVE)
+
+  createdAt BigInt
+  createdBy String? @db.Char(36)
+  updatedAt BigInt
+  updatedBy String? @db.Char(36)
+  deletedAt BigInt?
+  deletedBy String? @db.Char(36)
+
+  tenantBusiness       TenantBusiness       @relation(fields: [tenantBusinessId], references: [id])
+  subscriptions        TenantSubscription[] @relation("SubscriptionPlan")
+  pendingSubscriptions TenantSubscription[] @relation("SubscriptionPendingPlan")
+
+  @@unique([tenantBusinessId, name])
+  @@index([status])
+  @@index([subscriptionFor])
+  @@index([tenantBusinessId])
+  @@map("tenant_subscription_plans")
+}
+
+enum TenantCustomerServerStatus {
+  ACTIVE
+  INACTIVE
+  DELETED
+}
+
+/// Which streaming servers a customer may use, and on what terms.
+model TenantCustomerServer {
+  id                      String @id @db.Char(36) // UUIDv7
+  systemCode              String @unique @db.VarChar(30)
+  tenantBusinessId        String @db.Char(36)
+  tenantCustomerId        String @db.Char(36)
+  tenantFlussonicServerId String @db.Char(36)
+
+  /// Null means unlimited - not the same as 0, which would forbid every stream.
+  streamLimit Int?
+  /// Presented as a dedicated server for this customer.
+  isDedicated Boolean @default(false)
+  remark      String? @db.VarChar(255)
+
+  status TenantCustomerServerStatus @default(ACTIVE)
+
+  createdAt BigInt
+  createdBy String? @db.Char(36)
+  updatedAt BigInt
+  updatedBy String? @db.Char(36)
+  deletedAt BigInt?
+  deletedBy String? @db.Char(36)
+
+  tenantBusiness        TenantBusiness        @relation(fields: [tenantBusinessId], references: [id])
+  tenantCustomer        TenantCustomer        @relation(fields: [tenantCustomerId], references: [id])
+  tenantFlussonicServer TenantFlussonicServer @relation(fields: [tenantFlussonicServerId], references: [id])
+  subscriptions         TenantSubscription[]
+
+  // One assignment per customer per server; the terms live on that single row.
+  @@unique([tenantCustomerId, tenantFlussonicServerId])
+  @@index([status])
+  @@index([tenantBusinessId])
+  @@index([tenantFlussonicServerId])
+  @@map("tenant_customer_servers")
+}
+
+/// Customer-portal sessions. Separate from TenantRefreshToken because a
+/// customer is a different principal from a tenant user: revoking one must not
+/// touch the other, and the foreign keys point at different tables.
+model TenantCustomerRefreshToken {
+  id               String  @id @db.Char(36) // UUIDv7
+  tenantCustomerId String  @db.Char(36)
+  tokenHash        String  @db.VarChar(128) // SHA-256 hex of the refresh JWT
+  deviceType       String? @db.VarChar(30) // website | androidApp | iosApp | desktopApp
+  expiresAt        BigInt
+  revokedAt        BigInt?
+  createdAt        BigInt
+
+  tenantCustomer TenantCustomer @relation(fields: [tenantCustomerId], references: [id], onDelete: Cascade)
+
+  @@index([tenantCustomerId])
+  @@index([tokenHash])
+  @@map("tenant_customer_refresh_tokens")
+}
+
+// ---------------------------------------------------------------------------
+// Billing - see docs/billing-plan.md.
+//
+// A subscription is the commercial record; the TenantCustomerServer assignment
+// it drives is the technical grant that stream quota enforcement already reads.
+// Subscriptions, invoices and payments have no DELETED status: commercial
+// records are cancelled or voided, never deleted, so issued numbers never leave
+// a gap an auditor has to explain.
+// ---------------------------------------------------------------------------
+
+/// When a new subscription becomes ACTIVE: once its invoice is paid in full,
+/// or as soon as the invoice is issued (access on credit).
+enum TenantBillingActivateOn {
+  PAYMENT
+  ISSUE
+}
+
+/// One row per business, created with defaults the first time it is read.
+model TenantBillingSettings {
+  id                String                  @id @db.Char(36) // UUIDv7
+  tenantBusinessId  String                  @unique @db.Char(36)
+  currency          String                  @default("INR") @db.Char(3) // ISO 4217
+  invoicePrefix     String                  @default("INV-") @db.VarChar(20)
+  // The number the next issued invoice takes. Drafts do not consume one, so
+  // issued numbers stay gapless; it cannot be edited once an invoice is issued.
+  nextInvoiceNumber Int                     @default(1)
+  invoiceDueDays    Int                     @default(7)
+  renewalLeadDays   Int                     @default(7) // renewal invoice issued this many days before period end
+  graceDays         Int                     @default(3) // PAST_DUE lasts this long before SUSPENDED
+  activateOn        TenantBillingActivateOn @default(PAYMENT)
+  defaultTaxTypeId  String?                 @db.Char(36)
+  invoiceFooter     String?                 @db.Text
+  // The billing job for this business: how often it runs (one of the presets
+  // in the settings DTO), whether it is paused, and what its last run did.
+  lifecycleIntervalMinutes Int     @default(5)
+  lifecyclePaused          Boolean @default(false)
+  lifecycleLastRunAt       BigInt?
+  lifecycleLastResult      Json?
+  createdAt         BigInt
+  createdBy         String?                 @db.Char(36)
+  updatedAt         BigInt
+  updatedBy         String?                 @db.Char(36)
+
+  tenantBusiness TenantBusiness @relation(fields: [tenantBusinessId], references: [id])
+  defaultTaxType TenantTaxType? @relation(fields: [defaultTaxTypeId], references: [id])
+
+  @@index([defaultTaxTypeId])
+  @@map("tenant_billing_settings")
+}
+
+enum TenantSubscriptionStatus {
+  PENDING_PAYMENT
+  ACTIVE
+  PAST_DUE
+  SUSPENDED
+  CANCELLED
+}
+
+/// A plan sold to one customer on one server.
+model TenantSubscription {
+  id                       String  @id @db.Char(36) // UUIDv7
+  systemCode               String  @unique @db.VarChar(30)
+  tenantBusinessId         String  @db.Char(36)
+  tenantCustomerId         String  @db.Char(36)
+  tenantSubscriptionPlanId String  @db.Char(36)
+  tenantFlussonicServerId  String  @db.Char(36)
+  tenantCustomerServerId   String? @db.Char(36) // the assignment billed (SERVER), or the one the stream runs under (STREAM)
+  tenantStreamId           String? @db.Char(36) // STREAM plans bill exactly one stream
+
+  // Snapshot of the plan at purchase. Editing a plan must not silently change
+  // the limits or the renewal price of what was already sold on it.
+  subscriptionFor   TenantSubscriptionFor
+  planName          String                         @db.VarChar(150)
+  streamLimit       Int? // maxStreams (STREAM) or maxServerStream (SERVER); null = unlimited
+  maxPlaySession    Int?
+  playbackProtocols Json?
+  durationValue     Int
+  durationUnit      TenantSubscriptionDurationUnit
+  unitPrice         Decimal                        @db.Decimal(12, 2)
+  isDedicated       Boolean                        @default(false)
+
+  status             TenantSubscriptionStatus @default(PENDING_PAYMENT)
+  currentPeriodStart BigInt?
+  currentPeriodEnd   BigInt?
+  autoRenew          Boolean                  @default(true)
+  cancelAtPeriodEnd  Boolean                  @default(false)
+  pendingPlanId      String?                  @db.Char(36) // downgrade applied at the next renewal
+  // Exactly the streams billing disabled, so resuming re-enables only those and
+  // never a stream the customer had switched off themselves.
+  suspendedStreamIds Json?
+  suspendedAt        BigInt?
+  cancelledAt        BigInt?
+  cancelledBy        String?                  @db.Char(36)
+  remark             String?                  @db.VarChar(255)
+
+  createdAt BigInt
+  createdBy String? @db.Char(36)
+  updatedAt BigInt
+  updatedBy String? @db.Char(36)
+
+  tenantBusiness         TenantBusiness          @relation(fields: [tenantBusinessId], references: [id])
+  tenantCustomer         TenantCustomer          @relation(fields: [tenantCustomerId], references: [id])
+  tenantSubscriptionPlan TenantSubscriptionPlan  @relation("SubscriptionPlan", fields: [tenantSubscriptionPlanId], references: [id])
+  pendingPlan            TenantSubscriptionPlan? @relation("SubscriptionPendingPlan", fields: [pendingPlanId], references: [id])
+  tenantFlussonicServer  TenantFlussonicServer   @relation(fields: [tenantFlussonicServerId], references: [id])
+  tenantCustomerServer   TenantCustomerServer?   @relation(fields: [tenantCustomerServerId], references: [id])
+  tenantStream           TenantStream?           @relation(fields: [tenantStreamId], references: [id])
+  invoiceItems           TenantInvoiceItem[]
+
+  @@index([tenantBusinessId])
+  @@index([tenantCustomerId])
+  @@index([tenantSubscriptionPlanId])
+  @@index([pendingPlanId])
+  @@index([tenantFlussonicServerId])
+  @@index([tenantCustomerServerId])
+  @@index([tenantStreamId])
+  @@index([status, currentPeriodEnd]) // the lifecycle job's scan
+  @@map("tenant_subscriptions")
+}
+
+enum TenantInvoiceStatus {
+  DRAFT
+  ISSUED
+  PARTIALLY_PAID
+  PAID
+  VOID
+}
+
+/// Overdue is derived (ISSUED/PARTIALLY_PAID past dueDate), not a status, so no
+/// job has to flip rows just because time passed.
+model TenantInvoice {
+  id               String              @id @db.Char(36) // UUIDv7
+  systemCode       String              @unique @db.VarChar(30)
+  tenantBusinessId String              @db.Char(36)
+  tenantCustomerId String              @db.Char(36)
+  // Assigned on issue from TenantBillingSettings.nextInvoiceNumber; null while
+  // DRAFT. NULLs are distinct under the unique index, so drafts do not collide.
+  invoiceNumber    String?             @db.VarChar(40)
+  status           TenantInvoiceStatus @default(DRAFT)
+  currency         String              @db.Char(3)
+  issueDate        BigInt?
+  dueDate          BigInt?
+  subtotal         Decimal             @default(0) @db.Decimal(12, 2)
+  discountTotal    Decimal             @default(0) @db.Decimal(12, 2)
+  taxTotal         Decimal             @default(0) @db.Decimal(12, 2)
+  grandTotal       Decimal             @default(0) @db.Decimal(12, 2)
+  amountPaid       Decimal             @default(0) @db.Decimal(12, 2)
+  // Taken at issue, so an issued invoice does not change when the customer or
+  // the business later edits their address or tax number.
+  billedTo         Json?
+  billedFrom       Json?
+  notes            String?             @db.Text
+  voidedAt         BigInt?
+  voidedBy         String?             @db.Char(36)
+  voidReason       String?             @db.VarChar(255)
+  createdAt        BigInt
+  createdBy        String?             @db.Char(36)
+  updatedAt        BigInt
+  updatedBy        String?             @db.Char(36)
+
+  tenantBusiness TenantBusiness      @relation(fields: [tenantBusinessId], references: [id])
+  tenantCustomer TenantCustomer      @relation(fields: [tenantCustomerId], references: [id])
+  items          TenantInvoiceItem[]
+  payments       TenantPayment[]
+
+  @@unique([tenantBusinessId, invoiceNumber])
+  @@index([tenantCustomerId])
+  @@index([status, dueDate])
+  @@map("tenant_invoices")
+}
+
+enum TenantInvoiceItemKind {
+  SUBSCRIPTION_NEW
+  SUBSCRIPTION_RENEWAL
+  PLAN_CHANGE
+  ADJUSTMENT
+}
+
+model TenantInvoiceItem {
+  id                   String                @id @db.Char(36) // UUIDv7
+  tenantInvoiceId      String                @db.Char(36)
+  tenantSubscriptionId String?               @db.Char(36) // null for manual adjustment lines
+  kind                 TenantInvoiceItemKind
+  description          String                @db.VarChar(255)
+  periodStart          BigInt?
+  periodEnd            BigInt?
+  quantity             Int                   @default(1)
+  unitPrice            Decimal               @db.Decimal(12, 2)
+  discount             Decimal               @default(0) @db.Decimal(12, 2)
+  // Snapshot of the TenantTaxType applied, so editing a tax rate never alters
+  // an invoice already raised.
+  taxName              String?               @db.VarChar(100)
+  taxCalculationType   TaxCalculationType?
+  taxValue             Decimal?              @db.Decimal(12, 4)
+  taxAmount            Decimal               @default(0) @db.Decimal(12, 2)
+  lineTotal            Decimal               @db.Decimal(12, 2)
+  sortOrder            Int                   @default(0)
+
+  tenantInvoice      TenantInvoice       @relation(fields: [tenantInvoiceId], references: [id], onDelete: Cascade)
+  tenantSubscription TenantSubscription? @relation(fields: [tenantSubscriptionId], references: [id])
+
+  // One line per subscription per period: a renewal job that runs twice, or on
+  // two instances at once, fails to insert rather than billing twice.
+  @@unique([tenantSubscriptionId, periodStart])
+  @@index([tenantInvoiceId])
+  @@map("tenant_invoice_items")
+}
+
+enum TenantPaymentStatus {
+  RECORDED
+  VOID
+}
+
+model TenantPayment {
+  id                  String              @id @db.Char(36) // UUIDv7
+  systemCode          String              @unique @db.VarChar(30)
+  tenantBusinessId    String              @db.Char(36)
+  tenantCustomerId    String              @db.Char(36)
+  tenantInvoiceId     String              @db.Char(36)
+  tenantPaymentModeId String              @db.Char(36)
+  amount              Decimal             @db.Decimal(12, 2)
+  paidAt              BigInt
+  referenceNo         String?             @db.VarChar(100) // UPI reference, cheque number...
+  remark              String?             @db.VarChar(255)
+  status              TenantPaymentStatus @default(RECORDED)
+  voidedAt            BigInt?
+  voidedBy            String?             @db.Char(36)
+  voidReason          String?             @db.VarChar(255)
+  createdAt           BigInt
+  createdBy           String?             @db.Char(36)
+  updatedAt           BigInt
+  updatedBy           String?             @db.Char(36)
+
+  tenantBusiness    TenantBusiness    @relation(fields: [tenantBusinessId], references: [id])
+  tenantCustomer    TenantCustomer    @relation(fields: [tenantCustomerId], references: [id])
+  tenantInvoice     TenantInvoice     @relation(fields: [tenantInvoiceId], references: [id])
+  tenantPaymentMode TenantPaymentMode @relation(fields: [tenantPaymentModeId], references: [id])
+  incomeExpense     TenantIncomeExpense?
+
+  @@index([tenantBusinessId])
+  @@index([tenantCustomerId])
+  @@index([tenantInvoiceId])
+  @@index([tenantPaymentModeId])
+  @@index([paidAt])
+  @@map("tenant_payments")
+}
+
+enum TenantIncomeExpenseStatus {
+  ACTIVE
+  VOID // the invoice payment it was recorded from was voided
+  DELETED
+}
+
+/// One income or expense entry. Manual entries are edited freely. An entry
+/// recorded from an invoice payment (tenantPaymentId set) follows that payment
+/// and is read-only: it is reversed by cancelling the invoice, not by editing.
+model TenantIncomeExpense {
+  id                   String                    @id @db.Char(36) // UUIDv7
+  systemCode           String                    @unique @db.VarChar(30)
+  tenantBusinessId     String                    @db.Char(36)
+  tenantInExCategoryId String                    @db.Char(36)
+  tenantPaymentModeId  String?                   @db.Char(36)
+  tenantPaymentId      String?                   @unique @db.Char(36)
+  // Taken from the category when written, so totals need no join and a later
+  // edit to the category does not move past entries between income and expense.
+  type                 TenantInExCategoryType
+  amount               Decimal                   @db.Decimal(12, 2)
+  entryDate            BigInt
+  referenceNo          String?                   @db.VarChar(100)
+  remark               String?                   @db.VarChar(255)
+  status               TenantIncomeExpenseStatus @default(ACTIVE)
+  createdAt            BigInt
+  createdBy            String?                   @db.Char(36)
+  updatedAt            BigInt
+  updatedBy            String?                   @db.Char(36)
+  deletedAt            BigInt?
+  deletedBy            String?                   @db.Char(36)
+
+  tenantBusiness     TenantBusiness     @relation(fields: [tenantBusinessId], references: [id])
+  tenantInExCategory TenantInExCategory @relation(fields: [tenantInExCategoryId], references: [id])
+  tenantPaymentMode  TenantPaymentMode? @relation(fields: [tenantPaymentModeId], references: [id])
+  tenantPayment      TenantPayment?     @relation(fields: [tenantPaymentId], references: [id])
+
+  @@index([tenantBusinessId, status, entryDate])
+  @@index([tenantInExCategoryId])
+  @@index([tenantPaymentModeId])
+  @@map("tenant_income_expenses")
+}
+
+/// What happened to the email alerts an event matched.
+enum TenantStreamEventEmailStatus {
+  NOT_MATCHED // no active alert rule matched
+  SENT // at least one alert email went out
+  COOLDOWN // matched, but every matching rule was cooling down for this stream
+  FAILED // an alert email could not be sent
+  NO_MAIL_CONFIG // matched, but the business has no mail configuration
+}
+
+/// An event a streaming server posted to its webhook. Kept 30 days.
+model TenantStreamEvent {
+  id                      String                       @id @db.Char(36) // UUIDv7
+  tenantBusinessId        String                       @db.Char(36)
+  tenantFlussonicServerId String                       @db.Char(36)
+  // Matched from the event's media name; null for streams not managed here.
+  tenantStreamId          String?                      @db.Char(36)
+  tenantCustomerId        String?                      @db.Char(36)
+  event                   String                       @db.VarChar(40)
+  media                   String?                      @db.VarChar(200)
+  occurredAt              BigInt
+  payload                 Json
+  emailStatus             TenantStreamEventEmailStatus @default(NOT_MATCHED)
+  emailError              String?                      @db.VarChar(500)
+  createdAt               BigInt
+
+  tenantBusiness        TenantBusiness        @relation(fields: [tenantBusinessId], references: [id])
+  tenantFlussonicServer TenantFlussonicServer @relation(fields: [tenantFlussonicServerId], references: [id])
+  tenantStream          TenantStream?         @relation(fields: [tenantStreamId], references: [id])
+  tenantCustomer        TenantCustomer?       @relation(fields: [tenantCustomerId], references: [id])
+
+  @@index([tenantBusinessId, occurredAt])
+  @@index([tenantFlussonicServerId, occurredAt])
+  @@index([tenantStreamId])
+  @@index([tenantCustomerId])
+  @@index([createdAt])
+  @@map("tenant_stream_events")
+}
+
+enum TenantEventAlertRuleStatus {
+  ACTIVE
+  INACTIVE
+  DELETED
+}
+
+/// Which customers an alert also emails (always by Bcc).
+enum TenantEventAlertCustomerRecipients {
+  NONE
+  STREAM_OWNER // the customer the stream belongs to
+  SERVER_CUSTOMERS // the stream's owner and every customer actively assigned to the stream's server
+}
+
+/// Sends an email when one of its events happens within its scope. The scope
+/// lists are JSON arrays of ids; an empty list means "all".
+model TenantEventAlertRule {
+  id               String                     @id @db.Char(36) // UUIDv7
+  systemCode       String                     @unique @db.VarChar(30)
+  tenantBusinessId String                     @db.Char(36)
+  name             String                     @db.VarChar(150)
+  events           Json // event names; a rule with none never fires
+  serverIds        Json
+  streamIds        Json
+  customerIds      Json
+  recipients       Json // email addresses
+  customerRecipients TenantEventAlertCustomerRecipients @default(NONE)
+  // Minimum minutes between emails from this rule for the same stream; 0 = none.
+  cooldownMinutes  Int                        @default(15)
+  status           TenantEventAlertRuleStatus @default(ACTIVE)
+  lastTriggeredAt  BigInt?
+  createdAt        BigInt
+  createdBy        String?                    @db.Char(36)
+  updatedAt        BigInt
+  updatedBy        String?                    @db.Char(36)
+  deletedAt        BigInt?
+  deletedBy        String?                    @db.Char(36)
+
+  tenantBusiness TenantBusiness             @relation(fields: [tenantBusinessId], references: [id])
+  cooldowns      TenantEventAlertCooldown[]
+
+  @@index([tenantBusinessId, status])
+  @@map("tenant_event_alert_rules")
+}
+
+/// When a rule last emailed about one stream (or unmanaged media name).
+model TenantEventAlertCooldown {
+  tenantEventAlertRuleId String @db.Char(36)
+  targetKey              String @db.VarChar(220) // "stream:<id>" or "media:<name>"
+  lastSentAt             BigInt
+
+  rule TenantEventAlertRule @relation(fields: [tenantEventAlertRuleId], references: [id], onDelete: Cascade)
+
+  @@id([tenantEventAlertRuleId, targetKey])
+  @@map("tenant_event_alert_cooldowns")
 }

@@ -23,11 +23,16 @@ export function useResourceList<T>(
   const [query, setQuery] = React.useState("");
   const [reloadIndex, setReloadIndex] = React.useState(0);
   const filtersKey = JSON.stringify(filters);
+  // Set by refreshSilently: the next load keeps the current rows on screen.
+  const silentRef = React.useRef(false);
 
   React.useEffect(() => {
     let cancelled = false;
-    setRows(null);
-    setError(null);
+    if (!silentRef.current) {
+      setRows(null);
+      setError(null);
+    }
+    silentRef.current = false;
     const params = new URLSearchParams({ page: String(page), limit: "20" });
     if (query) params.set("search", query);
     for (const [key, value] of Object.entries(filters)) {
@@ -56,6 +61,12 @@ export function useResourceList<T>(
 
   const refresh = React.useCallback(() => setReloadIndex((i) => i + 1), []);
 
+  /** Reloads without clearing the table first - for background polling. */
+  const refreshSilently = React.useCallback(() => {
+    silentRef.current = true;
+    setReloadIndex((i) => i + 1);
+  }, []);
+
   return {
     rows,
     error,
@@ -67,5 +78,6 @@ export function useResourceList<T>(
     setSearch,
     applySearch,
     refresh,
+    refreshSilently,
   };
 }

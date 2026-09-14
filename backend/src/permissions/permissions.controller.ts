@@ -18,6 +18,7 @@ import {
 import { PermissionsService } from './permissions.service';
 import { CreatePermissionDto, UpdatePermissionDto } from './dto/permission.dto';
 import { RequirePermissions } from '../common/decorators/permissions.decorator';
+import { CurrentUser, AuthUser } from '../common/decorators/current-user.decorator';
 import { ListQueryDto } from '../common/dto/query.dto';
 
 const PERMISSION_EXAMPLE = {
@@ -108,7 +109,7 @@ export class PermissionsController {
   @RequirePermissions('permissions:delete')
   @ApiOperation({
     summary: 'Soft-delete a permission',
-    description: 'System permissions (isSystem=true) cannot be deleted.',
+    description: 'System permissions (isSystem=true) require the permissions:delete_system permission.',
   })
   @ApiParam({ name: 'id', description: 'Permission UUIDv7' })
   @ApiResponse({
@@ -116,8 +117,8 @@ export class PermissionsController {
     description: 'Permission deleted.',
     schema: { example: { success: true } },
   })
-  @ApiResponse({ status: 400, description: 'System permissions cannot be deleted.' })
-  remove(@Param('id') id: string) {
-    return this.permissionsService.remove(id);
+  @ApiResponse({ status: 403, description: 'Missing permissions:delete_system for a system permission.' })
+  remove(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.permissionsService.remove(id, user.permissions.includes('permissions:delete_system'));
   }
 }

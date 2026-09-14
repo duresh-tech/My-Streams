@@ -33,6 +33,13 @@
   --input: #E2E8F0;
   --ring: #4F46E5;
 
+  /* Chart series: dataviz reference palette slots 1-3, validated on the card surface */
+  --viz-1: #2a78d6;
+  --viz-2: #eb6834;
+  --viz-3: #1baf7a;
+  --viz-grid: #E2E8F0;
+  --viz-axis: #64748B;
+
   /* Sidebar is a fixed dark gradient regardless of light/dark app theme */
   --sidebar: #111827;
   --sidebar-foreground: #CBD5E1;
@@ -76,6 +83,13 @@
   --border: #1F2A3D;
   --input: #1F2A3D;
   --ring: #4F46E5;
+
+  /* Dark steps of the same chart slots, validated on the dark card surface */
+  --viz-1: #3987e5;
+  --viz-2: #d95926;
+  --viz-3: #199e70;
+  --viz-grid: #1F2A3D;
+  --viz-axis: #94A3B8;
 
   --sidebar: #111827;
   --sidebar-foreground: #CBD5E1;
