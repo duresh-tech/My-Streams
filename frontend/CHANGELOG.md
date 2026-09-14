@@ -35,6 +35,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Stream page** (`/tenant/streams/[id]`): Refresh also reloads the HLS
   preview player.
 
+### Changed
+
+- **Home page** (`/`) redirects to the customer login (`/customer/login`)
+  instead of the System Console login. `/system` redirects to
+  `/system/login` and `/tenant` to `/tenant/login` (previously 404).
+
 ### Removed
 
 - **Places and Streets** settings pages (tenant portal and System Console)
