@@ -37,10 +37,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Play sessions** (`/tenant/streams/[id]`): a Watching column shows how long
-  each viewer has been connected, the badge counts viewers rather than
-  sessions, and sessions that have transferred no data are hidden (the count
-  of hidden ones is shown beside the badge).
+- **Play sessions** (`/tenant/streams/[id]`): a Duration column shows how long
+  each session has been open (now minus Opened, as of the last refresh), the
+  badge counts viewers rather than sessions, and sessions that have
+  transferred no data are hidden (the count of hidden ones is shown beside
+  the badge).
 - **Stream page** (`/tenant/streams/[id]`): the input and output protocol
   rows are mobile-friendly - the URL wraps onto its own full-width line
   instead of being truncated - and HLS, CMAF, DASH and MP4 playback URLs

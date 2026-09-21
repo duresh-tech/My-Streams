@@ -49,19 +49,16 @@ interface Session {
   user_id?: string;
   bytes?: number;
   opened_at?: number;
-  duration?: number;
 }
 
 const SESSION_REFRESH_MS = 30000;
 
 /**
- * Seconds watched: the server's own duration when it sends one, else measured
- * from when the session opened, against the moment the list was fetched so the
- * figure does not drift between renders.
+ * How long the session has been open: now minus its opened_at. Measured
+ * against the moment the list was fetched, so every row agrees with the
+ * "updated" time in the header and nothing drifts between renders.
  */
-function watchedSeconds(session: Session, at: Date | null): number | null {
-  const reported = num(session.duration);
-  if (reported !== null) return Math.max(0, reported);
+function sessionDuration(session: Session, at: Date | null): number | null {
   const opened = num(session.opened_at);
   if (opened === null) return null;
   return Math.max(0, Math.floor((at ?? new Date()).getTime() / 1000) - opened);
@@ -617,7 +614,7 @@ export default function StreamViewPage() {
                       <th className="pb-2 pr-3 font-medium">Protocol</th>
                       <th className="pb-2 pr-3 font-medium">Country</th>
                       <th className="pb-2 pr-3 font-medium">Data</th>
-                      <th className="pb-2 pr-3 font-medium">Watching</th>
+                      <th className="pb-2 pr-3 font-medium">Duration</th>
                       <th className="pb-2 font-medium">Opened</th>
                     </tr>
                   </thead>
@@ -653,7 +650,7 @@ export default function StreamViewPage() {
                         <td className="py-2 pr-3">{session.country ?? "—"}</td>
                         <td className="py-2 pr-3">{formatBytes(num(session.bytes))}</td>
                         <td className="py-2 pr-3 tabular-nums">
-                          {formatDuration(watchedSeconds(session, sessionsAt))}
+                          {formatDuration(sessionDuration(session, sessionsAt))}
                         </td>
                         <td className="text-muted-foreground py-2 text-xs">
                           {session.opened_at
