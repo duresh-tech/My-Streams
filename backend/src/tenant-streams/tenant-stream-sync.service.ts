@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, Logger, NotFoundException } from '@nes
 import { Prisma, type TenantStreamSyncStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { newId, newSystemCode, now } from '../common/utils/id.util';
+import { streamerEpochSeconds } from '../common/utils/streamer.util';
 import { StreamerApiService, type RemoteStream } from './streamer-api.service';
 import {
   fromServerConfig,
@@ -417,7 +418,11 @@ export class TenantStreamSyncService {
 
     const result = await this.streamerApi.listSessions(stream.tenantFlussonicServer);
     if (!result.ok) throw new BadRequestException(result.message);
-    return result.data.filter((session) => session.name === stream.name);
+    // Timestamps are normalised here so every caller - tenant portal, system
+    // console and customer portal - gets the epoch seconds the rest of the app uses.
+    return result.data
+      .filter((session) => session.name === stream.name)
+      .map((session) => ({ ...session, opened_at: streamerEpochSeconds(session.opened_at) }));
   }
 
   /**

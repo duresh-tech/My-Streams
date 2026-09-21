@@ -60,6 +60,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     `tenant-stream-events:list`, granted to `TENANT_ADMIN`. New env
     `PUBLIC_API_URL` (see `.env.example`).
 
+### Fixed
+
+- **Play session timestamps**: `opened_at` from the streamer is normalised to
+  epoch seconds (`streamerEpochSeconds`, with tests) before it leaves
+  `streamSessions`, so the tenant portal, system console and customer portal
+  all get the unit the rest of the app uses. A millisecond value read as
+  seconds is a date near the year 58,000 - it still formats as a plausible
+  clock time, while a duration measured against it came out negative and
+  clamped to 0s.
+
 ### Changed
 
 - **Any payment activates a subscription** (`activateOn = PAYMENT`):

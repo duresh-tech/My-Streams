@@ -20,6 +20,23 @@ export function streamerBaseUrl(server: StreamerConnection): string {
 }
 
 /**
+ * Epoch seconds from a streamer timestamp.
+ *
+ * The streamer reports some timestamps in milliseconds, so a value is scaled
+ * down until it lands in a sane epoch-seconds range. This fails silently
+ * otherwise: a millisecond value read as seconds is a date around the year
+ * 58,000, which still formats as a plausible clock time, while any arithmetic
+ * against the present (such as a session's duration) comes out negative.
+ */
+export function streamerEpochSeconds(value: number | null | undefined): number | undefined {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) return undefined;
+  let seconds = value;
+  // 1e11 seconds is the year 5138 - any genuine timestamp in seconds is below it.
+  while (seconds > 1e11) seconds /= 1000;
+  return Math.floor(seconds);
+}
+
+/**
  * The HTTP Basic credential for a server. The stored access token is already
  * base64(user:password), so it is used directly; otherwise it is rebuilt from
  * the username and the decrypted password. Null when no credential is stored.
