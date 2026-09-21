@@ -104,11 +104,24 @@ export default function RolesPage() {
   const [deleteTarget, setDeleteTarget] = React.useState<RoleRow | null>(null);
   const [deleting, setDeleting] = React.useState(false);
 
-  function ensurePermissionOptions() {
+  /**
+   * Every permission, not just the first page: the API caps a page at 100 and
+   * there are more permissions than that, so a single request would leave the
+   * rest impossible to tick or untick.
+   */
+  async function ensurePermissionOptions() {
     if (permissionOptions) return;
-    api<ListResponse<PermissionOption>>("/system/permissions?limit=100&page=1")
-      .then((data) => setPermissionOptions(data.items))
-      .catch(() => toast.error("Failed to load permission list"));
+    const page = (n: number) =>
+      api<ListResponse<PermissionOption>>(`/system/permissions?limit=100&page=${n}`);
+    try {
+      const first = await page(1);
+      const rest = await Promise.all(
+        Array.from({ length: Math.max(0, first.meta.totalPages - 1) }, (_, i) => page(i + 2)),
+      );
+      setPermissionOptions([first, ...rest].flatMap((response) => response.items));
+    } catch {
+      toast.error("Failed to load permission list");
+    }
   }
 
   function openCreate() {

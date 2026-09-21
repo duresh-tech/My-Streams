@@ -147,6 +147,7 @@ export function buildStreamUrls(stream: StreamForUrls, server: ServerForUrls): S
   push('hls', 'HLS', `${web}/${name}/index.m3u8`);
   push('cmaf', 'CMAF (LL-HLS)', `${web}/${name}/index.ll.m3u8`);
   push('dash', 'DASH', `${web}/${name}/index.mpd`);
+  push('mp4', 'MP4', `${web}/${name}/index.mp4`);
   push('rtmp', 'RTMP', `rtmp://${host}:${server.rtmpPort}/${name}`);
   push('rtsp', 'RTSP', `rtsp://${host}:${server.rtspPort}/${name}`);
   push('srt', 'SRT (shared)', `srt://${host}:${server.srtPort}?streamid=#!::r=${name},m=request`);

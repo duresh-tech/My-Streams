@@ -49,9 +49,32 @@ interface Session {
   user_id?: string;
   bytes?: number;
   opened_at?: number;
+  duration?: number;
 }
 
 const SESSION_REFRESH_MS = 30000;
+
+/**
+ * Seconds watched: the server's own duration when it sends one, else measured
+ * from when the session opened, against the moment the list was fetched so the
+ * figure does not drift between renders.
+ */
+function watchedSeconds(session: Session, at: Date | null): number | null {
+  const reported = num(session.duration);
+  if (reported !== null) return Math.max(0, reported);
+  const opened = num(session.opened_at);
+  if (opened === null) return null;
+  return Math.max(0, Math.floor((at ?? new Date()).getTime() / 1000) - opened);
+}
+
+/**
+ * A session that has transferred nothing is a connection that never became a
+ * viewer, so it is left out of the table. Sessions whose protocol reports no
+ * byte count at all (null, not 0) still count as watching.
+ */
+function hasTransferred(session: Session): boolean {
+  return num(session.bytes) !== 0;
+}
 
 function num(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
@@ -138,16 +161,30 @@ function StatCard({
   );
 }
 
+/** Protocols a browser tab can play (or download) straight from the URL. */
+const OPENABLE_PROTOCOLS = new Set(["hls", "cmaf", "dash", "mp4"]);
+
 function UrlRow({ entry }: { entry: ProtocolUrl }) {
+  const openable = OPENABLE_PROTOCOLS.has(entry.protocol) && /^https?:\/\//i.test(entry.url);
   return (
-    <div className="flex items-center gap-2 rounded-md border px-3 py-2">
+    <div className="flex flex-wrap items-center gap-2 rounded-md border px-3 py-2">
       <Badge variant="secondary" className="shrink-0">
         {entry.label}
       </Badge>
-      <code className="text-muted-foreground min-w-0 flex-1 truncate font-mono text-xs">
+      {/* Full width on its own line on mobile, where truncating hides the whole URL. */}
+      <code className="text-muted-foreground order-last w-full font-mono text-xs break-all sm:order-none sm:w-auto sm:min-w-0 sm:flex-1 sm:truncate">
         {entry.url}
       </code>
-      <CopyButton value={entry.url} />
+      <div className="ml-auto flex shrink-0 items-center gap-1 sm:ml-0">
+        {openable && (
+          <Button asChild type="button" variant="ghost" size="icon" title="Open in a new tab">
+            <a href={entry.url} target="_blank" rel="noopener noreferrer" aria-label={`Open ${entry.label} in a new tab`}>
+              <ExternalLink className="size-4" />
+            </a>
+          </Button>
+        )}
+        <CopyButton value={entry.url} />
+      </div>
     </div>
   );
 }
@@ -175,6 +212,9 @@ export default function StreamViewPage() {
   const [sessions, setSessions] = React.useState<Session[] | null>(null);
   const [sessionsAt, setSessionsAt] = React.useState<Date | null>(null);
   const [sessionsLoading, setSessionsLoading] = React.useState(false);
+
+  const watchers = React.useMemo(() => (sessions ?? []).filter(hasTransferred), [sessions]);
+  const idleCount = (sessions?.length ?? 0) - watchers.length;
 
   const loadView = React.useCallback(async () => {
     if (!id) return;
@@ -531,7 +571,12 @@ export default function StreamViewPage() {
                 <div className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
                   Play sessions
                 </div>
-                <Badge variant="secondary">{sessions?.length ?? 0} active</Badge>
+                <Badge variant="secondary">{watchers.length} watching</Badge>
+                {idleCount > 0 && (
+                  <span className="text-muted-foreground text-xs">
+                    {idleCount} with no data hidden
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-muted-foreground text-xs">
@@ -555,8 +600,12 @@ export default function StreamViewPage() {
               </div>
             </div>
             <Separator className="my-3" />
-            {!sessions || sessions.length === 0 ? (
-              <p className="text-muted-foreground text-sm">No active sessions.</p>
+            {watchers.length === 0 ? (
+              <p className="text-muted-foreground text-sm">
+                {idleCount > 0
+                  ? "No one is watching yet - every open session has transferred no data."
+                  : "No active sessions."}
+              </p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -568,11 +617,12 @@ export default function StreamViewPage() {
                       <th className="pb-2 pr-3 font-medium">Protocol</th>
                       <th className="pb-2 pr-3 font-medium">Country</th>
                       <th className="pb-2 pr-3 font-medium">Data</th>
+                      <th className="pb-2 pr-3 font-medium">Watching</th>
                       <th className="pb-2 font-medium">Opened</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {sessions.map((session) => (
+                    {watchers.map((session) => (
                       <tr key={session.id} className="border-t">
                         <td className="py-2 pr-3 font-mono text-xs">
                           {session.ip ? (
@@ -602,6 +652,9 @@ export default function StreamViewPage() {
                         </td>
                         <td className="py-2 pr-3">{session.country ?? "—"}</td>
                         <td className="py-2 pr-3">{formatBytes(num(session.bytes))}</td>
+                        <td className="py-2 pr-3 tabular-nums">
+                          {formatDuration(watchedSeconds(session, sessionsAt))}
+                        </td>
                         <td className="text-muted-foreground py-2 text-xs">
                           {session.opened_at
                             ? formatTimeOnly(session.opened_at, timezone)

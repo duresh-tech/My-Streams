@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **MP4 playback URL**: a stream with the `mp4` play protocol enabled now
+  returns `<web>/<name>/index.mp4` in `urls.outputs` - the protocol could be
+  enabled but had no URL to play from.
 - **Dashboard insights** (read-only, no schema change):
   - `GET /tenant/dashboard/overview?range=30d|90d|12m`
     (`tenant-dashboard:view`): buckets (30 days, 13 weeks or 12 months in the
