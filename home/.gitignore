@@ -1,0 +1,10 @@
+/node_modules
+/.next
+/out
+/build
+next-env.d.ts
+*.tsbuildinfo
+.env*.local
+
+# Runtime-written JSON store: leads are real submissions, not source data.
+/data/leads.json

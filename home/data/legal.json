@@ -1,0 +1,302 @@
+{
+  "documents": [
+    {
+      "slug": "terms",
+      "title": "Terms and Conditions",
+      "summary": "What we provide, what you agree to, and what happens if either side falls short.",
+      "updated": "2026-09-22",
+      "intro": "These terms govern your use of the streaming services provided by {{siteName}}, operated by [REGISTERED ENTITY NAME], [REGISTERED ADDRESS]. By placing an order, paying an invoice, or sending a stream to our servers, you accept them. If you are agreeing on behalf of a company, you confirm you are authorised to do so.",
+      "sections": [
+        {
+          "heading": "1. The service",
+          "body": [
+            "We provide live streaming infrastructure: an ingest endpoint that accepts RTMP or SRT from your encoder, and delivery of that stream to your viewers over HLS and the other protocols listed on your plan.",
+            "What your plan includes — the number of ingests, the concurrent viewer limit, bandwidth, and whether SRT and the control panel are available — is set out on the plans page and in the invoice we issue. Those figures form part of this agreement."
+          ]
+        },
+        {
+          "heading": "2. Provisioning and your credentials",
+          "body": [
+            "After payment clears we issue an ingest URL, a stream key and a playback link. We aim to provision within one business day, but a specific provisioning time is only binding if we have confirmed it to you in writing.",
+            "Your stream key is a credential. Anyone holding it can broadcast on your channel, and usage under your key is treated as yours. Keep it confidential and tell us immediately if you believe it has been exposed, so we can rotate it."
+          ]
+        },
+        {
+          "heading": "3. Your content and your rights to it",
+          "body": [
+            "You keep all ownership of what you broadcast. We claim no rights over it beyond what is technically necessary to receive, process and deliver the stream to your viewers.",
+            "You are responsible for holding the rights to everything you send us — the footage, the music, the commentary, the logos and any third-party material within it. You confirm that broadcasting it does not infringe anyone's copyright, trademark, privacy or other rights."
+          ]
+        },
+        {
+          "heading": "4. Permitted use",
+          "body": [
+            "We do not monitor streams as a matter of course, and we do not review your content before it goes out. We do act on credible complaints and on legal notices.",
+            "You may not use the service to broadcast or distribute:"
+          ],
+          "list": [
+            "Content you do not hold the broadcast rights to, including rebroadcast of television channels, films, sport or live events licensed to someone else",
+            "Content that is unlawful under Indian law, including obscene material, content involving minors, and material that incites violence or hatred",
+            "Content that infringes copyright, trademark or personality rights",
+            "Malware, or traffic intended to attack, overload or probe any system",
+            "Anything that places our network, our IP addresses or our upstream providers at legal or operational risk"
+          ]
+        },
+        {
+          "heading": "5. Plan limits",
+          "body": [
+            "Monthly plans are sized by concurrent viewers. When your channel is at its limit, additional viewers are turned away until a slot frees up — the stream itself is not interrupted.",
+            "Where a plan states a bandwidth allowance or a port speed, delivery is constrained by that figure. Plans described as offering unlimited viewers are unlimited within the stated network port capacity, not without limit.",
+            "If your usage consistently exceeds your plan, we will contact you to move you to a suitable plan rather than cutting you off without warning."
+          ]
+        },
+        {
+          "heading": "6. Fees, taxes and renewal",
+          "body": [
+            "All prices are in Indian Rupees and exclusive of GST and any other applicable taxes, which are added to your invoice.",
+            "Service is paid in advance — monthly plans for each month, annual plans for the twelve months ahead. Access begins once payment is received and continues to the end of the paid period.",
+            "We will tell you before a renewal falls due. If an invoice is not paid by its due date we may suspend the channel; see section 8."
+          ]
+        },
+        {
+          "heading": "7. Availability and support",
+          "body": [
+            "We target high availability and monitor our infrastructure continuously, but no streaming service is immune to failure. Except where your plan states a specific SLA in writing, availability is a target we work hard at, not a contractual guarantee.",
+            "Planned maintenance is scheduled outside peak hours and announced in advance wherever the work allows it. Emergency maintenance may happen without notice.",
+            "We are not responsible for failures outside our control: your encoder, your internet connection, your viewers' connections, or upstream network and power outages."
+          ]
+        },
+        {
+          "heading": "8. Suspension and termination",
+          "body": [
+            "We may suspend a channel immediately, without notice, where content appears to breach section 4, where we receive a valid legal or law-enforcement order, or where a stream threatens the stability or security of our network.",
+            "For non-payment, we will give you notice and a reasonable opportunity to settle before suspending.",
+            "You may cancel at any time — how that interacts with money already paid is covered in our Refund and Cancellation Policy.",
+            "After termination we retain your stream configuration for a short period in case you return, then delete it. We are not obliged to retain or hand over recordings."
+          ]
+        },
+        {
+          "heading": "9. Limitation of liability",
+          "body": [
+            "We are liable for direct losses caused by our own failure to provide the service with reasonable skill and care. We are not liable for indirect or consequential losses — lost advertising revenue, lost subscribers, lost sponsorship, reputational harm, or the cost of an event that did not go to plan.",
+            "Except where the law does not permit it to be limited, our total liability in any twelve-month period is capped at the fees you paid us in that period.",
+            "Nothing in these terms limits liability for fraud, or for anything else that cannot lawfully be limited."
+          ]
+        },
+        {
+          "heading": "10. Indemnity",
+          "body": [
+            "If a third party brings a claim against us because of what you broadcast — a rights holder, a regulator, or a person featured in your stream — you agree to cover the resulting costs, provided we tell you about the claim promptly and let you take part in handling it."
+          ]
+        },
+        {
+          "heading": "11. Changes",
+          "body": [
+            "We may change these terms as the service develops or the law requires. Material changes will be notified to you by email at least thirty days before they take effect, and you may cancel before then if you do not accept them.",
+            "Prices are fixed for the period you have already paid for. A price change applies from your next renewal."
+          ]
+        },
+        {
+          "heading": "12. Governing law",
+          "body": [
+            "These terms are governed by the laws of India. The courts at [CITY], Tamil Nadu have exclusive jurisdiction, except that either party may seek urgent injunctive relief wherever necessary.",
+            "Before starting proceedings, both sides agree to raise the issue in writing and allow thirty days to resolve it."
+          ]
+        },
+        {
+          "heading": "13. Contact",
+          "body": [
+            "Questions about these terms go to {{email}}. Written notices should be sent to that address and to [REGISTERED ADDRESS]."
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "refunds",
+      "title": "Refund and Cancellation Policy",
+      "summary": "When you get your money back, when you don't, and how long it takes.",
+      "updated": "2026-09-22",
+      "intro": "We would rather you were on the right plan than locked into the wrong one. This policy sets out exactly where you stand — read section 3 carefully if you are buying an annual plan, since that is where the most money is at stake.",
+      "sections": [
+        {
+          "heading": "1. Test before you pay",
+          "body": [
+            "Ask us for a trial channel before committing. We will set one up so you can push your own encoder at it and judge the picture, the latency and the player for yourself.",
+            "This matters because streaming quality depends on your uplink and your encoder settings as much as on our infrastructure. Testing first is the most reliable way to avoid wanting a refund later."
+          ]
+        },
+        {
+          "heading": "2. Monthly plans",
+          "body": [
+            "Cancel at any time. Tell us before your next renewal date and you will not be billed again.",
+            "Cancellation takes effect at the end of the period you have already paid for — your channel keeps running until then. We do not refund part-months for the time you did not use."
+          ]
+        },
+        {
+          "heading": "3. Annual plans",
+          "body": [
+            "Annual plans are paid twelve months up front, at a discount to the equivalent monthly price. That discount is the reason the refund terms are tighter than for monthly plans.",
+            "Within 7 days of first provisioning, you may cancel for a full refund, less any domain registration or third-party costs we have already incurred on your behalf.",
+            "After 7 days, annual fees are non-refundable for the remainder of the term. You keep access until the term ends. If you are unsure, start on a monthly plan and move to annual once you are confident — we will credit what you have paid, as described in section 4."
+          ]
+        },
+        {
+          "heading": "4. Changing plans",
+          "body": [
+            "Upgrades take effect immediately, and we pro-rate what you have already paid against the new plan, so you only pay the difference for the remaining period.",
+            "Downgrades take effect at your next renewal. We do not refund the difference mid-period.",
+            "Moving from monthly to annual is treated as an upgrade: the unused balance of your current month is credited against the annual fee."
+          ]
+        },
+        {
+          "heading": "5. When we refund regardless",
+          "body": [
+            "You are entitled to a refund, whatever plan you are on, in these situations:"
+          ],
+          "list": [
+            "We cannot provision the service you paid for — a full refund",
+            "We terminate your service for a reason that is not your fault — a pro-rated refund of the unused period",
+            "You were charged twice, or charged after cancelling — a refund of the incorrect amount",
+            "A sustained outage on our side that we cannot resolve and that makes the service unusable for you — a pro-rated credit or refund for the affected period"
+          ]
+        },
+        {
+          "heading": "6. When we do not refund",
+          "body": [
+            "We do not issue refunds where:"
+          ],
+          "list": [
+            "Your service was suspended or terminated for breach of our Terms and Conditions, including prohibited content",
+            "The problem is on your side — encoder configuration, upstream bandwidth, or a local network fault",
+            "You simply did not use the service during a period you paid for",
+            "Third-party costs have already been incurred and cannot be recovered, such as domain registration fees",
+            "The request relates to a period more than 90 days in the past"
+          ]
+        },
+        {
+          "heading": "7. How to request a refund",
+          "body": [
+            "Email {{email}} from the address on the account. Include the invoice number, the payment date, and what went wrong.",
+            "We acknowledge requests within 2 business days and decide within 7 business days. Approved refunds are issued to the original payment method within 5 to 10 business days of approval — the time it then takes to appear is set by your bank or card issuer, not by us.",
+            "If we decline, we will tell you why, in writing, with reference to the section above that applies."
+          ]
+        },
+        {
+          "heading": "8. Chargebacks",
+          "body": [
+            "Please raise a dispute with us before raising it with your bank. A chargeback filed without contacting us first results in immediate suspension while the bank investigates, which helps nobody.",
+            "We will always provide the transaction records a bank asks for."
+          ]
+        },
+        {
+          "heading": "9. Contact",
+          "body": [
+            "All billing and refund questions: {{email}}."
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "privacy",
+      "title": "Privacy Policy",
+      "summary": "What we collect, why we hold it, and how to get it removed.",
+      "updated": "2026-09-22",
+      "intro": "This policy explains how {{siteName}}, operated by [REGISTERED ENTITY NAME], handles personal information — both for visitors to {{siteUrl}} and for customers using our streaming service. We have tried to write it in plain language rather than legal boilerplate.",
+      "sections": [
+        {
+          "heading": "1. What we collect from this website",
+          "body": [
+            "The enquiry form is the only place this website asks for personal information. When you submit it we collect the name, email address, phone number, plan interest and message you type in, along with the time of submission.",
+            "That is all. This site sets no advertising or analytics cookies, embeds no tracking pixels, and does not build a profile of you as you browse."
+          ]
+        },
+        {
+          "heading": "2. What we collect as part of the service",
+          "body": [
+            "If you become a customer, we additionally hold your billing details, invoices and correspondence with us.",
+            "Our servers keep operational logs — connection times, IP addresses, bitrates, error records — for your ingest and for viewer requests to your stream. These are what let us diagnose a fault and produce your viewership and bandwidth figures.",
+            "We do not record or store the content of your broadcasts unless you have asked us to enable recording."
+          ]
+        },
+        {
+          "heading": "3. Payment information",
+          "body": [
+            "Card numbers, UPI IDs and bank credentials are handled by our payment provider and never reach our servers. We see only the outcome of a payment, the amount and a reference — enough to raise an invoice and issue a refund."
+          ]
+        },
+        {
+          "heading": "4. Why we hold it",
+          "body": [
+            "Enquiry details: to answer your enquiry and quote for the service you asked about.",
+            "Account and billing details: to provide the service, invoice you, and meet our tax and accounting obligations.",
+            "Server and viewer logs: to keep the service running, investigate faults and abuse, produce your analytics, and protect the network's security.",
+            "We do not sell personal information, and we do not use it for advertising."
+          ]
+        },
+        {
+          "heading": "5. Who else sees it",
+          "body": [
+            "We share personal information only with parties who need it to deliver the service:"
+          ],
+          "list": [
+            "Our payment provider, to take payment and process refunds",
+            "Our infrastructure and data centre providers, who host the servers your data sits on",
+            "Professional advisers such as our accountant, where required",
+            "Law enforcement or a court, where we receive a valid legal order"
+          ]
+        },
+        {
+          "heading": "6. Viewers of your stream",
+          "body": [
+            "When someone watches a stream we host, our servers necessarily process their IP address and request details in order to deliver the video, and count them in your viewer figures.",
+            "For that data you are the one deciding why it is collected, and we process it on your behalf. If you operate a site or app that embeds our player, telling your viewers about this in your own privacy notice is your responsibility."
+          ]
+        },
+        {
+          "heading": "7. How long we keep it",
+          "body": [
+            "Enquiries that do not become customers: up to 12 months, then deleted.",
+            "Customer accounts and correspondence: for the life of the account and 12 months after it closes.",
+            "Invoices and financial records: 8 years, as Indian tax law requires.",
+            "Server and viewer logs: typically 30 to 90 days, except where a specific fault or abuse investigation requires us to keep a record longer."
+          ]
+        },
+        {
+          "heading": "8. Your rights",
+          "body": [
+            "You can ask us to show you the personal information we hold about you, correct it if it is wrong, or delete it where we have no continuing legal reason to keep it. You can also withdraw consent for us to contact you.",
+            "Email {{email}} and we will respond within 30 days. We may need to verify your identity first — we will not hand over account data to someone who cannot show the account is theirs.",
+            "Note that we cannot delete records we are legally obliged to retain, such as issued invoices."
+          ]
+        },
+        {
+          "heading": "9. Security",
+          "body": [
+            "Traffic to this website and to your control panel is encrypted in transit. Access to customer data is limited to the people who need it to do their job.",
+            "No system is perfectly secure. If a breach occurs that affects your personal information, we will tell you and the relevant authority as the law requires, and explain what happened and what we are doing about it."
+          ]
+        },
+        {
+          "heading": "10. Children",
+          "body": [
+            "This service is sold to businesses and adults. We do not knowingly collect personal information from children. If you believe a child has supplied us with information, tell us and we will remove it."
+          ]
+        },
+        {
+          "heading": "11. Grievance officer",
+          "body": [
+            "In line with Indian law, complaints about how we handle personal information can be addressed to our Grievance Officer:",
+            "[GRIEVANCE OFFICER NAME], [REGISTERED ADDRESS]. Email: {{email}}.",
+            "We acknowledge complaints within 24 hours and aim to resolve them within 15 days."
+          ]
+        },
+        {
+          "heading": "12. Changes",
+          "body": [
+            "We will post any update here and change the date at the top. Where a change materially affects how we use your information, we will email you about it rather than relying on you to notice."
+          ]
+        }
+      ]
+    }
+  ]
+}

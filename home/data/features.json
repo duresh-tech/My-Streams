@@ -1,0 +1,95 @@
+{
+  "platform": [
+    {
+      "id": "multi-protocol",
+      "icon": "Radio",
+      "title": "RTMP and SRT ingest",
+      "description": "Point OBS, vMix or a hardware encoder at your ingest URL. SRT keeps the picture together when the uplink is not perfect."
+    },
+    {
+      "id": "hls-delivery",
+      "icon": "Share2",
+      "title": "HLS delivery",
+      "description": "Every channel publishes an .m3u8 that plays in browsers, apps and set-top boxes without a plugin."
+    },
+    {
+      "id": "dedicated",
+      "icon": "Server",
+      "title": "Dedicated servers",
+      "description": "Annual plans run on hardware reserved for you, so a neighbour's traffic spike is never your problem."
+    },
+    {
+      "id": "full-hd",
+      "icon": "MonitorPlay",
+      "title": "Full HD 1080p",
+      "description": "Send up to 1080p and we pass it through at the bitrate you set. No silent downscaling."
+    },
+    {
+      "id": "ssl",
+      "icon": "ShieldCheck",
+      "title": "Free domain and SSL",
+      "description": "A subdomain and certificate on every plan, your own domain on annual plans. Renewals are handled for you."
+    },
+    {
+      "id": "support",
+      "icon": "Headphones",
+      "title": "Support that answers",
+      "description": "A real engineer, any hour. If your stream is down at 2am, so are we."
+    }
+  ],
+  "control": [
+    {
+      "id": "viewer-count",
+      "icon": "Users",
+      "title": "Live viewer count",
+      "description": "See who is watching while you are on air, not an hour later."
+    },
+    {
+      "id": "restart",
+      "icon": "RotateCw",
+      "title": "One-click restart",
+      "description": "Recycle a stuck channel without tearing down the session your viewers are on."
+    },
+    {
+      "id": "health",
+      "icon": "Activity",
+      "title": "Health monitoring",
+      "description": "Bitrate, FPS and connection state, sampled continuously and shown as it happens."
+    },
+    {
+      "id": "analytics",
+      "icon": "BarChart3",
+      "title": "Analytics dashboard",
+      "description": "Viewership and bandwidth over time, so you can see which broadcasts earned their cost."
+    },
+    {
+      "id": "bandwidth",
+      "icon": "Gauge",
+      "title": "Bandwidth meters",
+      "description": "Track the yearly allowance against a plain progress bar. No surprise overage."
+    },
+    {
+      "id": "app",
+      "icon": "Smartphone",
+      "title": "Control from your phone",
+      "description": "Start, stop and check a channel from the Android app while you are away from the desk."
+    }
+  ],
+  "steps": [
+    {
+      "id": "pick",
+      "title": "Pick a plan",
+      "description": "Choose a monthly tier by concurrent viewers, or an annual package by bandwidth."
+    },
+    {
+      "id": "provision",
+      "title": "We provision your channel",
+      "description": "You get an ingest URL, a stream key and an HLS playback link, usually the same day."
+    },
+    {
+      "id": "golive",
+      "title": "Go live",
+      "description": "Paste the ingest URL into your encoder and hit start. The dashboard lights up immediately."
+    }
+  ]
+}

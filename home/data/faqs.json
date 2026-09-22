@@ -1,0 +1,42 @@
+[
+  {
+    "id": "encoder",
+    "question": "Which encoders work with MyStreams?",
+    "answer": "Anything that speaks RTMP or SRT. OBS Studio, vMix, Wirecast, FFmpeg and the usual hardware encoders all work — you paste in the ingest URL and stream key we send you, and nothing else changes."
+  },
+  {
+    "id": "concurrent",
+    "question": "What does 'concurrent viewers' mean on the monthly plans?",
+    "answer": "It is the number of people who can watch at the same moment, not the number of people who can watch in a month. Ten different viewers across the day are fine on a 3-viewer plan, as long as no more than three are connected at once."
+  },
+  {
+    "id": "annual-vs-monthly",
+    "question": "Should I take a monthly plan or an annual package?",
+    "answer": "Monthly plans are priced by concurrent viewers and suit a single channel with a known audience. Annual packages give you a dedicated server and a bandwidth allowance with no viewer cap, which works out cheaper once your audience grows or you run more than one channel."
+  },
+  {
+    "id": "bandwidth",
+    "question": "How much bandwidth does my stream actually use?",
+    "answer": "Roughly: bitrate x hours x viewers. A 3 Mbps stream watched by 50 people for one hour uses about 67 GB. The dashboard tracks your usage against the allowance so you can see the trend before it matters."
+  },
+  {
+    "id": "domain",
+    "question": "Can I use my own domain?",
+    "answer": "Yes. Every plan includes a free subdomain with SSL. Annual plans include a domain and certificate of your own, so viewers only ever see your branding."
+  },
+  {
+    "id": "upgrade",
+    "question": "Can I change plans later?",
+    "answer": "Any time. Upgrades apply immediately and we pro-rate what you have already paid. Your ingest URL and stream key stay the same, so nothing needs reconfiguring in your encoder."
+  },
+  {
+    "id": "trial",
+    "question": "Can I test before I pay?",
+    "answer": "Tell us what you plan to broadcast and we will set up a short trial channel so you can check the picture and latency from your own encoder first."
+  },
+  {
+    "id": "payment",
+    "question": "How do I pay?",
+    "answer": "UPI, bank transfer and the usual cards. Send an enquiry and we will confirm the amount, the taxes and the billing date before anything is charged."
+  }
+]

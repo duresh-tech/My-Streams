@@ -1,0 +1,134 @@
+{
+  "groups": [
+    {
+      "id": "monthly",
+      "label": "Monthly plans",
+      "blurb": "Pay month to month. Sized by how many people watch at once.",
+      "period": "month",
+      "periodSuffix": "/mo",
+      "plans": [
+        {
+          "id": "basic",
+          "name": "Basic",
+          "price": 499,
+          "summary": "One channel, one operator, everything you need to be on air.",
+          "highlight": "3 concurrent viewers",
+          "popular": false,
+          "features": [
+            "RTMP ingest",
+            "HLS delivery",
+            "Full HD 1080p",
+            "3 concurrent viewers",
+            "Free subdomain & SSL"
+          ]
+        },
+        {
+          "id": "standard",
+          "name": "Standard",
+          "price": 799,
+          "summary": "More headroom for a growing audience, with live numbers as you broadcast.",
+          "highlight": "7 concurrent viewers",
+          "popular": false,
+          "features": [
+            "RTMP ingest",
+            "HLS (.m3u8) & RTMP delivery",
+            "Full HD 1080p",
+            "7 concurrent viewers",
+            "Free subdomain & SSL"
+          ]
+        },
+        {
+          "id": "pro",
+          "name": "Pro",
+          "price": 999,
+          "summary": "For channels that run on a schedule and need control from anywhere.",
+          "highlight": "10 concurrent viewers",
+          "popular": true,
+          "features": [
+            "RTMP ingest",
+            "HLS (.m3u8) & RTMP delivery",
+            "Full HD 1080p",
+            "10 concurrent viewers",
+            "Web app control panel",
+            "Free subdomain & SSL"
+          ]
+        },
+        {
+          "id": "business",
+          "name": "Business",
+          "price": 1899,
+          "summary": "Your branding on the player, and room for a full audience.",
+          "highlight": "20 concurrent viewers",
+          "popular": false,
+          "features": [
+            "RTMP & SRT ingest",
+            "HLS (.m3u8) & RTMP delivery",
+            "Full HD 1080p",
+            "20 concurrent viewers",
+            "Advanced analytics",
+            "Priority support"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "annual",
+      "label": "Annual plans",
+      "blurb": "Paid twelve months at a time. Cheaper over the year, with SRT and the control panel from Pro upwards.",
+      "period": "year",
+      "periodSuffix": "/yr",
+      "plans": [
+        {
+          "id": "annual-basic",
+          "name": "Annual Basic",
+          "price": 9999,
+          "summary": "A full year on one RTMP feed, with a person on WhatsApp when you need one.",
+          "highlight": "10 concurrent viewers",
+          "popular": false,
+          "features": [
+            "1 RTMP ingest",
+            "HLS (.m3u8), RTMP delivery",
+            "Full HD stream",
+            "10 concurrent viewers",
+            "Whatsapp support"
+          ]
+        },
+        {
+          "id": "annual-pro",
+          "name": "Annual Pro",
+          "price": 15999,
+          "summary": "Adds SRT for unreliable uplinks, your own subdomain, and the control panel.",
+          "highlight": "30 concurrent viewers",
+          "popular": true,
+          "features": [
+            "1 RTMP & SRT ingest",
+            "HLS (.m3u8), RTMP & SRT delivery",
+            "Free subdomain & SSL",
+            "30 concurrent viewers",
+            "Web app control panel"
+          ]
+        },
+        {
+          "id": "annual-business",
+          "name": "Annual Business",
+          "price": 19999,
+          "summary": "No bandwidth ceiling on a 100 Mbps port, and support that knows your setup.",
+          "highlight": "Unlimited concurrent viewers*",
+          "popular": false,
+          "features": [
+            "1 RTMP & SRT ingest",
+            "HLS (.m3u8), RTMP & SRT delivery",
+            "No bandwidth limit",
+            "100 Mbps NIC port",
+            "Web app control panel",
+            "Dedicated support"
+          ]
+        }
+      ]
+    }
+  ],
+  "footnotes": [
+    "* Unlimited viewers within the NIC limit.",
+    "Prices are in INR."
+  ]
+}

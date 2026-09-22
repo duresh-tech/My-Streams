@@ -1,0 +1,167 @@
+@import "tailwindcss";
+
+/*
+ * MyStreams brand theme. Colours are taken from the logo: a cyan-to-magenta
+ * sweep over a deep navy. The site is dark-only by design, so there is a
+ * single token set rather than a light/dark pair.
+ */
+:root {
+  --radius: 0.75rem;
+
+  --background: #070b16;
+  --surface: #0e1425;
+  --surface-2: #151d33;
+  --surface-3: #1c2642;
+  --border: #223052;
+  --border-strong: #2f3f68;
+
+  --foreground: #e9edf8;
+  --muted-foreground: #94a3c4;
+  --subtle-foreground: #6b7a9c;
+
+  --brand-cyan: #22c4ff;
+  --brand-blue: #3b6ef6;
+  --brand-violet: #8b4bf0;
+  --brand-magenta: #f03cc0;
+
+  --primary: #3b6ef6;
+  --primary-foreground: #ffffff;
+  --accent: #22c4ff;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --destructive: #ef4444;
+
+  --gradient-brand: linear-gradient(
+    90deg,
+    var(--brand-cyan) 0%,
+    var(--brand-blue) 35%,
+    var(--brand-violet) 68%,
+    var(--brand-magenta) 100%
+  );
+  --gradient-surface: linear-gradient(160deg, #0e1425 0%, #0a0f1d 100%);
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 32px rgba(3, 6, 15, 0.5);
+  --shadow-glow: 0 0 0 1px rgba(59, 110, 246, 0.35), 0 18px 48px rgba(59, 110, 246, 0.22);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-foreground: var(--foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-subtle-foreground: var(--subtle-foreground);
+  --color-brand-cyan: var(--brand-cyan);
+  --color-brand-blue: var(--brand-blue);
+  --color-brand-violet: var(--brand-violet);
+  --color-brand-magenta: var(--brand-magenta);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-destructive: var(--destructive);
+  --radius-card: var(--radius);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    background-color: rgba(59, 110, 246, 0.35);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--brand-cyan);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /* Page gutter: 16px on phones, widening to a capped content column. */
+  .container-page {
+    width: 100%;
+    max-width: 76rem;
+    margin-inline: auto;
+    padding-inline: 1rem;
+  }
+
+  @media (min-width: 768px) {
+    .container-page {
+      padding-inline: 2rem;
+    }
+  }
+
+  .text-gradient {
+    background: var(--gradient-brand);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .surface-card {
+    background: var(--gradient-surface);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    box-shadow: var(--shadow-card);
+  }
+
+  /* Faint grid behind the hero, fading out towards the bottom. */
+  .hero-grid {
+    background-image:
+      linear-gradient(to right, rgba(59, 110, 246, 0.08) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(59, 110, 246, 0.08) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 40%, transparent 100%);
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-rise {
+  animation: rise 0.6s ease-out both;
+}
+
+@keyframes bar-pulse {
+  from {
+    transform: scaleY(0.25);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

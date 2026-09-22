@@ -1,0 +1,67 @@
+{
+  "name": "MyStreams.in",
+  "legalName": "MyStreams",
+  "url": "https://www.mystreams.in",
+  "locale": "en_IN",
+  "currency": "INR",
+  "currencySymbol": "₹",
+  "logo": "/brand/mystreams-logo.webp",
+  "tagline": "Live streaming infrastructure, ready when you go live",
+  "description": "RTMP and SRT ingest with HLS delivery on dedicated Indian servers. Full HD 1080p, free subdomain and SSL, and a dashboard that shows exactly what your stream is doing.",
+  "contact": {
+    "email": "dureshtech@gmail.com",
+    "phone": "+91 7708443543",
+    "whatsapp": "",
+    "addressLocality": "Tamil Nadu",
+    "addressCountry": "IN",
+    "supportHours": "24/7"
+  },
+  "social": {
+    "youtube": "",
+    "instagram": "",
+    "facebook": ""
+  },
+  "nav": [
+    {
+      "label": "Home",
+      "href": "/"
+    },
+    {
+      "label": "Features",
+      "href": "/features"
+    },
+    {
+      "label": "Plans",
+      "href": "/plans"
+    },
+    {
+      "label": "Contact",
+      "href": "/contact"
+    }
+  ],
+  "stats": [
+    {
+      "value": "1,200+",
+      "label": "Streams hosted"
+    },
+    {
+      "value": "300+",
+      "label": "Active broadcasters"
+    },
+    {
+      "value": "99.9%",
+      "label": "Uptime target"
+    },
+    {
+      "value": "24/7",
+      "label": "Human support"
+    }
+  ],
+  "protocols": [
+    "RTMP ingest",
+    "SRT ingest",
+    "HLS delivery",
+    "Full HD 1080p",
+    "Free SSL"
+  ]
+}
