@@ -37,6 +37,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Customer stream page** (`/customer/streams/[id]`): the Publish to and Play
+  from rows match the tenant portal - mobile-friendly, with an Open in a new
+  tab button on HLS, CMAF, DASH and MP4 - and Who is watching gains a Duration
+  column, a Refresh button with the "auto 30s · updated" label for the refresh
+  it already ran, and the same hiding of sessions that transferred no data.
 - **Play sessions** (`/tenant/streams/[id]`): a Duration column shows how long
   each session has been open (now minus Opened, as of the last refresh), the
   badge counts viewers rather than sessions, and sessions that have
