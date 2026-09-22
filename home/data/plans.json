@@ -96,7 +96,7 @@
         {
           "id": "annual-pro",
           "name": "Annual Pro",
-          "price": 15999,
+          "price": 14999,
           "summary": "Adds SRT for unreliable uplinks, your own subdomain, and the control panel.",
           "highlight": "30 concurrent viewers",
           "popular": true,
@@ -111,7 +111,7 @@
         {
           "id": "annual-business",
           "name": "Annual Business",
-          "price": 19999,
+          "price": 18999,
           "summary": "No bandwidth ceiling on a 100 Mbps port, and support that knows your setup.",
           "highlight": "Unlimited concurrent viewers*",
           "popular": false,
