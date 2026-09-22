@@ -168,8 +168,8 @@ function UrlRow({ entry }: { entry: ProtocolUrl }) {
       <Badge variant="secondary" className="shrink-0">
         {entry.label}
       </Badge>
-      {/* Full width on its own line on mobile, where truncating hides the whole URL. */}
-      <code className="text-muted-foreground order-last w-full font-mono text-xs break-all sm:order-none sm:w-auto sm:min-w-0 sm:flex-1 sm:truncate">
+      {/* Never truncated: a URL is only useful whole, so it wraps and the row grows. */}
+      <code className="text-muted-foreground order-last w-full font-mono text-xs break-all sm:order-none sm:w-auto sm:min-w-0 sm:flex-1">
         {entry.url}
       </code>
       <div className="ml-auto flex shrink-0 items-center gap-1 sm:ml-0">

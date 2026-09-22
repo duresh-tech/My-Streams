@@ -38,8 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Customer stream page** (`/customer/streams/[id]`): the Publish to and Play
-  from rows match the tenant portal - mobile-friendly, with an Open in a new
-  tab button on HLS, CMAF, DASH and MP4 - and Who is watching gains a Duration
+  from rows match the tenant portal - the URL is never truncated, with an Open
+  in a new tab button on HLS, CMAF, DASH and MP4 - and Who is watching gains a Duration
   column, a Refresh button with the "auto 30s · updated" label for the refresh
   it already ran, and the same hiding of sessions that transferred no data.
 - **Play sessions** (`/tenant/streams/[id]`): a Duration column shows how long
@@ -48,9 +48,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   transferred no data are hidden (the count of hidden ones is shown beside
   the badge).
 - **Stream page** (`/tenant/streams/[id]`): the input and output protocol
-  rows are mobile-friendly - the URL wraps onto its own full-width line
-  instead of being truncated - and HLS, CMAF, DASH and MP4 playback URLs
-  have an Open in a new tab button next to Copy.
+  rows never truncate the URL - it wraps, onto its own full-width line on
+  narrow screens - and HLS, CMAF, DASH and MP4 playback URLs have an Open in
+  a new tab button next to Copy.
 - **Home page** (`/`) redirects to the customer login (`/customer/login`)
   instead of the System Console login. `/system` redirects to
   `/system/login` and `/tenant` to `/tenant/login` (previously 404).
