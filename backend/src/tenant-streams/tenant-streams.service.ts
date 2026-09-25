@@ -9,6 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { newId, newSystemCode, now } from '../common/utils/id.util';
 import { listResponse, paginate } from '../common/dto/query.dto';
 import { defaultProtocols, parseProtocols } from './stream-protocols';
+import { generateUniqueShareCode } from './share-code';
 import {
   CreateTenantStreamDto,
   CreateTenantStreamSelfDto,
@@ -124,6 +125,7 @@ export class TenantStreamsService {
         streamKey,
         name,
         protocols: protocols ?? defaultProtocols(),
+        shareCode: await this.newShareCode(),
         createdAt: timestamp,
         createdBy: actorId,
         updatedAt: timestamp,
@@ -538,5 +540,57 @@ export class TenantStreamsService {
       throw new ForbiddenException('Your account is not mapped to a business');
     }
     return mapping.tenantBusinessId;
+  }
+
+  /** A share code no row currently holds. Deleted rows keep theirs, so a
+   * revoked link never silently starts working again on a new stream. */
+  private async newShareCode(): Promise<string> {
+    return generateUniqueShareCode(async (code) => {
+      const taken = await this.prisma.tenantStream.count({ where: { shareCode: code } });
+      return taken > 0;
+    });
+  }
+
+  /**
+   * Issues a new code, invalidating every link already shared. The unique
+   * index is the real guard, so a P2002 from a concurrent writer is retried
+   * with a fresh code rather than surfaced to the caller.
+   */
+  async rotateShareCode(id: string, actorId?: string) {
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      try {
+        const updated = await this.prisma.tenantStream.update({
+          where: { id },
+          data: { shareCode: await this.newShareCode(), updatedAt: now(), updatedBy: actorId },
+          include: STREAM_INCLUDE,
+        });
+        return serializeStream(updated);
+      } catch (error) {
+        const collided =
+          error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
+        if (!collided) throw error;
+      }
+    }
+    throw new BadRequestException('Could not allocate a share code, please try again');
+  }
+
+  /** Rotate scoped to a stream the calling tenant user's business owns. */
+  async rotateShareCodeForTenantUser(tenantUserId: string, id: string) {
+    await this.findOneForTenantUser(tenantUserId, id);
+    return this.rotateShareCode(id, tenantUserId);
+  }
+
+  /**
+   * Public lookup for the share page. Returns only what a viewer needs - the
+   * title and the playable URLs - and nothing that identifies the business or
+   * the customer behind the stream.
+   */
+  async findByShareCode(code: string) {
+    const stream = await this.prisma.tenantStream.findFirst({
+      where: { shareCode: code, status: { not: 'DELETED' }, disabled: false },
+      include: STREAM_INCLUDE,
+    });
+    if (!stream) throw new NotFoundException('This share link is not valid');
+    return stream;
   }
 }

@@ -16,6 +16,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "seed": "ts-node prisma/seed.ts",
+    "backfill:share-codes": "ts-node scripts/backfill-share-codes.ts",
     "test": "node --require ts-node/register --test \"test/**/*.spec.ts\""
   },
   "dependencies": {

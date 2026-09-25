@@ -29,6 +29,24 @@ export const PLAY_PROTOCOLS = [
 export type PlayProtocol = (typeof PLAY_PROTOCOLS)[number];
 
 /**
+ * The protocols the public share page can actually play in a browser, in the
+ * order the player should try them. HLS and CMAF go through hls.js, DASH
+ * through shaka, and MP4 is handled natively.
+ *
+ * This is what gates the share button: offering a link for a stream whose only
+ * enabled protocol is RTMP or SRT would produce a page that can never play.
+ */
+export const SHAREABLE_PLAY_PROTOCOLS = ['hls', 'cmaf', 'dash', 'mp4'] as const;
+
+export type ShareablePlayProtocol = (typeof SHAREABLE_PLAY_PROTOCOLS)[number];
+
+/** Whether any browser-playable protocol is enabled on this protocol set. */
+export function hasShareableProtocol(value: unknown): boolean {
+  const protocols = parseProtocols(value) as Record<string, boolean>;
+  return SHAREABLE_PLAY_PROTOCOLS.some((protocol) => protocols[protocol] === true);
+}
+
+/**
  * `whitelist` is NOT a protocol - it inverts the meaning of the whole set:
  *   true  -> only the enabled protocols may play
  *   false -> the enabled protocols are forbidden, everything else may play

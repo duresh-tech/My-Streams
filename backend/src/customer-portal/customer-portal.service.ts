@@ -427,6 +427,18 @@ export class CustomerPortalService {
     return this.streams.remove(stream.id, customer.id);
   }
 
+  /**
+   * Issues a new share code, which revokes every link already handed out.
+   *
+   * Deliberately not behind assertBillingAllows: this is how a customer shuts
+   * off a link that has leaked, and refusing it over an unpaid invoice would
+   * leave them unable to revoke access to their own stream.
+   */
+  async rotateStreamShareCode(customer: CustomerAuthUser, id: string) {
+    const stream = await this.findOwnStream(customer, id);
+    return this.streams.rotateShareCode(stream.id, customer.id);
+  }
+
   /** Billing access for any of this customer's streams, from one read of their subscriptions. */
   private async accessResolver(customer: CustomerAuthUser) {
     const [subscriptions, graceDays] = await Promise.all([

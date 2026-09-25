@@ -264,6 +264,8 @@ export interface CustomerStream {
   disabled: boolean;
   status: string;
   protocols: { whitelist: boolean } & Record<string, boolean>;
+  /** Public share identity; null only for rows predating the backfill. */
+  shareCode: string | null;
   inputs: CustomerStreamInput[];
   server?: {
     id: string;

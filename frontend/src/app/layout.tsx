@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import { MotionConfig } from "motion/react";
 import { ThemeProvider } from "@/components/theme-provider";
 import { InstallCapture } from "@/components/install-capture";
+import { ViewProtection } from "@/components/view-protection";
 import { APP_NAME } from "@/lib/app-name";
 import { APP_LOGO_SRC } from "@/components/app-logo";
 import "./globals.css";
@@ -49,6 +50,9 @@ export default function RootLayout({
                 browser's install offer. The offer is shown by each portal's
                 shell, so only a signed-in user sees it. */}
             <InstallCapture />
+            {/* App-wide: blocks the context menu and devtools shortcuts, and
+                leaves the page if devtools is detected. Production only. */}
+            <ViewProtection />
             <Toaster richColors position="top-right" />
           </MotionConfig>
         </ThemeProvider>

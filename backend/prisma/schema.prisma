@@ -622,6 +622,12 @@ model TenantStream {
   // play_protocols_spec: { whitelist, hls, cmaf, ... }. JSON so a new Flussonic
   // protocol does not need a migration.
   protocols       Json
+  // Identifies this stream on the public /share/{code} page. Six characters
+  // from a confusable-free lowercase alphabet. Nullable only because existing
+  // rows predate the column - new streams are given one at creation and the
+  // backfill script fills the rest. Rotating it revokes every link already
+  // handed out, which is the point.
+  shareCode       String? @unique @db.Char(6)
 
   namedBy    TenantStreamNamedBy?
   status     TenantStreamStatus     @default(ACTIVE)

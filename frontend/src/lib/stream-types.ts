@@ -53,6 +53,37 @@ export const SYNC_BADGE: Record<
 
 export type Protocols = { whitelist: boolean } & Record<string, boolean>;
 
+/**
+ * The protocols the public /share page can play in a browser, best first.
+ * Mirrors SHAREABLE_PLAY_PROTOCOLS on the backend: HLS and CMAF go through
+ * hls.js, DASH through shaka, MP4 natively.
+ */
+export const SHAREABLE_PROTOCOLS = ["hls", "cmaf", "dash", "mp4"] as const;
+
+/**
+ * Whether a stream can be shared at all. A stream serving only RTMP or SRT has
+ * nothing a browser can play, so offering a share link would hand someone a
+ * page that never starts.
+ */
+export function isShareable(protocols: Protocols | undefined): boolean {
+  if (!protocols) return false;
+  return SHAREABLE_PROTOCOLS.some((protocol) => protocols[protocol] === true);
+}
+
+/**
+ * Picks the browser-playable outputs, in SHAREABLE_PROTOCOLS order rather than
+ * the order the API listed them, so the player tries HLS before falling back
+ * to MP4. The same selection the public share endpoint makes server-side.
+ */
+export function playableSources<T extends { protocol: string }>(
+  outputs: T[] | undefined,
+): T[] {
+  if (!outputs) return [];
+  return SHAREABLE_PROTOCOLS.flatMap((protocol) =>
+    outputs.filter((output) => output.protocol === protocol),
+  );
+}
+
 export interface StreamInput {
   id?: string;
   priority?: number;
@@ -78,6 +109,8 @@ export interface StreamRow {
   isStatic: boolean;
   disabled: boolean;
   protocols: Protocols;
+  /** Public share identity; null only for rows predating the backfill. */
+  shareCode: string | null;
   status: StreamStatus;
   syncStatus: SyncStatus;
   inputs: StreamInput[];

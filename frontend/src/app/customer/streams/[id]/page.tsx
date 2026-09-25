@@ -19,7 +19,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { HlsPreview } from "@/components/hls-preview";
+import { StreamPlayer } from "@/components/stream-player";
+import { StreamShareActions } from "@/components/stream-share-actions";
 import { useAppTimezone } from "@/hooks/use-app-settings";
 import { formatDateObjectTime, formatDateTime, formatTimeOnly } from "@/lib/datetime";
 import { BILLING_BLOCKED_MESSAGE } from "@/lib/billing";
@@ -30,6 +31,7 @@ import {
   type CustomerSession,
   type CustomerStreamView,
 } from "@/lib/customer-api";
+import { playableSources } from "@/lib/stream-types";
 
 const SESSION_REFRESH_MS = 30000;
 
@@ -232,6 +234,15 @@ export default function CustomerStreamViewPage() {
     }
   }
 
+  /**
+   * Not gated on blockedReason: rotating is how a leaked link is revoked, so
+   * an unpaid invoice must not stand in the way of shutting one off.
+   */
+  async function onRotateShareCode() {
+    await customerApi(`/customer/streams/${id}/share-code/rotate`, { method: "POST" });
+    await loadView();
+  }
+
   if (error) {
     return (
       <div>
@@ -265,7 +276,9 @@ export default function CustomerStreamViewPage() {
   const blockedReason = serverReason ?? (stream.access?.state === "BLOCKED" ? BILLING_BLOCKED_MESSAGE : null);
   const status = (stats?.status as string) ?? null;
   const tracks = mediaInfo?.tracks ?? [];
-  const hlsUrl = urls.outputs.find((o) => o.protocol === "hls")?.url;
+  // Every browser-playable protocol, best first - the same selection the
+  // public share page makes, so the preview and the shared link behave alike.
+  const playSources = playableSources(urls.outputs);
 
   return (
     <div className="flex flex-col gap-4">
@@ -400,16 +413,32 @@ export default function CustomerStreamViewPage() {
               <div className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
                 Preview
               </div>
-              {hlsUrl && <Badge variant="secondary">HLS</Badge>}
+              {playSources[0] && <Badge variant="secondary">{playSources[0].label}</Badge>}
             </div>
             <div className="mt-3">
-              {hlsUrl ? (
-                <HlsPreview url={hlsUrl} />
+              {playSources.length > 0 ? (
+                <StreamPlayer
+                  sources={playSources}
+                  title={stream.title}
+                  className="aspect-video w-full overflow-hidden rounded-md border"
+                />
               ) : (
                 <p className="text-muted-foreground text-sm">
-                  HLS is not enabled on this stream, so there is nothing to preview.
+                  No browser-playable protocol is enabled on this stream, so there is nothing
+                  to preview.
                 </p>
               )}
+            </div>
+
+            <div className="mt-4 border-t pt-4">
+              <div className="text-muted-foreground mb-2 text-xs font-medium tracking-wide uppercase">
+                Public share link
+              </div>
+              <StreamShareActions
+                shareCode={stream.shareCode}
+                protocols={stream.protocols}
+                onRotate={onRotateShareCode}
+              />
             </div>
           </CardContent>
         </Card>

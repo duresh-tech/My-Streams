@@ -8,6 +8,11 @@ declare module "@clappr/hlsjs-playback" {
   export default HlsjsPlayback;
 }
 
+declare module "dash-shaka-playback" {
+  const DashShakaPlayback: unknown;
+  export default DashShakaPlayback;
+}
+
 declare module "@clappr/plugins" {
   export const MediaControl: unknown;
   export const Poster: unknown;

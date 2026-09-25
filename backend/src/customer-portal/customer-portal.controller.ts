@@ -388,6 +388,20 @@ export class CustomerPortalController {
     return this.portal.reloadStream(customer, id);
   }
 
+  @Post('streams/:id/share-code/rotate')
+  @ApiOperation({
+    summary: 'Issue a new public share code for your stream',
+    description:
+      'Replaces the share code, which immediately breaks every /share/{code} link already ' +
+      'handed out. Use it when a link has spread further than intended. Allowed even while ' +
+      'billing has the stream blocked, so a leaked link can always be revoked.',
+  })
+  @ApiParam({ name: 'id', description: 'Stream UUIDv7' })
+  @ApiResponse({ status: 200, description: 'Rotated.', schema: { example: { shareCode: 'kpxr4m' } } })
+  rotateShareCode(@CurrentCustomer() customer: CustomerAuthUser, @Param('id') id: string) {
+    return this.portal.rotateStreamShareCode(customer, id);
+  }
+
   @Delete('streams/:id')
   @ApiOperation({
     summary: 'Delete your stream',

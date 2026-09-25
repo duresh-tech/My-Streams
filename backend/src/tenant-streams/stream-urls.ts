@@ -50,19 +50,43 @@ export interface StreamUrls {
  * The stream's own ingest domain wins; otherwise the server's domain, falling
  * back to its host/IP.
  */
-export function resolveHost(stream: StreamForUrls, server: ServerForUrls): string {
+/**
+ * How to pick the host the URLs are built on.
+ *
+ * `preferServerHost` ignores the stream's own ingest domain and uses the
+ * server's. The ingest domain names where a publisher pushes to, which is not
+ * necessarily a host that serves playback at all - and if it resolves to
+ * plain http, a player running on an https page has its manifest request
+ * blocked as mixed content and simply never starts. Public playback therefore
+ * builds on the server's domain and its TLS setting.
+ */
+export interface StreamUrlOptions {
+  preferServerHost?: boolean;
+}
+
+export function resolveHost(
+  stream: StreamForUrls,
+  server: ServerForUrls,
+  options: StreamUrlOptions = {},
+): string {
+  const serverHost = server.domain?.trim() || server.hostName;
+  if (options.preferServerHost) return serverHost;
   const ingest = stream.ingestDomain?.trim();
-  if (ingest) return ingest;
-  return server.domain?.trim() || server.hostName;
+  return ingest || serverHost;
 }
 
 /**
- * TLS follows whichever host was used: the stream's flag when it has its own
- * ingest domain, the server's flag otherwise.
+ * TLS follows whichever host was used: the stream's flag when its own ingest
+ * domain is in play, the server's flag otherwise.
  */
-export function resolveScheme(stream: StreamForUrls, server: ServerForUrls): 'http' | 'https' {
+export function resolveScheme(
+  stream: StreamForUrls,
+  server: ServerForUrls,
+  options: StreamUrlOptions = {},
+): 'http' | 'https' {
   const ingest = stream.ingestDomain?.trim();
-  const secure = ingest ? stream.useSSL : server.useSSL;
+  const usingIngest = !options.preferServerHost && !!ingest;
+  const secure = usingIngest ? stream.useSSL : server.useSSL;
   return secure ? 'https' : 'http';
 }
 
@@ -74,10 +98,14 @@ export function resolveScheme(stream: StreamForUrls, server: ServerForUrls): 'ht
  * mode the enabled flags describe what cannot be played and no URL is offered
  * for them.
  */
-export function buildStreamUrls(stream: StreamForUrls, server: ServerForUrls): StreamUrls {
+export function buildStreamUrls(
+  stream: StreamForUrls,
+  server: ServerForUrls,
+  options: StreamUrlOptions = {},
+): StreamUrls {
   const protocols = parseProtocols(stream.protocols);
-  const host = resolveHost(stream, server);
-  const scheme = resolveScheme(stream, server);
+  const host = resolveHost(stream, server, options);
+  const scheme = resolveScheme(stream, server, options);
   const webPort = scheme === 'https' ? server.httpsPort : server.httpPort;
   const name = stream.name;
 

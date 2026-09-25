@@ -326,6 +326,22 @@ export class TenantStreamsSelfController {
     return this.tenantStreamsService.reloadForTenantUser(user.id, id);
   }
 
+  @Post(':id/share-code/rotate')
+  @RequireTenantPermissions('tenant-streams:update')
+  @ApiOperation({
+    summary: 'Issue a new public share code for one of your streams',
+    description:
+      'Replaces the stream\'s share code, which immediately breaks every /share/{code} link ' +
+      'already handed out. Use it when a link has been shared further than intended. Viewers ' +
+      'watching through the old link are cut off at their next manifest request.',
+  })
+  @ApiParam({ name: 'id', description: 'Stream UUIDv7' })
+  @ApiResponse({ status: 200, description: 'Rotated.', schema: { example: TENANT_STREAM_EXAMPLE } })
+  @ApiResponse({ status: 404, description: 'Stream not found.' })
+  rotateShareCode(@CurrentTenantUser() user: TenantAuthUser, @Param('id') id: string) {
+    return this.tenantStreamsService.rotateShareCodeForTenantUser(user.id, id);
+  }
+
   @Post(':id/rename')
   @RequireTenantPermissions('tenant-streams:rename')
   @ApiOperation({

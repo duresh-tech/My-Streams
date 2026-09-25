@@ -19,6 +19,7 @@ import { TenantTaxTypesModule } from './tenant-tax-types/tenant-tax-types.module
 import { TenantPaymentModesModule } from './tenant-payment-modes/tenant-payment-modes.module';
 import { TenantFlussonicServersModule } from './tenant-flussonic-servers/tenant-flussonic-servers.module';
 import { TenantStreamsModule } from './tenant-streams/tenant-streams.module';
+import { PublicShareModule } from './public-share/public-share.module';
 import { TenantSubscriptionPlansModule } from './tenant-subscription-plans/tenant-subscription-plans.module';
 import { TenantCustomerServersModule } from './tenant-customer-servers/tenant-customer-servers.module';
 import { TenantBillingModule } from './tenant-billing/tenant-billing.module';
@@ -68,6 +69,7 @@ import { DeviceHeaderGuard } from './common/guards/device-header.guard';
     TenantPaymentModesModule,
     TenantFlussonicServersModule,
     TenantStreamsModule,
+    PublicShareModule,
     TenantSubscriptionPlansModule,
     TenantCustomerServersModule,
     TenantBillingModule,
