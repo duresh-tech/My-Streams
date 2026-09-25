@@ -6,6 +6,14 @@ Thumbs.db
 # Claude Code local machine settings (not shared)
 .claude/settings.local.json
 
+# Database dumps. These are exports of a live database, not source: they carry
+# password hashes, refresh-token hashes, mail-provider API keys and customer
+# personal data. A dump here is how a `git commit -am` sweeps real credentials
+# into history. Keep backups outside the repo; schema changes belong in
+# prisma/schema.prisma, which is the actual source of truth.
+backend/database/
+*.dump.sql
+
 # graphify: generated/derived knowledge graph, local cache, and machine-
 # specific interpreter/root paths. Regenerate with `/graphify .` — don't
 # commit (large, goes stale on every code change, and cost.json/manifest.json
