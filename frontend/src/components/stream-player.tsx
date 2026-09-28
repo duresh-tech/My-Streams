@@ -65,8 +65,25 @@ export function StreamPlayer({
   // Sources are ordered best-first by the caller; the first is what we play.
   const source = sources[0];
 
+  /**
+   * A plain-http source cannot load into an https page: the browser blocks it
+   * as mixed content before the player sees a byte, so Clappr shows a spinner
+   * that never resolves. Worth naming explicitly - the same stream plays fine
+   * from a local http portal, which makes it look like a server fault rather
+   * than a scheme mismatch.
+   *
+   * Checked in an effect-free render path but guarded for SSR, where there is
+   * no location to compare against.
+   */
+  const blockedAsMixedContent =
+    typeof window !== "undefined" &&
+    window.location.protocol === "https:" &&
+    !!source?.url.startsWith("http://");
+
   React.useEffect(() => {
-    if (!source) return;
+    // Nothing to mount when the browser will refuse the request anyway;
+    // starting Clappr here would only draw a spinner that never resolves.
+    if (!source || blockedAsMixedContent) return;
     let cancelled = false;
     // Held locally rather than in a ref so this run's cleanup tears down the
     // instance this run created - React invokes effects twice in dev, and a
@@ -186,7 +203,7 @@ export function StreamPlayer({
       teardown(player);
       player = null;
     };
-  }, [source, reloadKey]);
+  }, [source, reloadKey, blockedAsMixedContent]);
 
   /**
    * Brings the sound in. The click is itself the user gesture browsers require
@@ -211,6 +228,24 @@ export function StreamPlayer({
         )}
       >
         This stream has no playable source.
+      </div>
+    );
+  }
+
+  if (blockedAsMixedContent) {
+    return (
+      <div
+        className={cn(
+          "text-muted-foreground flex flex-col items-center justify-center gap-1 p-6 text-center text-sm",
+          className,
+        )}
+      >
+        <span className="text-foreground font-medium">Cannot play on a secure page</span>
+        <span className="max-w-sm">
+          This stream is served over plain http, and the browser blocks that inside an https
+          page. It will play from a local http portal, which is why it looks like it works in
+          development. Serving the streaming server over https fixes it.
+        </span>
       </div>
     );
   }
