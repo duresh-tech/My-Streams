@@ -27,6 +27,33 @@ export interface Column<T> {
   className?: string;
 }
 
+/**
+ * Optional grouping. Rows carrying the same `key` are drawn together under one
+ * banner, and `header` renders that banner from the first row of the group.
+ *
+ * Grouping happens over the rows currently on screen, not the whole result
+ * set: the table is paginated server-side, so a group that spans a page
+ * boundary appears on both pages. Filtering to one group is what a caller
+ * should offer when a complete view of it matters.
+ */
+export interface GroupBy<T> {
+  key: (row: T) => string;
+  header: (row: T, count: number) => React.ReactNode;
+}
+
+/** Buckets rows by key, preserving first-seen order so unsorted input still
+ * produces contiguous groups rather than interleaved ones. */
+function groupRows<T>(rows: T[], groupBy: GroupBy<T>): Array<{ key: string; rows: T[] }> {
+  const groups = new Map<string, T[]>();
+  for (const row of rows) {
+    const key = groupBy.key(row);
+    const existing = groups.get(key);
+    if (existing) existing.push(row);
+    else groups.set(key, [row]);
+  }
+  return [...groups].map(([key, groupedRows]) => ({ key, rows: groupedRows }));
+}
+
 interface ResourceTableProps<T> {
   title: string;
   description: string;
@@ -42,6 +69,8 @@ interface ResourceTableProps<T> {
   toolbarAction?: React.ReactNode;
   actionsHeader?: string;
   renderActions?: (row: T) => React.ReactNode;
+  /** Draws rows under per-group banners. Omit for a flat table. */
+  groupBy?: GroupBy<T>;
 }
 
 export function ResourceTable<T extends { id: string }>({
@@ -59,8 +88,68 @@ export function ResourceTable<T extends { id: string }>({
   toolbarAction,
   actionsHeader = "Actions",
   renderActions,
+  groupBy,
 }: ResourceTableProps<T>) {
   const { appName } = useAppSettings();
+  // Null when ungrouped, so both renderers can branch on it directly.
+  const groups = React.useMemo(
+    () => (groupBy && rows ? groupRows(rows, groupBy) : null),
+    [rows, groupBy],
+  );
+  // Group banner spans the whole width, actions column included.
+  const spanAll = columns.length + (renderActions ? 1 : 0);
+
+  /** One stacked card, used on phones. */
+  const renderCard = (row: T) => {
+    const [primary, ...rest] = columns;
+    return (
+      <motion.div
+        key={row.id}
+        layout
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
+        className="p-4"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="text-sm font-medium">{primary.cell(row)}</div>
+          {renderActions && <div className="flex shrink-0 gap-1">{renderActions(row)}</div>}
+        </div>
+        <dl className="mt-2 grid gap-1.5">
+          {rest.map((col) => (
+            <div key={col.header} className="flex items-center justify-between gap-4 text-sm">
+              <dt className="text-muted-foreground">{col.header}</dt>
+              <dd className="text-right">{col.cell(row)}</dd>
+            </div>
+          ))}
+        </dl>
+      </motion.div>
+    );
+  };
+
+  /** One table row, used from tablet up. */
+  const renderRow = (row: T) => (
+    <MotionTableRow
+      key={row.id}
+      layout
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
+    >
+      {columns.map((col) => (
+        <TableCell key={col.header} className={col.className}>
+          {col.cell(row)}
+        </TableCell>
+      ))}
+      {renderActions && (
+        <TableCell className="text-right">
+          <div className="flex justify-end gap-1">{renderActions(row)}</div>
+        </TableCell>
+      )}
+    </MotionTableRow>
+  );
   return (
     <div className="grid gap-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -197,38 +286,17 @@ export function ResourceTable<T extends { id: string }>({
                 {/* Mobile: stacked cards */}
                 <div className="divide-y sm:hidden">
                   <AnimatePresence initial={false}>
-                    {rows.map((row) => {
-                      const [primary, ...rest] = columns;
-                      return (
-                        <motion.div
-                          key={row.id}
-                          layout
-                          initial={{ opacity: 0, y: -8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0 }}
-                          transition={{ duration: 0.2, ease: "easeOut" }}
-                          className="p-4"
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="text-sm font-medium">{primary.cell(row)}</div>
-                            {renderActions && (
-                              <div className="flex shrink-0 gap-1">{renderActions(row)}</div>
-                            )}
-                          </div>
-                          <dl className="mt-2 grid gap-1.5">
-                            {rest.map((col) => (
-                              <div
-                                key={col.header}
-                                className="flex items-center justify-between gap-4 text-sm"
-                              >
-                                <dt className="text-muted-foreground">{col.header}</dt>
-                                <dd className="text-right">{col.cell(row)}</dd>
-                              </div>
-                            ))}
-                          </dl>
-                        </motion.div>
-                      );
-                    })}
+                    {groups
+                      ? groups.flatMap((group) => [
+                          <div
+                            key={`group-${group.key}`}
+                            className="bg-muted/60 text-muted-foreground px-4 py-2 text-xs font-semibold"
+                          >
+                            {groupBy?.header(group.rows[0], group.rows.length)}
+                          </div>,
+                          ...group.rows.map(renderCard),
+                        ])
+                      : rows.map(renderCard)}
                   </AnimatePresence>
                 </div>
 
@@ -249,29 +317,22 @@ export function ResourceTable<T extends { id: string }>({
                     </TableHeader>
                     <TableBody>
                       <AnimatePresence initial={false}>
-                        {rows.map((row) => (
-                          <MotionTableRow
-                            key={row.id}
-                            layout
-                            initial={{ opacity: 0, y: -8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.2, ease: "easeOut" }}
-                          >
-                            {columns.map((col) => (
-                              <TableCell key={col.header} className={col.className}>
-                                {col.cell(row)}
-                              </TableCell>
-                            ))}
-                            {renderActions && (
-                              <TableCell className="text-right">
-                                <div className="flex justify-end gap-1">
-                                  {renderActions(row)}
-                                </div>
-                              </TableCell>
-                            )}
-                          </MotionTableRow>
-                        ))}
+                        {groups
+                          ? groups.flatMap((group) => [
+                              <TableRow
+                                key={`group-${group.key}`}
+                                className="bg-muted/60 hover:bg-muted/60"
+                              >
+                                <TableCell
+                                  colSpan={spanAll}
+                                  className="text-muted-foreground py-2 text-xs font-semibold"
+                                >
+                                  {groupBy?.header(group.rows[0], group.rows.length)}
+                                </TableCell>
+                              </TableRow>,
+                              ...group.rows.map(renderRow),
+                            ])
+                          : rows.map(renderRow)}
                       </AnimatePresence>
                     </TableBody>
                   </Table>

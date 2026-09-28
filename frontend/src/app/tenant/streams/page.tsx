@@ -333,26 +333,9 @@ export default function TenantStreamsPage() {
           </div>
         ),
     },
-    {
-      header: "Server",
-      cell: (row) => (
-        <div className="flex flex-col items-start gap-1">
-          <span>{row.server?.name ?? "—"}</span>
-          {row.server?.status && row.server.status !== "ACTIVE" && (
-            <Badge variant="warning">{row.server.status}</Badge>
-          )}
-          {row.server?.status === "ACTIVE" && row.server.connectionStatus !== "CONNECTED" && (
-            <Badge variant="outline">
-              {row.server.connectionStatus === "UNAUTHORIZED"
-                ? "Unauthorized"
-                : row.server.connectionStatus === "UNREACHABLE"
-                  ? "Unreachable"
-                  : "Not checked"}
-            </Badge>
-          )}
-        </div>
-      ),
-    },
+    // No Server column: rows are grouped by server, so repeating the name on
+    // every row would say the same thing as the banner above it. The server's
+    // health badges moved into that banner.
     {
       header: "Customer",
       cell: (row) =>
@@ -385,6 +368,35 @@ export default function TenantStreamsPage() {
         title="Streams"
         description="Streams configured on your servers."
         columns={columns}
+        // Grouped by server so a page of streams reads as "what is on each
+        // box" rather than one flat list. Keyed on serverId rather than the
+        // name: two servers can share a display name, and merging them here
+        // would imply streams live somewhere they do not.
+        groupBy={{
+          key: (row) => row.serverId,
+          header: (row, count) => (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-foreground text-sm">
+                {row.server?.name ?? "Unknown server"}
+              </span>
+              {row.server?.status && row.server.status !== "ACTIVE" && (
+                <Badge variant="warning">{row.server.status}</Badge>
+              )}
+              {row.server?.status === "ACTIVE" && row.server.connectionStatus !== "CONNECTED" && (
+                <Badge variant="outline">
+                  {row.server.connectionStatus === "UNAUTHORIZED"
+                    ? "Unauthorized"
+                    : row.server.connectionStatus === "UNREACHABLE"
+                      ? "Unreachable"
+                      : "Not checked"}
+                </Badge>
+              )}
+              <span className="font-normal">
+                {count} stream{count === 1 ? "" : "s"}
+              </span>
+            </div>
+          ),
+        }}
         rows={list.rows}
         error={list.error}
         page={list.page}
