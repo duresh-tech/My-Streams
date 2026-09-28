@@ -32,6 +32,8 @@ const STREAM_INCLUDE = {
       id: true,
       systemCode: true,
       name: true,
+      // Selected so serializeForCustomer can show it in place of `name`.
+      customerTitle: true,
       // The portal shows the server's state on each stream, and disables the
       // actions that cannot work while it is not ACTIVE.
       status: true,
@@ -128,7 +130,14 @@ function serializeForCustomer(stream: CustomerStreamRow) {
     server: tenantFlussonicServer
       ? {
           id: tenantFlussonicServer.id,
-          name: tenantFlussonicServer.name,
+          // The customer-facing title, never the operator's own `name`, which
+          // is not sent at all rather than sent and hidden in the UI - a
+          // response a customer can read is a response they can inspect.
+          //
+          // `|| ` rather than `?? `: clearing the field in the tenant form
+          // stores an empty string, and a blank title has to mean "unset"
+          // or the customer would be shown a server with no name.
+          name: tenantFlussonicServer.customerTitle?.trim() || tenantFlussonicServer.name,
           status: tenantFlussonicServer.status,
           connectionStatus: tenantFlussonicServer.connectionStatus,
         }
@@ -221,7 +230,13 @@ export class CustomerPortalService {
       where: { tenantCustomerId: customer.id, status: 'ACTIVE', tenantFlussonicServer: SERVER_NOT_DELETED },
       include: {
         tenantFlussonicServer: {
-          select: { id: true, name: true, status: true, connectionStatus: true },
+          select: {
+            id: true,
+            name: true,
+            customerTitle: true,
+            status: true,
+            connectionStatus: true,
+          },
         },
       },
       orderBy: { createdAt: 'asc' },
@@ -250,7 +265,12 @@ export class CustomerPortalService {
       return {
         assignmentId: assignment.id,
         serverId: assignment.tenantFlussonicServerId,
-        name: assignment.tenantFlussonicServer.name,
+        // Customer-facing title, falling back to the operator's name only
+        // when no title has been set. Blank counts as unset - see the note in
+        // serializeForCustomer.
+        name:
+          assignment.tenantFlussonicServer.customerTitle?.trim() ||
+          assignment.tenantFlussonicServer.name,
         serverStatus: assignment.tenantFlussonicServer.status,
         connectionStatus: assignment.tenantFlussonicServer.connectionStatus,
         isDedicated: assignment.isDedicated,

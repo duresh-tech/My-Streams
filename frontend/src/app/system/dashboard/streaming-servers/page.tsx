@@ -55,6 +55,7 @@ interface StreamingServerRow {
   systemCode: string;
   tenantBusinessId: string;
   name: string;
+  customerTitle: string | null;
   hostName: string;
   hostPort: number;
   domain: string | null;
@@ -87,6 +88,7 @@ interface TenantBusinessOption {
 interface ServerFormValues {
   tenantBusinessId: string;
   name: string;
+  customerTitle: string;
   hostName: string;
   hostPort: string;
   domain: string;
@@ -110,6 +112,7 @@ interface ServerFormValues {
 const EMPTY_FORM: ServerFormValues = {
   tenantBusinessId: "",
   name: "",
+  customerTitle: "",
   hostName: "",
   hostPort: "80",
   domain: "",
@@ -184,6 +187,7 @@ export default function StreamingServersPage() {
     setForm({
       tenantBusinessId: row.tenantBusinessId,
       name: row.name,
+      customerTitle: row.customerTitle ?? "",
       hostName: row.hostName,
       hostPort: String(row.hostPort),
       domain: row.domain ?? "",
@@ -214,6 +218,9 @@ export default function StreamingServersPage() {
       const body = {
         tenantBusinessId: form.tenantBusinessId,
         name: form.name,
+        // Sent even when blank so the title can be cleared; the API treats a
+        // blank title as unset and falls back to `name` for customers.
+        customerTitle: form.customerTitle.trim(),
         hostName: form.hostName,
         hostPort: Number(form.hostPort),
         domain: form.domain || undefined,
@@ -492,6 +499,22 @@ export default function StreamingServersPage() {
                   value={form.name}
                   onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                 />
+                <p className="text-muted-foreground text-xs">
+                  The operator&apos;s own label for this server. Customers never see it.
+                </p>
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="customerTitle">Customer title</Label>
+                <Input
+                  id="customerTitle"
+                  value={form.customerTitle}
+                  placeholder="Leave blank to show the name above"
+                  onChange={(e) => setForm((f) => ({ ...f, customerTitle: e.target.value }))}
+                />
+                <p className="text-muted-foreground text-xs">
+                  What customers see this server called, in place of the name.
+                </p>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">

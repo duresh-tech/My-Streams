@@ -18,6 +18,9 @@ const FlussonicServerStatusEnum = z.enum([
 const CreateTenantFlussonicServerSchema = z.object({
   tenantBusinessId: z.string().uuid(),
   name: z.string().min(1).max(150),
+  // Shown to customers in place of `name`. Optional: unset means customers
+  // see `name`, which is the behaviour every existing server keeps.
+  customerTitle: z.string().max(150).optional(),
   hostName: z.string().min(1).max(255),
   hostPort: z.coerce.number().int().min(1).max(65535).default(80),
   domain: z.string().max(255).optional(),

@@ -509,6 +509,11 @@ model TenantFlussonicServer {
   systemCode              String                          @unique @db.VarChar(30)
   tenantBusinessId        String                          @db.Char(36)
   name                    String                          @db.VarChar(150)
+  // What customers see this server called. `name` is the operator's own label
+  // and often carries internal detail (site, rack, hostname) that a customer
+  // has no business reading, so the customer portal shows this instead and
+  // falls back to `name` only when it is unset.
+  customerTitle           String?                         @db.VarChar(150)
   hostName                String                          @db.VarChar(255)
   hostPort                Int                             @default(80)
   domain                  String?                         @db.VarChar(255)
