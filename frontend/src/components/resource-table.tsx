@@ -7,6 +7,13 @@ import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -71,7 +78,13 @@ interface ResourceTableProps<T> {
   renderActions?: (row: T) => React.ReactNode;
   /** Draws rows under per-group banners. Omit for a flat table. */
   groupBy?: GroupBy<T>;
+  /** Current page size. Pass with onLimitChange to show the picker. */
+  limit?: number;
+  onLimitChange?: (limit: number) => void;
+  limitOptions?: number[];
 }
+
+const DEFAULT_LIMIT_OPTIONS = [10, 20, 50, 100];
 
 export function ResourceTable<T extends { id: string }>({
   title,
@@ -89,6 +102,9 @@ export function ResourceTable<T extends { id: string }>({
   actionsHeader = "Actions",
   renderActions,
   groupBy,
+  limit,
+  onLimitChange,
+  limitOptions = DEFAULT_LIMIT_OPTIONS,
 }: ResourceTableProps<T>) {
   const { appName } = useAppSettings();
   // Null when ungrouped, so both renderers can branch on it directly.
@@ -343,7 +359,27 @@ export function ResourceTable<T extends { id: string }>({
         </CardContent>
       </Card>
 
-      <div className="flex items-center justify-end gap-2">
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        {limit !== undefined && onLimitChange && (
+          <div className="mr-auto flex items-center gap-2">
+            <span className="text-muted-foreground text-sm">Rows per page</span>
+            <Select
+              value={String(limit)}
+              onValueChange={(value) => onLimitChange(Number(value))}
+            >
+              <SelectTrigger className="w-20" aria-label="Rows per page">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {limitOptions.map((option) => (
+                  <SelectItem key={option} value={String(option)}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
         <span className="text-sm text-muted-foreground">
           Page {page} of {totalPages}
         </span>

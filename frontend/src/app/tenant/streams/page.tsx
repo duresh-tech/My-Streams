@@ -402,6 +402,8 @@ export default function TenantStreamsPage() {
         page={list.page}
         totalPages={list.totalPages}
         onPageChange={list.setPage}
+        limit={list.limit}
+        onLimitChange={list.setLimit}
         search={list.search}
         onSearchChange={list.setSearch}
         onSearchSubmit={list.applySearch}

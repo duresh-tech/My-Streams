@@ -13,10 +13,12 @@ export function useResourceList<T>(
   endpoint: string,
   filters: Record<string, string | undefined> = {},
   fetcher: Fetcher = api,
+  initialLimit = 20,
 ) {
   const [rows, setRows] = React.useState<T[] | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [page, setPage] = React.useState(1);
+  const [limit, setLimitState] = React.useState(initialLimit);
   const [totalPages, setTotalPages] = React.useState(1);
   const [total, setTotal] = React.useState(0);
   const [search, setSearch] = React.useState("");
@@ -33,7 +35,7 @@ export function useResourceList<T>(
       setError(null);
     }
     silentRef.current = false;
-    const params = new URLSearchParams({ page: String(page), limit: "20" });
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
     if (query) params.set("search", query);
     for (const [key, value] of Object.entries(filters)) {
       if (value) params.set(key, value);
@@ -52,11 +54,22 @@ export function useResourceList<T>(
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [endpoint, page, query, reloadIndex, filtersKey]);
+  }, [endpoint, page, limit, query, reloadIndex, filtersKey]);
 
   const applySearch = React.useCallback((term: string) => {
     setPage(1);
     setQuery(term);
+  }, []);
+
+  /**
+   * Changing the page size always returns to page one. Keeping the page
+   * number would land the viewer past the end - page 5 of 20-per-page is
+   * nothing at all once the size is 100 - and an empty table reads as a
+   * failed load rather than a paging artefact.
+   */
+  const setLimit = React.useCallback((next: number) => {
+    setPage(1);
+    setLimitState(next);
   }, []);
 
   const refresh = React.useCallback(() => setReloadIndex((i) => i + 1), []);
@@ -72,6 +85,8 @@ export function useResourceList<T>(
     error,
     page,
     setPage,
+    limit,
+    setLimit,
     totalPages,
     total,
     search,
