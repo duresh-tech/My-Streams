@@ -343,6 +343,12 @@ export interface CustomerStreamView {
   liveError: string | null;
   stats: Record<string, unknown> | null;
   mediaInfo: { tracks?: Array<Record<string, unknown>> } | null;
+  /**
+   * Playback URLs for the preview player only, resolved on the server's host
+   * rather than the stream's ingest domain. `urls.outputs` stays as the API
+   * reports it, because that is what the Output list shows for copying.
+   */
+  previewOutputs: CustomerProtocolUrl[];
   urls: {
     inputs: CustomerProtocolUrl[];
     outputs: CustomerProtocolUrl[];

@@ -264,7 +264,7 @@ export default function CustomerStreamViewPage() {
     );
   }
 
-  const { stream, stats, mediaInfo, urls } = view;
+  const { stream, stats, mediaInfo, urls, previewOutputs } = view;
   const serverStatus = stream.server?.status;
   // Reload and Edit push to the server, which the API refuses unless it is
   // ACTIVE; stated on click rather than after a failed round trip.
@@ -278,7 +278,10 @@ export default function CustomerStreamViewPage() {
   const tracks = mediaInfo?.tracks ?? [];
   // Every browser-playable protocol, best first - the same selection the
   // public share page makes, so the preview and the shared link behave alike.
-  const playSources = playableSources(urls.outputs);
+  // From previewOutputs, not urls.outputs: the player has to reach the host
+  // actually serving playback, while the Output list keeps showing the ingest
+  // domain the operator configured.
+  const playSources = playableSources(previewOutputs);
 
   return (
     <div className="flex flex-col gap-4">

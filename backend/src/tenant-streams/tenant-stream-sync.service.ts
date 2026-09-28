@@ -389,6 +389,19 @@ export class TenantStreamSyncService {
     const server = stream.tenantFlussonicServer;
     const urls = buildStreamUrls(stream, server);
 
+    /**
+     * Playback URLs for the in-page preview player only, resolved on the
+     * server's own host instead of the stream's ingest domain.
+     *
+     * Kept separate from `urls` on purpose: `urls.inputs` and `urls.outputs`
+     * are what the page lists for the operator to copy out, and those must
+     * keep showing the ingest domain where one is set. The player is the one
+     * consumer that has to reach the host actually serving playback, so only
+     * it gets this set. Only `.outputs` is taken - this call's publish
+     * endpoints would name the wrong host and are never exposed.
+     */
+    const previewOutputs = buildStreamUrls(stream, server, { preferServerHost: true }).outputs;
+
     const remote = await this.streamerApi.getStream(server, stream.name);
     const stats = remote.ok
       ? ((remote.data as Record<string, unknown>).stats as Record<string, unknown> | undefined)
@@ -396,6 +409,7 @@ export class TenantStreamSyncService {
 
     return {
       urls,
+      previewOutputs,
       live: remote.ok,
       liveError: remote.ok ? null : remote.message,
       stats: stats ?? null,

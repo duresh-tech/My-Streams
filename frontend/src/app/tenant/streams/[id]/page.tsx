@@ -31,6 +31,12 @@ interface StreamView {
   liveError: string | null;
   stats: Record<string, unknown> | null;
   mediaInfo: { tracks?: Array<Record<string, unknown>> } | null;
+  /**
+   * Playback URLs for the preview player only, resolved on the server's host
+   * rather than the stream's ingest domain. `urls.outputs` stays as the API
+   * reports it, because that is what the Output list shows for copying.
+   */
+  previewOutputs: ProtocolUrl[];
   urls: {
     inputs: ProtocolUrl[];
     outputs: ProtocolUrl[];
@@ -313,7 +319,7 @@ export default function StreamViewPage() {
     );
   }
 
-  const { stream, stats, mediaInfo, urls } = view;
+  const { stream, stats, mediaInfo, urls, previewOutputs } = view;
   const serverStatus = stream.server?.status;
   const blockedReason =
     serverStatus && serverStatus !== "ACTIVE"
@@ -329,7 +335,10 @@ export default function StreamViewPage() {
   const tracks = mediaInfo?.tracks ?? [];
   // Every browser-playable protocol, best first - the same selection the
   // public share page makes, so the preview and the shared link behave alike.
-  const playSources = playableSources(urls.outputs);
+  // From previewOutputs, not urls.outputs: the player has to reach the host
+  // actually serving playback, while the Output list keeps showing the ingest
+  // domain the operator configured.
+  const playSources = playableSources(previewOutputs);
 
   return (
     <div className="flex flex-col gap-4 p-4 sm:p-6">
