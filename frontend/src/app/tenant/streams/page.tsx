@@ -31,6 +31,7 @@ import { useRouter } from "next/navigation";
 import { TenantApiError, tenantApi } from "@/lib/tenant-api";
 import { StreamFormDialog } from "@/components/stream-form-dialog";
 import { SYNC_BADGE, type StreamOption, type StreamRow } from "@/lib/stream-types";
+import { customerDisplayName } from "@/lib/customer-name";
 
 /**
  * Must match the backend's PLAY_PROTOCOLS. `whitelist` is deliberately absent:
@@ -340,7 +341,7 @@ export default function TenantStreamsPage() {
       header: "Customer",
       cell: (row) =>
         row.tenantCustomer
-          ? `${row.tenantCustomer.customerCode} — ${row.tenantCustomer.fName}`
+          ? `${row.tenantCustomer.customerCode} — ${customerDisplayName(row.tenantCustomer)}`
           : "—",
     },
     {

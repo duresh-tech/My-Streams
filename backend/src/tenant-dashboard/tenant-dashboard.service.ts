@@ -16,7 +16,17 @@ import {
 /** Money is added up in whole cents so float error never reaches a total. */
 const toCents = (value: Prisma.Decimal | number) => Math.round(Number(value) * 100);
 const fromCents = (cents: number) => cents / 100;
-const customerName = (c: { fName: string; lName: string | null }) => [c.fName, c.lName].filter(Boolean).join(' ');
+/**
+ * What a tenant user calls this customer: the internal alias when set,
+ * otherwise the real name. Blank counts as unset, so clearing the alias in the
+ * form falls back rather than showing an empty name.
+ *
+ * Invoices deliberately do NOT use this - a financial document carries the
+ * customer's real name, not the operator's nickname for them, and the customer
+ * reads their own invoices.
+ */
+const customerName = (c: { customerAliasName?: string | null; fName: string; lName: string | null }) =>
+  c.customerAliasName?.trim() || [c.fName, c.lName].filter(Boolean).join(' ');
 
 /**
  * The tenant dashboard: one call, one section per area, each included only when
@@ -80,7 +90,7 @@ export class TenantDashboardService {
           planName: true,
           subscriptionFor: true,
           currentPeriodEnd: true,
-          tenantCustomer: { select: { fName: true, lName: true, customerCode: true } },
+          tenantCustomer: { select: { fName: true, lName: true, customerCode: true, customerAliasName: true } },
           tenantStream: { select: { title: true, name: true } },
           tenantFlussonicServer: { select: { name: true } },
         },

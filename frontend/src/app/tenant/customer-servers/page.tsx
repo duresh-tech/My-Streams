@@ -32,6 +32,7 @@ import { useResourceList } from "@/hooks/use-resource-list";
 import { useTenantSession } from "@/hooks/use-tenant-session";
 import { TenantApiError, tenantApi } from "@/lib/tenant-api";
 import type { StreamOption } from "@/lib/stream-types";
+import { customerDisplayName } from "@/lib/customer-name";
 
 type AssignmentStatus = "ACTIVE" | "INACTIVE" | "DELETED";
 
@@ -48,7 +49,13 @@ interface AssignmentRow {
   streamsUsed: number;
   /** Null when the limit is unlimited. */
   streamsRemaining: number | null;
-  tenantCustomer?: { id: string; customerCode: string; fName: string; lName: string | null };
+  tenantCustomer?: {
+    id: string;
+    customerCode: string;
+    customerAliasName: string | null;
+    fName: string;
+    lName: string | null;
+  };
   server?: { id: string; name: string };
 }
 
@@ -110,13 +117,19 @@ export default function TenantCustomerServersPage() {
   function ensureCustomers() {
     if (customers) return;
     tenantApi<{
-      items: { id: string; customerCode: string; fName: string; lName: string | null }[];
+      items: {
+        id: string;
+        customerCode: string;
+        customerAliasName: string | null;
+        fName: string;
+        lName: string | null;
+      }[];
     }>("/tenant/customers?limit=100&page=1")
       .then((d) =>
         setCustomers(
           d.items.map((c) => ({
             id: c.id,
-            name: `${c.customerCode} — ${c.fName}${c.lName ? " " + c.lName : ""}`,
+            name: `${c.customerCode} — ${customerDisplayName(c)}`,
           })),
         ),
       )
@@ -212,7 +225,7 @@ export default function TenantCustomerServersPage() {
         row.tenantCustomer ? (
           <div className="flex flex-col gap-0.5">
             <span className="font-medium">
-              {row.tenantCustomer.fName}
+              {customerDisplayName(row.tenantCustomer)}
               {row.tenantCustomer.lName ? ` ${row.tenantCustomer.lName}` : ""}
             </span>
             <span className="text-muted-foreground font-mono text-xs">
@@ -485,7 +498,7 @@ export default function TenantCustomerServersPage() {
         open={!!deleteTarget}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
         title="Revoke this assignment?"
-        description={`${deleteTarget?.tenantCustomer?.fName ?? "This customer"} will lose access to ${deleteTarget?.server?.name ?? "this server"}. Revoking is refused while they still have streams on it.`}
+        description={`${deleteTarget?.tenantCustomer ? customerDisplayName(deleteTarget.tenantCustomer) : "This customer"} will lose access to ${deleteTarget?.server?.name ?? "this server"}. Revoking is refused while they still have streams on it.`}
         loading={deleting}
         onConfirm={onDelete}
       />

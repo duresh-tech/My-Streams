@@ -52,6 +52,7 @@ import {
   uploadTenantFile,
 } from "@/lib/tenant-api";
 import { setCustomerAccessToken } from "@/lib/customer-api";
+import { customerDisplayName } from "@/lib/customer-name";
 import { COUNTRY_OPTIONS, DEFAULT_COUNTRY } from "@/lib/countries";
 import { ID_PROOF_TYPES } from "@/lib/id-proof-types";
 import { TAX_TYPES } from "@/lib/tax-types";
@@ -75,6 +76,7 @@ interface TenantCustomerRow {
   customerCode: string;
   username: string | null;
   hasPassword: boolean;
+  customerAliasName: string | null;
   fName: string;
   lName: string | null;
   fatherName: string | null;
@@ -119,6 +121,7 @@ interface CustomerFormValues {
   customerCode: string;
   username: string;
   password: string;
+  customerAliasName: string;
   fName: string;
   lName: string;
   fatherName: string;
@@ -157,6 +160,7 @@ const EMPTY_FORM: CustomerFormValues = {
   customerCode: "",
   username: "",
   password: "",
+  customerAliasName: "",
   fName: "",
   lName: "",
   fatherName: "",
@@ -277,6 +281,7 @@ export default function TenantCustomersPage() {
       username: row.username ?? "",
       // Never returned; blank means "keep the stored password".
       password: "",
+      customerAliasName: row.customerAliasName ?? "",
       fName: row.fName,
       lName: row.lName ?? "",
       fatherName: row.fatherName ?? "",
@@ -357,6 +362,9 @@ export default function TenantCustomersPage() {
         tenantBusinessId: form.tenantBusinessId,
         username: form.username || undefined,
         ...(form.password ? { password: form.password } : {}),
+        // Sent even when blank so the alias can be cleared; the portals treat
+        // a blank alias as unset and fall back to the real name.
+        customerAliasName: form.customerAliasName.trim(),
         fName: form.fName,
         lName: form.lName || undefined,
         fatherName: form.fatherName || undefined,
@@ -534,7 +542,7 @@ export default function TenantCustomersPage() {
       header: "Name",
       cell: (row) => (
         <span className="font-medium">
-          {row.fName} {row.lName ?? ""}
+          {customerDisplayName(row)}
         </span>
       ),
     },
@@ -757,6 +765,22 @@ export default function TenantCustomersPage() {
                       />
                     </div>
                   </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="customerAliasName">Alias name</Label>
+                    <Input
+                      id="customerAliasName"
+                      value={form.customerAliasName}
+                      placeholder="Leave blank to use the real name below"
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, customerAliasName: e.target.value }))
+                      }
+                    />
+                    <p className="text-muted-foreground text-xs">
+                      What you call this customer. Shown in place of their name across the
+                      portal. The customer never sees it.
+                    </p>
+                  </div>
+
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                     <div className="grid gap-2">
                       <Label htmlFor="fName">First Name</Label>
@@ -1153,7 +1177,7 @@ export default function TenantCustomersPage() {
             <div className="grid gap-4 py-2">
               <div className="flex items-center justify-between">
                 <p className="text-base font-semibold">
-                  {viewTarget.fName} {viewTarget.lName ?? ""}
+                  {customerDisplayName(viewTarget)}
                 </p>
                 <StatusBadgeText status={viewTarget.status} />
               </div>
@@ -1203,7 +1227,9 @@ export default function TenantCustomersPage() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Change Status</DialogTitle>
-            <DialogDescription>{statusTarget?.fName}</DialogDescription>
+            <DialogDescription>
+              {statusTarget ? customerDisplayName(statusTarget) : ""}
+            </DialogDescription>
           </DialogHeader>
           <div className="grid gap-2 py-2">
             <Label>Status</Label>
@@ -1259,7 +1285,7 @@ export default function TenantCustomersPage() {
         open={!!deleteTarget}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
         title="Delete customer"
-        description={`This will delete "${deleteTarget?.fName}".`}
+        description={`This will delete "${deleteTarget ? customerDisplayName(deleteTarget) : ""}".`}
         loading={deleting}
         onConfirm={onDelete}
       />

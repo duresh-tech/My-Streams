@@ -149,6 +149,11 @@ function serializeForCustomer(stream: CustomerStreamRow) {
  * The profile fields a customer may see. Everything absent is either the
  * tenant's own bookkeeping or a secret: the password hash, the remark, the
  * notification and portal-access flags, and the audit columns.
+ *
+ * customerAliasName is absent on purpose and must stay that way. It is the
+ * label the operator files this customer under, shown throughout the tenant
+ * and system portals but never to the customer themselves. Being an allow
+ * list rather than a deny list is what keeps that true by default.
  */
 const PROFILE_SELECT = {
   id: true,

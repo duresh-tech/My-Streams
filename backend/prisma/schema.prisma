@@ -437,6 +437,12 @@ model TenantCustomer {
   // access, and MySQL allows many NULLs under a unique index.
   username          String?              @unique @db.VarChar(50)
   passwordHash      String?              @db.VarChar(255) // Argon2id
+  // Internal label the tenant knows this customer by - a shop name, a
+  // nickname, whatever they actually say on the phone. Shown in place of
+  // fName/lName throughout the tenant and system portals, and deliberately
+  // absent from the customer portal's PROFILE_SELECT: it is the operator's
+  // own bookkeeping, not something the customer should read about themselves.
+  customerAliasName String?              @db.VarChar(150)
   fName             String               @db.VarChar(100)
   lName             String?              @db.VarChar(100)
   fatherName        String?              @db.VarChar(150)

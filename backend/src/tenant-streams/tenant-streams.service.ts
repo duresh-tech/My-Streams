@@ -37,7 +37,7 @@ const STREAM_INCLUDE = {
       useSSL: true,
     },
   },
-  tenantCustomer: { select: { id: true, customerCode: true, fName: true, lName: true } },
+  tenantCustomer: { select: { id: true, customerCode: true, customerAliasName: true, fName: true, lName: true } },
   inputs: { orderBy: { priority: 'asc' } },
 } satisfies Prisma.TenantStreamInclude;
 

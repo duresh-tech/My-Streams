@@ -11,6 +11,9 @@ export const CreateTenantCustomerSchema = z.object({
   // stored Argon2id-hashed, and never returned.
   username: z.string().min(3).max(50).optional(),
   password: z.string().min(8).max(100).optional(),
+  // Internal alias, shown to tenant and system users in place of the real
+  // name. Optional: unset means the portals fall back to fName/lName.
+  customerAliasName: z.string().max(150).optional(),
   fName: z.string().min(1).max(100),
   lName: z.string().max(100).optional(),
   fatherName: z.string().max(150).optional(),

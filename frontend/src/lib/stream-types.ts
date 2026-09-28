@@ -121,7 +121,13 @@ export interface StreamRow {
     status?: string;
     connectionStatus?: string;
   };
-  tenantCustomer?: { id: string; customerCode: string; fName: string; lName: string | null };
+  tenantCustomer?: {
+    id: string;
+    customerCode: string;
+    customerAliasName: string | null;
+    fName: string;
+    lName: string | null;
+  };
 }
 
 export interface StreamOption {

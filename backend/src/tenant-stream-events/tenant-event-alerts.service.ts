@@ -31,7 +31,13 @@ export function serializeRule(row: TenantEventAlertRule) {
   };
 }
 
-const customerName = (c: { fName: string; lName: string | null }) => [c.fName, c.lName].filter(Boolean).join(' ');
+/**
+ * What a tenant user calls this customer: the internal alias when set,
+ * otherwise the real name. Blank counts as unset, so clearing the alias in the
+ * form falls back rather than showing an empty name.
+ */
+const customerName = (c: { customerAliasName?: string | null; fName: string; lName: string | null }) =>
+  c.customerAliasName?.trim() || [c.fName, c.lName].filter(Boolean).join(' ');
 
 /**
  * Email alert rules on stream events, scoped to the caller's business. A rule
@@ -58,7 +64,14 @@ export class TenantEventAlertsService {
       }),
       this.prisma.tenantCustomer.findMany({
         where: { tenantBusinessId: businessId, status: { not: 'DELETED' } },
-        select: { id: true, customerCode: true, fName: true, lName: true, email: true },
+        select: {
+          id: true,
+          customerCode: true,
+          customerAliasName: true,
+          fName: true,
+          lName: true,
+          email: true,
+        },
         orderBy: { fName: 'asc' },
       }),
       this.prisma.tenantMailConfig.findFirst({

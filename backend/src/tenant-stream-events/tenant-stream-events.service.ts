@@ -317,7 +317,7 @@ export class TenantStreamEventsService {
         include: {
           tenantFlussonicServer: { select: { id: true, name: true } },
           tenantStream: { select: { id: true, name: true, title: true } },
-          tenantCustomer: { select: { id: true, customerCode: true, fName: true, lName: true } },
+          tenantCustomer: { select: { id: true, customerCode: true, customerAliasName: true, fName: true, lName: true } },
         },
         orderBy: [{ occurredAt: 'desc' }, { id: 'desc' }],
         ...paginate(page, limit),
